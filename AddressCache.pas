@@ -232,7 +232,7 @@ begin
   // Allocate memory for the item
   GetMem(AddressCacheItem, SizeOf(TAddressCacheItem));
 
-  if (TCompression.Inflate(Response, ResponseLen) < ResponseLen) then begin // If compression really saves data...
+  if not(TConfiguration.GetAddressCacheDisableCompression()) and (TCompression.Inflate(Response, ResponseLen) < ResponseLen) then begin
 
     AddressCacheItem^.Time        := ShortTime(Arrival);
     AddressCacheItem^.ResponseLen := TCompression.GetLength();
@@ -241,7 +241,7 @@ begin
     // Allocate memory for the Response and copy compressed data
     GetMem(AddressCacheItem^.Response, AddressCacheItem^.ResponseLen); Move(TCompression.GetBuffer()^, AddressCacheItem^.Response^, AddressCacheItem^.ResponseLen);
 
-  end else begin // Compression is not useful!
+  end else begin // Compression is either not useful or disabled!
 
     AddressCacheItem^.Time        := ShortTime(Arrival);
     AddressCacheItem^.ResponseLen := ResponseLen;
@@ -324,7 +324,7 @@ begin
 
         end;
 
-        // Return wether the Request needs a silent update or not (if it's older than the silent update time)
+        // Return whether the Request needs a silent update or not (if it's older than the silent update time)
         if (Elapsed <= Cardinal(TConfiguration.GetAddressCacheSilentUpdateTime())) then Result := RecentEnough else Result := NeedsUpdate;
 
       end else begin // The item is older than the scavenging time (so it should be removed from the list)

@@ -8,32 +8,34 @@
 # It contains predefined mappings between names and addresses exactly the   #
 # same way the native HOSTS file does.                                      #
 #                                                                           #
-# Every line corresponds to a single record (mapping).                      #
-# The format is: IPADDRESS HOSTNAME                                         #
+# The format is: IPADDRESS HOSTNAME1 [HOSTNAME2] [HOSTNAME3] ...            #
 #                                                                           #
-# Where IPADDRESS is in quad-dotted notation and HOSTNAME is a string.      #
-# The separator between IPADDRESS and HOSTNAME can be any number of spaces  #
-# or tabs or both. The HOSTNAME can also contain the special characters     #
-# '*' and '?' in which case a (slow) "dir" like pattern matching algorithm  #
-# is used instead of a (fast) binary search within the list of host names:  #
+# Where IPADDRESS is in quad-dotted notation and HOSTNAMES are strings.     #
 #                                                                           #
-# 127.0.0.1 ad.*                                                            #
-# 127.0.0.1 ads.*                                                           #
+# The separator between IPADDRESS and HOSTNAMES can be any number of spaces #
+# or tabs or both. If the HOSTNAMES contain the special characters '*' and  #
+# '?' a (slow) "dir" like pattern matching algorithm is used instead of a   #
+# (fast) binary search within the list of host names:                       #
 #                                                                           #
-# Note: Patterns are evaluated in the same order in which they are written. #
+# 127.0.0.1 ad.* ads.*                                                      #
 #                                                                           #
-# It is also possible to specify exceptions when pattern based matching is  #
-# used. If for example we would like to filter out all ads.* like domains   #
-# except for the ads.mydomain1 and the ads.mydomain2 we should write:       #
+# If a HOSTNAME starts with the '/' character instead it is treated like a  #
+# regular expression (also very slow compared to a binary search):          #
 #                                                                           #
-# 127.0.0.1 ads.* ads.mydomain1,ads.mydomain2                               #
+# 127.0.0.1 /^ads?\..*$                                                     #
 #                                                                           #
-# Multiple exceptions must be on a single line and separated by commas.     #
+# Note: More info about the regular expression engine and its syntax can be #
+# found at: http://regexpstudio.com                                         #
 #                                                                           #
-# Note: A line starting with the '#' character is considered a comment and  #
-# therefore ignored. If the '#' character is encountered within a line      #
-# instead everything before it is parsed while everything after it is       #
-# discarded.                                                                #
+# It is also possible to specify exceptions when regular expressions or     #
+# pattern based matching is used. If for example we would like to filter    #
+# out all ads.* like domains except for the ads.test1 and the ads.test2 we  #
+# should write:                                                             #
+#                                                                           #
+# 127.0.0.1 ads.* -ads.test1 -ads.test2                                     #
+#                                                                           #
+# Note: A line starting with the '#' character (and everything after it if  #
+# it's found within a line) is considered a comment and therefore ignored.  #
 #                                                                           #
 #############################################################################
 

@@ -1,2 +1,7 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
-<BorlandProject/>
+<BorlandProject>
+	<Transactions>
+    <Transaction>2011/06/13 13:45:20.892.pas,C:\Acrylic\Unit1.pas=C:\Acrylic\Split.pas</Transaction>
+    <Transaction>2011/06/13 23:19:51.881.pas,C:\Acrylic\Unit1.pas=C:\Acrylic\DoubleList.pas</Transaction>
+  </Transactions>
+</BorlandProject>

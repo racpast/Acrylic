@@ -38,12 +38,18 @@ begin
   for i := 0 to (KHostsItems - 1) do begin // Massive item production...
 
     // Fill a block of host items
-    SetLength(HostsLine, 0); for j := 0 to 999 do HostsLine := HostsLine + IntToStr((1000 * i + j) and 255) + '.' + IntToStr(((1000 * i + j) shr 8) and 255) + '.' + IntToStr(((1000 * i + j) shr 16) and 255) + '.' + IntToStr((1000 * i + j) shr 24) + #32 + 'HOSTNAME-' + IntToStr((1000 * i + j)) + #13#10;
+    SetLength(HostsLine, 0); for j := 0 to 999 do HostsLine := HostsLine + IntToStr((1000 * i + j) and 255) + '.' + IntToStr(((1000 * i + j) shr 8) and 255) + '.' + IntToStr(((1000 * i + j) shr 16) and 255) + '.' + IntToStr((1000 * i + j) shr 24) + #32 + 'HOSTNAME-PRI-' + FormatCurr('000000000', (1000 * i + j)) + #32 + 'HOSTNAME-ALT-' + FormatCurr('000000000', (1000 * i + j)) + #13#10;
 
     // Write the block of host items to disk
     HostsStream.Write(HostsLine[1], Length(HostsLine));
 
   end;
+
+  // Add an expression to the list
+  HostsLine := '127.0.0.1 /^.*\.EXPRESSION-127-0-0-1\..*$ -NO.EXPRESSION-127-0-0-1.TEST' + #13#10; HostsStream.Write(HostsLine[1], Length(HostsLine));
+
+  // Add a pattern to the list
+  HostsLine := '127.0.0.1 *.PATTERN-127-0-0-1.* -NO.PATTERN-127-0-0-1.TEST' + #13#10; HostsStream.Write(HostsLine[1], Length(HostsLine));
 
   // Close the stream
   HostsStream.Free();
@@ -65,14 +71,17 @@ begin
     for j := 0 to 999 do begin
 
       // Search the item by name
-      if not(THostsCache.Find('HOSTNAME-' + IntToStr(1000 * i + j), Address)) then raise FailedUnitTestException.Create;
-
-      // Check the item's returned address
-      if (Address <> (1000 * i + j)) then raise FailedUnitTestException.Create;
+      if not(THostsCache.Find('HOSTNAME-PRI-' + FormatCurr('000000000', (1000 * i + j)), Address) and (Address = (1000 * i + j))) or not(THostsCache.Find('HOSTNAME-ALT-' + FormatCurr('000000000', (1000 * i + j)), Address) and (Address = (1000 * i + j))) then raise FailedUnitTestException.Create;
 
     end;
 
   end;
+
+  // Test the expression engine
+  if not(THostsCache.Find('MATCH.EXPRESSION-127-0-0-1.TEST', Address) and (Address = LOCALHOST_ADDRESS)) or not(THostsCache.Find('match.expression-127-0-0-1.test', Address) and (Address = LOCALHOST_ADDRESS)) or THostsCache.Find('NO.EXPRESSION-127-0-0-1.TEST', Address) then raise FailedUnitTestException.Create;
+
+  // Test the pattern engine
+  if not(THostsCache.Find('MATCH.PATTERN-127-0-0-1.TEST', Address) and (Address = LOCALHOST_ADDRESS)) or not(THostsCache.Find('match.pattern-127-0-0-1.TEST', Address) and (Address = LOCALHOST_ADDRESS)) or THostsCache.Find('NO.PATTERN-127-0-0-1.TEST', Address) then raise FailedUnitTestException.Create;
 
   TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Done.');
 

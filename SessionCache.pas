@@ -22,6 +22,7 @@ type
       class procedure Initialize();
       class procedure Insert(SessionId: Word; RequestHash: Int64; ClientAddress: Integer; ClientPort: Word; SilentUpdate: Boolean; CacheException: Boolean);
       class function  Extract(SessionId: Word; var RequestHash: Int64; var ClientAddress: Integer; var ClientPort: Word; var SilentUpdate: Boolean; var CacheException: Boolean): Boolean;
+      class procedure Delete(SessionId: Word);
       class procedure Finalize();
   end;
 
@@ -89,14 +90,20 @@ begin
     SilentUpdate   := (TSessionCache_List[SessionId].Flags and 2) > 0;
     CacheException := (TSessionCache_List[SessionId].Flags and 4) > 0;
 
-    // Clear the allocated flag
-    TSessionCache_List[SessionId].Flags := 0;
-
     Result := True;
 
   end else begin
     Result := False;
   end;
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class procedure TSessionCache.Delete(SessionId: Word);
+begin
+    TSessionCache_List[SessionId].Flags := 0;
 end;
 
 // --------------------------------------------------------------------------

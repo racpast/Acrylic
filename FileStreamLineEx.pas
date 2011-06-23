@@ -31,7 +31,7 @@ type
     public
       constructor Create(Stream: TStream);
     public
-      function    ReadLine(var Line: String): Boolean;
+      function    ReadLine(var OutputLine: String): Boolean;
   end;
 
 // --------------------------------------------------------------------------
@@ -69,12 +69,12 @@ end;
 //
 // --------------------------------------------------------------------------
 
-function TFileStreamLineEx.ReadLine(var Line: String): Boolean;
+function TFileStreamLineEx.ReadLine(var OutputLine: String): Boolean;
 var
   Buffer: String; Bytes, Position: Integer;
 begin
   // Find line terminator in the current line
-  Position := Pos(LINE_TERMINATOR, CurrentLine); while (Position = 0) do begin
+  Position := Pos(LINE_TERMINATOR, CurrentLine); while not(Position > 0) do begin
 
     // Clean the buffer
     SetLength(Buffer, LINE_READ_CHUNK);
@@ -95,7 +95,7 @@ begin
   end; if (Position > 0) then begin // If a line terminator has been found...
 
     // Output line
-    Line := Copy(CurrentLine, 1, Position - 1);
+    OutputLine := Copy(CurrentLine, 1, Position - 1);
 
     // Current line
     Delete(CurrentLine, 1, Position + Length(LINE_TERMINATOR) - 1);
@@ -106,7 +106,7 @@ begin
   end else begin // A line terminator has not been found
 
     // Output line
-    Line := CurrentLine;
+    OutputLine := CurrentLine;
 
     // Current line
     SetLength(CurrentLine, 0);

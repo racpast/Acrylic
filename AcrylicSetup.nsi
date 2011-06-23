@@ -9,7 +9,7 @@
 ;--------------------------------
 
 ; Name
-Name "Acrylic DNS Proxy (0.9.17)"
+Name "Acrylic DNS Proxy (0.9.18)"
 
 ; Output
 OutFile "Acrylic.exe"
@@ -81,7 +81,7 @@ Section "Acrylic" SecMain
   CreateShortCut  "$SMPROGRAMS\Acrylic DNS Proxy\Config\Edit Configuration File.lnk" "$INSTDIR\AcrylicController.exe" "EditAcrylicConfigurationFile"
   CreateShortCut  "$SMPROGRAMS\Acrylic DNS Proxy\Config\Edit Custom Hosts File.lnk" "$INSTDIR\AcrylicController.exe" "EditAcrylicHostsFile"
   CreateShortCut  "$SMPROGRAMS\Acrylic DNS Proxy\Config\Purge Acrylic Cache Data.lnk" "$INSTDIR\AcrylicController.exe" "PurgeAcrylicCache"
-  CreateShortCut  "$SMPROGRAMS\Acrylic DNS Proxy\Config\Start Acrylic Service.lnk" "$INSTDIR\AcrylicController.exe" "StartAcrylicService"
+  CreateShortCut  "$SMPROGRAMS\Acrylic DNS Proxy\Config\Restart Acrylic Service.lnk" "$INSTDIR\AcrylicController.exe" "StartAcrylicService"
   CreateShortCut  "$SMPROGRAMS\Acrylic DNS Proxy\Config\Stop Acrylic Service.lnk" "$INSTDIR\AcrylicController.exe" "StopAcrylicService"
 
   CreateShortCut  "$SMPROGRAMS\Acrylic DNS Proxy\Support\About Acrylic.lnk" "$INSTDIR\AcrylicController.exe" "AboutAcrylic"
@@ -111,7 +111,7 @@ Section "Uninstall"
   Delete "$SMPROGRAMS\Acrylic DNS Proxy\Config\Edit Configuration File.lnk"
   Delete "$SMPROGRAMS\Acrylic DNS Proxy\Config\Edit Custom Hosts File.lnk"
   Delete "$SMPROGRAMS\Acrylic DNS Proxy\Config\Purge Acrylic Cache Data.lnk"
-  Delete "$SMPROGRAMS\Acrylic DNS Proxy\Config\Start Acrylic Service.lnk"
+  Delete "$SMPROGRAMS\Acrylic DNS Proxy\Config\Restart Acrylic Service.lnk"
   Delete "$SMPROGRAMS\Acrylic DNS Proxy\Config\Stop Acrylic Service.lnk"
 
   Delete "$SMPROGRAMS\Acrylic DNS Proxy\Support\About Acrylic.lnk"
