@@ -395,7 +395,7 @@ begin
             SessionId := Self.GetIdFromPacket(Self.Buffer);
 
             // If it's a response coming from one of the DNS servers...
-            if ((Address = TConfiguration.GetServerAddress(0)) or (Address = TConfiguration.GetServerAddress(1)) or (Address = TConfiguration.GetServerAddress(2))) then begin
+            if ((Address = TConfiguration.GetServerAddress(0)) and (Port = TConfiguration.GetServerPort(0))) or ((Address = TConfiguration.GetServerAddress(1)) and (Port = TConfiguration.GetServerPort(1))) or ((Address = TConfiguration.GetServerAddress(2)) and (Port = TConfiguration.GetServerPort(2))) then begin
 
               // Trace the event if a tracer is enabled
               if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' received from server ' + TIPAddress.ToString(Address) + ':' + IntToStr(Port) + '.');

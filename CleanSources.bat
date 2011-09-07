@@ -1,13 +1,13 @@
-@ECHO OFF
+@echo off
 
-DEL *.dcu
-DEL *.~pas
-DEL *.~dpr
-DEL *.~ddp
-DEL *.~dfm
-DEL *.dat
-DEL *.exe
-DEL *.tmp
+del *.dcu
+del *.~pas
+del *.~dpr
+del *.~ddp
+del *.~dfm
+del *.dat
+del *.exe
+del *.tmp
 
-DEL AcrylicDebug.txt
-DEL AcrylicStats.txt
+del AcrylicDebug.txt
+del AcrylicStats.txt

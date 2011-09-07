@@ -9,7 +9,7 @@
 ;--------------------------------
 
 ; Name
-Name "Acrylic DNS Proxy (0.9.18)"
+Name "Acrylic DNS Proxy (0.9.19)"
 
 ; Output
 OutFile "Acrylic.exe"
@@ -94,7 +94,7 @@ Section "Acrylic" SecMain
 
   CreateShortCut  "$SMPROGRAMS\Acrylic DNS Proxy\Uninstall\Uninstall.lnk" "$INSTDIR\Uninstall.exe"
 
-  ExecWait "$INSTDIR\AcrylicService.exe /INSTALL /SILENT"
+  ExecWait "$INSTDIR\AcrylicController.exe InstallAcrylicService"
 
 SectionEnd
 
