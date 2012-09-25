@@ -40,7 +40,7 @@ type
       procedure   SetStringIntoPacket(Value: String; Buffer: Pointer; var Offset: Integer; BufferLen: Integer);
       function    GetStringFromPacket(Value: String; Buffer: Pointer; var OffsetL1: Integer; var OffsetLX: Integer; Level: Integer; BufferLen: Integer): String;
     private
-      function    PrintRequestPacketHostNameAsStringFromPacket(Buffer: Pointer; BufferLen: Integer): String;
+      procedure   GetRequestPacketHostNameAndQueryTypeFromPacket(Buffer: Pointer; BufferLen: Integer; var HostName: String; var QueryType:Word);
       procedure   BuildResponsePacketFromHostNameAndAddress(HostName: String; HostAddress: Integer; Buffer: Pointer; var BufferLen: Integer);
       function    PrintResponsePacketDescriptionAsStringFromPacket(Buffer: Pointer; BufferLen: Integer): String;
     private
@@ -154,7 +154,7 @@ begin
       end else if ((OffsetLX + PByteArray(Buffer)^[OffsetLX] + 1) < BufferLen) then begin
 
         // Add the domain separator (a dot)
-        if (Length(Value) > 0) then Value := Value + '.';
+        if (Value <> '') then Value := Value + '.';
 
         // Add the domain one character at a time
         for Index := 1 to PByteArray(Buffer)^[OffsetLX] do Value := Value + Char(PByteArray(Buffer)^[OffsetLX + Index]);
@@ -210,11 +210,11 @@ end;
 //
 // --------------------------------------------------------------------------
 
-function TResolver.PrintRequestPacketHostNameAsStringFromPacket(Buffer: Pointer; BufferLen: Integer): String;
+procedure TResolver.GetRequestPacketHostNameAndQueryTypeFromPacket(Buffer: Pointer; BufferLen: Integer; var HostName: String; var QueryType: Word);
 var
   OffsetL1: Integer; OffsetLX: Integer;
 begin
-  OffsetL1 := REQ_HOST_NAME_OFFSET; OffsetLX := OffsetL1; Result := GetStringFromPacket('', Buffer, OffsetL1, OffsetLX, 1, BufferLen);
+  OffsetL1 := REQ_HOST_NAME_OFFSET; OffsetLX := OffsetL1; HostName := GetStringFromPacket('', Buffer, OffsetL1, OffsetLX, 1, BufferLen); QueryType := GetWordFromPacket(Buffer, OffsetL1, BufferLen);
 end;
 
 // --------------------------------------------------------------------------
@@ -366,7 +366,7 @@ end;
 procedure TResolver.Execute;
 var
   ClientServerSocket: TClientServerSocket;
-  Arrival: TDateTime; ArrivalEx: Double; Address: Integer; AltAddress: Integer; Port: Word; AltPort: Word; SessionId: Word; RequestHash: Int64; SilentUpdate: Boolean; CacheException: Boolean; HostName: String; DnsIndex: Integer;
+  Arrival: TDateTime; ArrivalEx: Double; Address: Integer; AltAddress: Integer; Port: Word; AltPort: Word; SessionId: Word; RequestHash: Int64; SilentUpdate: Boolean; CacheException: Boolean; HostName: String; QueryType: Word; DnsIndex: Integer;
 begin
   // Initialize network
   TClientServerSocket.Initialize();
@@ -395,7 +395,7 @@ begin
             SessionId := Self.GetIdFromPacket(Self.Buffer);
 
             // If it's a response coming from one of the DNS servers...
-            if ((Address = TConfiguration.GetServerAddress(0)) and (Port = TConfiguration.GetServerPort(0))) or ((Address = TConfiguration.GetServerAddress(1)) and (Port = TConfiguration.GetServerPort(1))) or ((Address = TConfiguration.GetServerAddress(2)) and (Port = TConfiguration.GetServerPort(2))) then begin
+            if ((Address = TConfiguration.GetServerConfiguration(0).Address) and (Port = TConfiguration.GetServerConfiguration(0).Port)) or ((Address = TConfiguration.GetServerConfiguration(1).Address) and (Port = TConfiguration.GetServerConfiguration(1).Port)) or ((Address = TConfiguration.GetServerConfiguration(2).Address) and (Port = TConfiguration.GetServerConfiguration(2).Port)) or ((Address = TConfiguration.GetServerConfiguration(3).Address) and (Port = TConfiguration.GetServerConfiguration(3).Port)) then begin
 
               // Trace the event if a tracer is enabled
               if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' received from server ' + TIPAddress.ToString(Address) + ':' + IntToStr(Port) + '.');
@@ -421,7 +421,7 @@ begin
 
                   end else begin // The response is negative!
 
-                    if ((Address = TConfiguration.GetServerAddress(0)) and not(TConfiguration.GetIgnoreNegativeResponsesFromServer(0))) or ((Address = TConfiguration.GetServerAddress(1)) and not(TConfiguration.GetIgnoreNegativeResponsesFromServer(1))) or ((Address = TConfiguration.GetServerAddress(2)) and not(TConfiguration.GetIgnoreNegativeResponsesFromServer(2))) then begin
+                    if ((Address = TConfiguration.GetServerConfiguration(0).Address) and not(TConfiguration.GetServerConfiguration(0).IgnoreNegativeResponsesFromServer)) or ((Address = TConfiguration.GetServerConfiguration(1).Address) and not(TConfiguration.GetServerConfiguration(1).IgnoreNegativeResponsesFromServer)) or ((Address = TConfiguration.GetServerConfiguration(2).Address) and not(TConfiguration.GetServerConfiguration(2).IgnoreNegativeResponsesFromServer)) or ((Address = TConfiguration.GetServerConfiguration(3).Address) and not(TConfiguration.GetServerConfiguration(3).IgnoreNegativeResponsesFromServer)) then begin
 
                       // Clear the item
                       TSessionCache.Delete(SessionId);
@@ -488,7 +488,7 @@ begin
 
                   end else begin // The response is negative!
 
-                    if ((Address = TConfiguration.GetServerAddress(0)) and not(TConfiguration.GetIgnoreNegativeResponsesFromServer(0))) or ((Address = TConfiguration.GetServerAddress(1)) and not(TConfiguration.GetIgnoreNegativeResponsesFromServer(1))) or ((Address = TConfiguration.GetServerAddress(2)) and not(TConfiguration.GetIgnoreNegativeResponsesFromServer(2))) then begin
+                    if ((Address = TConfiguration.GetServerConfiguration(0).Address) and not(TConfiguration.GetServerConfiguration(0).IgnoreNegativeResponsesFromServer)) or ((Address = TConfiguration.GetServerConfiguration(1).Address) and not(TConfiguration.GetServerConfiguration(1).IgnoreNegativeResponsesFromServer)) or ((Address = TConfiguration.GetServerConfiguration(2).Address) and not(TConfiguration.GetServerConfiguration(2).IgnoreNegativeResponsesFromServer)) or ((Address = TConfiguration.GetServerConfiguration(3).Address) and not(TConfiguration.GetServerConfiguration(3).IgnoreNegativeResponsesFromServer)) then begin
 
                       // Clear the item
                       TSessionCache.Delete(SessionId);
@@ -524,16 +524,16 @@ begin
               end;
 
               // Update performance statistics if enabled
-              if TStatistics.IsEnabled() then begin if (Address = TConfiguration.GetServerAddress(0)) then TStatistics.IncTotalResponsesAndMeasureFlyTime(ArrivalEx, True, 0, SessionId) else if (Address = TConfiguration.GetServerAddress(1)) then TStatistics.IncTotalResponsesAndMeasureFlyTime(ArrivalEx, True, 1, SessionId) else if (Address = TConfiguration.GetServerAddress(2)) then TStatistics.IncTotalResponsesAndMeasureFlyTime(ArrivalEx, True, 2, SessionId); end;
+              if TStatistics.IsEnabled() then begin if (Address = TConfiguration.GetServerConfiguration(0).Address) then TStatistics.IncTotalResponsesAndMeasureFlyTime(ArrivalEx, True, 0, SessionId) else if (Address = TConfiguration.GetServerConfiguration(1).Address) then TStatistics.IncTotalResponsesAndMeasureFlyTime(ArrivalEx, True, 1, SessionId) else if (Address = TConfiguration.GetServerConfiguration(2).Address) then TStatistics.IncTotalResponsesAndMeasureFlyTime(ArrivalEx, True, 2, SessionId) else if (Address = TConfiguration.GetServerConfiguration(3).Address) then TStatistics.IncTotalResponsesAndMeasureFlyTime(ArrivalEx, True, 3, SessionId); end;
 
             // Else if it's a request coming from one of the DNS clients...
             end else if (Address = LOCALHOST_ADDRESS) or TConfiguration.IsAllowedAddress(TIPAddress.ToString(Address)) then begin
 
-              // Get the host name from the request
-              HostName := Self.PrintRequestPacketHostNameAsStringFromPacket(Buffer, BufferLen);
+              // Get the host name and query type from the request
+              Self.GetRequestPacketHostNameAndQueryTypeFromPacket(Buffer, BufferLen, HostName, QueryType);
 
               // Trace the event if a tracer is enabled
-              if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Request  ID ' + FormatCurr('00000', SessionId) + ' received from client ' + TIPAddress.ToString(Address) + ':' + IntToStr(Port) + ' regarding "' + HostName + '".');
+              if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Request  ID ' + FormatCurr('00000', SessionId) + ' received from client ' + TIPAddress.ToString(Address) + ':' + IntToStr(Port) + ' regarding "' + HostName + '" of type ' + IntToStr(QueryType) + '.');
 
               if TConfiguration.IsBlackException(HostName) then begin // If a black exception...
 
@@ -552,7 +552,7 @@ begin
                 // Update performance statistics if enabled
                 if TStatistics.IsEnabled() then TStatistics.IncTotalRequestsResolvedThroughOtherWays();
 
-              end else if THostsCache.Find(HostName, AltAddress) then begin // If the host name exists in the hosts cache...
+              end else if THostsCache.Find(HostName, AltAddress) and (QueryType = REQ_QUERY_TYPE_A) then begin // If the host name exists in the hosts cache and the query type is A...
 
                 // Build a standard response
                 Self.BuildResponsePacketFromHostNameAndAddress(HostName, AltAddress, Self.Output, Self.OutputLen);
@@ -572,16 +572,16 @@ begin
               end else if TConfiguration.IsCacheException(HostName) then begin // If the host name is configured as a cache exception...
 
                 for DnsIndex := 0 to (Configuration.MAX_NUM_DNS_SERVERS - 1) do begin // For every DNS server...
-                  if (TConfiguration.GetServerAddress(DnsIndex) <> -1) then begin
+                  if (TConfiguration.GetServerConfiguration(DnsIndex).Address <> -1) and TConfiguration.IsAffinityMatch(HostName, TConfiguration.GetServerConfiguration(DnsIndex).AffinityMask) then begin
 
                     // Forward the request to the server
-                    ClientServerSocket.SendTo(Self.Buffer, Self.BufferLen, TConfiguration.GetServerAddress(DnsIndex), TConfiguration.GetServerPort(DnsIndex));
+                    ClientServerSocket.SendTo(Self.Buffer, Self.BufferLen, TConfiguration.GetServerConfiguration(DnsIndex).Address, TConfiguration.GetServerConfiguration(DnsIndex).Port);
 
                     // Update performance data if enabled
                     if TStatistics.IsEnabled() then TStatistics.IncTotalResponsesAndMeasureFlyTime(TPerformance.GetInstantValue(), False, DnsIndex, SessionId);
 
                     // Trace the event if a tracer is enabled
-                    if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Request  ID ' + FormatCurr('00000', SessionId) + ' forwarded to server ' + TIPAddress.ToString(TConfiguration.GetServerAddress(DnsIndex)) + ':' + IntToStr(TConfiguration.GetServerPort(DnsIndex)) + ' as cache exception.');
+                    if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Request  ID ' + FormatCurr('00000', SessionId) + ' forwarded to server ' + TIPAddress.ToString(TConfiguration.GetServerConfiguration(DnsIndex).Address) + ':' + IntToStr(TConfiguration.GetServerConfiguration(DnsIndex).Port) + ' as cache exception.');
 
                   end else begin
                     Break;
@@ -625,16 +625,16 @@ begin
                     if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' sent to client ' + TIPAddress.ToString(Address) + ':' + IntToStr(Port) + ' directly from address cache.');
 
                     for DnsIndex := 0 to (Configuration.MAX_NUM_DNS_SERVERS - 1) do begin // For every DNS server...
-                      if (TConfiguration.GetServerAddress(DnsIndex) <> -1) then begin
+                      if (TConfiguration.GetServerConfiguration(DnsIndex).Address <> -1) and TConfiguration.IsAffinityMatch(HostName, TConfiguration.GetServerConfiguration(DnsIndex).AffinityMask) then begin
 
                         // Forward the request to the server
-                        ClientServerSocket.SendTo(Self.Buffer, Self.BufferLen, TConfiguration.GetServerAddress(DnsIndex), TConfiguration.GetServerPort(DnsIndex));
+                        ClientServerSocket.SendTo(Self.Buffer, Self.BufferLen, TConfiguration.GetServerConfiguration(DnsIndex).Address, TConfiguration.GetServerConfiguration(DnsIndex).Port);
 
                         // Update performance data if enabled
                         if TStatistics.IsEnabled() then TStatistics.IncTotalResponsesAndMeasureFlyTime(TPerformance.GetInstantValue(), False, DnsIndex, SessionId);
 
                         // Trace the event if a tracer is enabled
-                        if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Request  ID ' + FormatCurr('00000', SessionId) + ' forwarded to server ' + TIPAddress.ToString(TConfiguration.GetServerAddress(DnsIndex)) + ':' + IntToStr(TConfiguration.GetServerPort(DnsIndex)) + ' as silent update.');
+                        if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Request  ID ' + FormatCurr('00000', SessionId) + ' forwarded to server ' + TIPAddress.ToString(TConfiguration.GetServerConfiguration(DnsIndex).Address) + ':' + IntToStr(TConfiguration.GetServerConfiguration(DnsIndex).Port) + ' as silent update.');
 
                       end else begin
                         Break;
@@ -653,16 +653,16 @@ begin
                   end; NotFound: begin // The item is not in the address cache...
 
                     for DnsIndex := 0 to (Configuration.MAX_NUM_DNS_SERVERS - 1) do begin // For every DNS server...
-                      if (TConfiguration.GetServerAddress(DnsIndex) <> -1) then begin // If it's been configured...
+                      if (TConfiguration.GetServerConfiguration(DnsIndex).Address <> -1) and TConfiguration.IsAffinityMatch(HostName, TConfiguration.GetServerConfiguration(DnsIndex).AffinityMask) then begin // If it's been configured...
 
                         // Forward the request to the server
-                        ClientServerSocket.SendTo(Self.Buffer, Self.BufferLen, TConfiguration.GetServerAddress(DnsIndex), TConfiguration.GetServerPort(DnsIndex));
+                        ClientServerSocket.SendTo(Self.Buffer, Self.BufferLen, TConfiguration.GetServerConfiguration(DnsIndex).Address, TConfiguration.GetServerConfiguration(DnsIndex).Port);
 
                         // Update performance data if enabled
                         if TStatistics.IsEnabled() then TStatistics.IncTotalResponsesAndMeasureFlyTime(TPerformance.GetInstantValue(), False, DnsIndex, SessionId);
 
                         // Trace the event if a tracer is enabled
-                        if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Request  ID ' + FormatCurr('00000', SessionId) + ' forwarded to server ' + TIPAddress.ToString(TConfiguration.GetServerAddress(DnsIndex)) + ':' + IntToStr(TConfiguration.GetServerPort(DnsIndex)) + '.');
+                        if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Request  ID ' + FormatCurr('00000', SessionId) + ' forwarded to server ' + TIPAddress.ToString(TConfiguration.GetServerConfiguration(DnsIndex).Address) + ':' + IntToStr(TConfiguration.GetServerConfiguration(DnsIndex).Port) + '.');
 
                       end else begin
                         Break;

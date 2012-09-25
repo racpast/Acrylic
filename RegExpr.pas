@@ -1,8 +1,9 @@
 unit RegExpr;
 
 {
-     TRegExpr class library
-     Delphi Regular Expressions
+
+ TRegExpr class library
+ Delphi Regular Expressions
 
  Copyright (c) 1999-2004 Andrey V. Sorokin, St.Petersburg, Russia
 
@@ -28,13 +29,14 @@ unit RegExpr;
     not be charged seperatly.
  4. Altered versions must be plainly marked as such, and must
     not be misrepresented as being the original software.
- 5. RegExp Studio application and all the visual components as 
-    well as documentation is not part of the TRegExpr library 
+ 5. RegExp Studio application and all the visual components as
+    well as documentation is not part of the TRegExpr library
     and is not free for usage.
 
                                     mailto:anso@mail.ru
                                     http://RegExpStudio.com
                                     http://anso.da.ru/
+
 }
 
 interface
@@ -64,21 +66,21 @@ interface
   {$WARN UNSAFE_CODE OFF} // Suppress .Net warnings
 {$ENDIF}
 {$IFDEF FPC}
- {$MODE DELPHI} // Delphi-compatible mode in FreePascal
+  {$MODE DELPHI} // Delphi-compatible mode in FreePascal
 {$ENDIF}
 
 // ======== Define options for TRegExpr engine
 {.$DEFINE UniCode} // Unicode support
 {$DEFINE RegExpPCodeDump} // p-code dumping (see Dump method)
 {$IFNDEF FPC} // the option is not supported in FreePascal
- {$DEFINE reRealExceptionAddr} // exceptions will point to appropriate source line, not to Error procedure
+  {$DEFINE reRealExceptionAddr} // exceptions will point to appropriate source line, not to Error procedure
 {$ENDIF}
 {$DEFINE ComplexBraces} // support braces in complex cases
 {$IFNDEF UniCode} // the option applicable only for non-UniCode mode
- {$DEFINE UseSetOfChar} // Significant optimization by using set of char
+  {$DEFINE UseSetOfChar} // Significant optimization by using set of char
 {$ENDIF}
 {$IFDEF UseSetOfChar}
- {$DEFINE UseFirstCharSet} // Fast skip between matches for r.e. that starts with determined set of chars
+  {$DEFINE UseFirstCharSet} // Fast skip between matches for r.e. that starts with determined set of chars
 {$ENDIF}
 
 // ======== Define Pascal-language options
@@ -4038,4 +4040,3 @@ initialization
 
 {$ENDIF}
 end.
-

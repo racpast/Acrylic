@@ -6,23 +6,30 @@ echo.
 
 call CleanSources.bat
 
+rem
+rem Searching The Compiler...
+rem
+
+if exist "%PROGRAMFILES%\Delphi 10 Lite\Bin\DCC32.exe" set DCC="%PROGRAMFILES%\Delphi 10 Lite\Bin\DCC32.exe"
+if exist "%PROGRAMFILES(X86)%\Delphi 10 Lite\Bin\DCC32.exe" set DCC="%PROGRAMFILES(X86)%\Delphi 10 Lite\Bin\DCC32.exe"
+
 echo.
 echo Compiling Acrylic Console...
 echo.
 
-"%PROGRAMFILES%\Delphi 10 Lite\Bin\DCC32.exe" AcrylicConsole.dpr
+%DCC% AcrylicConsole.dpr
 
 echo.
 echo Compiling Acrylic Service...
 echo.
 
-"%PROGRAMFILES%\Delphi 10 Lite\Bin\DCC32.exe" AcrylicService.dpr
+%DCC% AcrylicService.dpr
 
 echo.
 echo Compiling Acrylic Controller...
 echo.
 
-"%PROGRAMFILES%\Delphi 10 Lite\Bin\DCC32.exe" AcrylicController.dpr
+%DCC% AcrylicController.dpr
 
 echo.
 echo Building Setup Package...

@@ -17,7 +17,7 @@ program
 // --------------------------------------------------------------------------
 
 uses
-    SysUtils, Configuration, Tracer, ConsoleTracerAgent, Bootstrapper;
+  SysUtils, Configuration, Tracer, ConsoleTracerAgent, Bootstrapper;
 
 // --------------------------------------------------------------------------
 //
