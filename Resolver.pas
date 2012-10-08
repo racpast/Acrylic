@@ -302,12 +302,10 @@ begin
 
       if (OffsetL1 < BufferLen) then begin
 
-        // Read the answer name
         OffsetLX := OffsetL1; AValue := GetStringFromPacket('', Buffer, OffsetL1, OffsetLX, 1, BufferLen);
 
         if ((OffsetL1 + 10) <= BufferLen) then begin
 
-          // Read the answer properties
           AnType := GetWordFromPacket(Buffer, OffsetL1, BufferLen); Inc(OffsetL1, 8);
           AnData := GetWordFromPacket(Buffer, OffsetL1, BufferLen); Inc(OffsetL1, 2);
 
@@ -315,7 +313,7 @@ begin
 
             case AnType of
 
-              $0001: // A record
+              REQ_QUERY_TYPE_A:
 
                 if (AnData = 4) then begin
 
@@ -552,7 +550,7 @@ begin
                 // Update performance statistics if enabled
                 if TStatistics.IsEnabled() then TStatistics.IncTotalRequestsResolvedThroughOtherWays();
 
-              end else if THostsCache.Find(HostName, AltAddress) and (QueryType = REQ_QUERY_TYPE_A) then begin // If the host name exists in the hosts cache and the query type is A...
+              end else if THostsCache.Find(HostName, AltAddress) and ((QueryType = REQ_QUERY_TYPE_A) or (QueryType = REQ_QUERY_TYPE_AAAA)) then begin // If the host name exists in the hosts cache and the query type is A (IPv4) or AAAA (IPv6)...
 
                 // Build a standard response
                 Self.BuildResponsePacketFromHostNameAndAddress(HostName, AltAddress, Self.Output, Self.OutputLen);
