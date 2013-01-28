@@ -6,9 +6,9 @@ echo.
 
 call CleanSources.bat
 
-rem
-rem Searching The Compiler...
-rem
+echo.
+echo Searching The Compiler...
+echo.
 
 if exist "%PROGRAMFILES%\Delphi 10 Lite\Bin\DCC32.exe" set DCC="%PROGRAMFILES%\Delphi 10 Lite\Bin\DCC32.exe"
 if exist "%PROGRAMFILES(X86)%\Delphi 10 Lite\Bin\DCC32.exe" set DCC="%PROGRAMFILES(X86)%\Delphi 10 Lite\Bin\DCC32.exe"

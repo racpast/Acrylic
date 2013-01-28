@@ -623,17 +623,19 @@ begin
                     if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' sent to client ' + TIPAddress.ToString(Address) + ':' + IntToStr(Port) + ' directly from address cache.');
 
                     for DnsIndex := 0 to (Configuration.MAX_NUM_DNS_SERVERS - 1) do begin // For every DNS server...
-                      if (TConfiguration.GetServerConfiguration(DnsIndex).Address <> -1) and TConfiguration.IsAffinityMatch(HostName, TConfiguration.GetServerConfiguration(DnsIndex).AffinityMask) then begin
+                      if (TConfiguration.GetServerConfiguration(DnsIndex).Address <> -1) then begin // If it's been configured...
+                        if TConfiguration.IsAffinityMatch(HostName, TConfiguration.GetServerConfiguration(DnsIndex).AffinityMask) then begin
 
-                        // Forward the request to the server
-                        ClientServerSocket.SendTo(Self.Buffer, Self.BufferLen, TConfiguration.GetServerConfiguration(DnsIndex).Address, TConfiguration.GetServerConfiguration(DnsIndex).Port);
+                          // Forward the request to the server
+                          ClientServerSocket.SendTo(Self.Buffer, Self.BufferLen, TConfiguration.GetServerConfiguration(DnsIndex).Address, TConfiguration.GetServerConfiguration(DnsIndex).Port);
 
-                        // Update performance data if enabled
-                        if TStatistics.IsEnabled() then TStatistics.IncTotalResponsesAndMeasureFlyTime(TPerformance.GetInstantValue(), False, DnsIndex, SessionId);
+                          // Update performance data if enabled
+                          if TStatistics.IsEnabled() then TStatistics.IncTotalResponsesAndMeasureFlyTime(TPerformance.GetInstantValue(), False, DnsIndex, SessionId);
 
-                        // Trace the event if a tracer is enabled
-                        if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Request  ID ' + FormatCurr('00000', SessionId) + ' forwarded to server ' + TIPAddress.ToString(TConfiguration.GetServerConfiguration(DnsIndex).Address) + ':' + IntToStr(TConfiguration.GetServerConfiguration(DnsIndex).Port) + ' as silent update.');
+                          // Trace the event if a tracer is enabled
+                          if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Request  ID ' + FormatCurr('00000', SessionId) + ' forwarded to server ' + TIPAddress.ToString(TConfiguration.GetServerConfiguration(DnsIndex).Address) + ':' + IntToStr(TConfiguration.GetServerConfiguration(DnsIndex).Port) + ' as silent update.');
 
+                        end;
                       end else begin
                         Break;
                       end;
@@ -651,17 +653,19 @@ begin
                   end; NotFound: begin // The item is not in the address cache...
 
                     for DnsIndex := 0 to (Configuration.MAX_NUM_DNS_SERVERS - 1) do begin // For every DNS server...
-                      if (TConfiguration.GetServerConfiguration(DnsIndex).Address <> -1) and TConfiguration.IsAffinityMatch(HostName, TConfiguration.GetServerConfiguration(DnsIndex).AffinityMask) then begin // If it's been configured...
+                      if (TConfiguration.GetServerConfiguration(DnsIndex).Address <> -1) then begin // If it's been configured...
+                        if TConfiguration.IsAffinityMatch(HostName, TConfiguration.GetServerConfiguration(DnsIndex).AffinityMask) then begin
 
-                        // Forward the request to the server
-                        ClientServerSocket.SendTo(Self.Buffer, Self.BufferLen, TConfiguration.GetServerConfiguration(DnsIndex).Address, TConfiguration.GetServerConfiguration(DnsIndex).Port);
+                          // Forward the request to the server
+                          ClientServerSocket.SendTo(Self.Buffer, Self.BufferLen, TConfiguration.GetServerConfiguration(DnsIndex).Address, TConfiguration.GetServerConfiguration(DnsIndex).Port);
 
-                        // Update performance data if enabled
-                        if TStatistics.IsEnabled() then TStatistics.IncTotalResponsesAndMeasureFlyTime(TPerformance.GetInstantValue(), False, DnsIndex, SessionId);
+                          // Update performance data if enabled
+                          if TStatistics.IsEnabled() then TStatistics.IncTotalResponsesAndMeasureFlyTime(TPerformance.GetInstantValue(), False, DnsIndex, SessionId);
 
-                        // Trace the event if a tracer is enabled
-                        if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Request  ID ' + FormatCurr('00000', SessionId) + ' forwarded to server ' + TIPAddress.ToString(TConfiguration.GetServerConfiguration(DnsIndex).Address) + ':' + IntToStr(TConfiguration.GetServerConfiguration(DnsIndex).Port) + '.');
+                          // Trace the event if a tracer is enabled
+                          if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Request  ID ' + FormatCurr('00000', SessionId) + ' forwarded to server ' + TIPAddress.ToString(TConfiguration.GetServerConfiguration(DnsIndex).Address) + ':' + IntToStr(TConfiguration.GetServerConfiguration(DnsIndex).Port) + '.');
 
+                        end;
                       end else begin
                         Break;
                       end;
