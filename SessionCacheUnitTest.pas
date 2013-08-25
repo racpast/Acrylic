@@ -1,4 +1,3 @@
-
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
@@ -20,10 +19,8 @@ type
 
 constructor TSessionCacheUnitTest.Create();
 begin
-  // Call base
   inherited Create;
 
-  // Initialize locals
   GetMem(Buffer, MAX_DNS_PACKET_LEN);
 end;
 
@@ -77,14 +74,11 @@ end;
 
 destructor TSessionCacheUnitTest.Destroy();
 begin
-  // Finalize locals
   FreeMem(Buffer, MAX_DNS_PACKET_LEN);
 
-  // Call base
   inherited Destroy;
 end;
 
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
-

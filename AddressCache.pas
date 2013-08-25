@@ -1,4 +1,3 @@
-
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
@@ -189,17 +188,17 @@ begin
       Self.InternalXpl(Hash, Data, Item, Bull, Half);
     end else if (Hash <= Bull) then begin
       Self.InternalXpr(Item^.RHash, Item^.RData, Item, Bull, Half); Item^.RHash := Hash; Item^.RData := Data;
-    end else begin // Hash > Bull
+    end else begin
       Self.InternalXpl(Item^.LHash, Item^.LData, Item, Bull, Half); Item^.LHash := Hash; Item^.LData := Data;
     end;
 
-  end else begin // Item^.LHash = Item^.RHash
+  end else begin
 
     if (Item^.LHash = Hash) then begin
       Self.InternalMem(Item^.LData); Item^.LData := Data; Item^.RData := Data;
     end else if (Hash > Item^.LHash) then begin
       Item^.LHash := Hash; Item^.LData := Data;
-    end else begin // Hash < Item^.LHash
+    end else begin
       Item^.RHash := Hash; Item^.RData := Data;
     end;
 
@@ -330,11 +329,11 @@ begin
       end else begin // The item is older than the scavenging time (so it should be removed from the list)
 
         Self.InternalEraseLastFoundItem();
-        
+
       end;
 
     end;
-    
+
   end;
 end;
 
@@ -388,7 +387,7 @@ begin
 
   try
 
-    // Traverses the tree writing items to disk and scavenging old ones
+    // Traverse the tree writing items to disk and scavenging old ones
     if (TAddressCache_Root <> nil) then Self.InternalScavengeItemToFile(ShortTime(Now()), TAddressCache_Root);
 
   finally
@@ -407,10 +406,10 @@ class procedure TAddressCache.LoadFromFile(FileName: String);
 var
   Hash: Int64; AddressCacheItem: PAddressCacheItem;
 begin
-  // Allocate the stream object on the specified file name
+  // Wrap a stream object around the specified file name
   TAddressCache_FileStream := TFileStream.Create(FileName, fmOpenRead, fmShareDenyWrite); try
 
-    // While the end of file has not been reached...
+    // While the end of the stream has not been reached...
     while (TAddressCache_FileStream.Position < TAddressCache_FileStream.Size) do begin
 
       AddressCacheItem := nil; try
@@ -440,7 +439,7 @@ begin
             // If the Response has been allocated then deallocate it...
             if (AddressCacheItem^.Response <> nil) then FreeMem(AddressCacheItem^.Response, AddressCacheItem^.ResponseLen);
 
-            // Deallocate also the item
+            // Deallocate the item also
             FreeMem(AddressCacheItem, SizeOf(TAddressCacheItem));
 
           end;

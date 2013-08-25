@@ -9,7 +9,7 @@
 ;--------------------------------
 
 ; Name
-Name "Acrylic DNS Proxy (0.9.22)"
+Name "Acrylic DNS Proxy (0.9.23)"
 
 ; Output
 OutFile "Acrylic.exe"
@@ -78,15 +78,14 @@ Section "Acrylic" SecMain
   CreateDirectory "$SMPROGRAMS\Acrylic DNS Proxy\Support\Advanced Support Tools"
   CreateDirectory "$SMPROGRAMS\Acrylic DNS Proxy\Uninstall"
 
-  CreateShortCut  "$SMPROGRAMS\Acrylic DNS Proxy\Config\Edit Configuration File.lnk" "$INSTDIR\AcrylicController.exe" "EditAcrylicConfigurationFile"
-  CreateShortCut  "$SMPROGRAMS\Acrylic DNS Proxy\Config\Edit Custom Hosts File.lnk" "$INSTDIR\AcrylicController.exe" "EditAcrylicHostsFile"
+  CreateShortCut  "$SMPROGRAMS\Acrylic DNS Proxy\Config\Edit Acrylic Configuration File.lnk" "$INSTDIR\AcrylicController.exe" "EditAcrylicConfigurationFile"
+  CreateShortCut  "$SMPROGRAMS\Acrylic DNS Proxy\Config\Edit Acrylic Hosts File.lnk" "$INSTDIR\AcrylicController.exe" "EditAcrylicHostsFile"
   CreateShortCut  "$SMPROGRAMS\Acrylic DNS Proxy\Config\Purge Acrylic Cache Data.lnk" "$INSTDIR\AcrylicController.exe" "PurgeAcrylicCache"
-  CreateShortCut  "$SMPROGRAMS\Acrylic DNS Proxy\Config\Restart Acrylic Service.lnk" "$INSTDIR\AcrylicController.exe" "StartAcrylicService"
+  CreateShortCut  "$SMPROGRAMS\Acrylic DNS Proxy\Config\Start Acrylic Service.lnk" "$INSTDIR\AcrylicController.exe" "StartAcrylicService"
   CreateShortCut  "$SMPROGRAMS\Acrylic DNS Proxy\Config\Stop Acrylic Service.lnk" "$INSTDIR\AcrylicController.exe" "StopAcrylicService"
 
   CreateShortCut  "$SMPROGRAMS\Acrylic DNS Proxy\Support\About Acrylic.lnk" "$INSTDIR\AcrylicController.exe" "AboutAcrylic"
   CreateShortCut  "$SMPROGRAMS\Acrylic DNS Proxy\Support\Acrylic Home Page.lnk" "http://mayakron.altervista.org/support/browse.php?path=Acrylic&name=Home"
-  CreateShortCut  "$SMPROGRAMS\Acrylic DNS Proxy\Support\Contact Acrylic Support.lnk" "mailto:msmfbn@gmail.com?subject=Acrylic DNS Proxy Support Request"
 
   CreateShortCut  "$SMPROGRAMS\Acrylic DNS Proxy\Support\Advanced Support Tools\Browse Debug Log.lnk" "$INSTDIR\AcrylicController.exe" "BrowseAcrylicDebugLog"
   CreateShortCut  "$SMPROGRAMS\Acrylic DNS Proxy\Support\Advanced Support Tools\Enable Disable Debug Log.lnk" "$INSTDIR\AcrylicController.exe" "EnableDisableAcrylicDebugLog"
@@ -108,15 +107,14 @@ Section "Uninstall"
 
   ExecWait "$INSTDIR\AcrylicController.exe UninstallAcrylicService"
 
-  Delete "$SMPROGRAMS\Acrylic DNS Proxy\Config\Edit Configuration File.lnk"
-  Delete "$SMPROGRAMS\Acrylic DNS Proxy\Config\Edit Custom Hosts File.lnk"
+  Delete "$SMPROGRAMS\Acrylic DNS Proxy\Config\Edit Acrylic Configuration File.lnk"
+  Delete "$SMPROGRAMS\Acrylic DNS Proxy\Config\Edit Acrylic Hosts File.lnk"
   Delete "$SMPROGRAMS\Acrylic DNS Proxy\Config\Purge Acrylic Cache Data.lnk"
-  Delete "$SMPROGRAMS\Acrylic DNS Proxy\Config\Restart Acrylic Service.lnk"
+  Delete "$SMPROGRAMS\Acrylic DNS Proxy\Config\Start Acrylic Service.lnk"
   Delete "$SMPROGRAMS\Acrylic DNS Proxy\Config\Stop Acrylic Service.lnk"
 
   Delete "$SMPROGRAMS\Acrylic DNS Proxy\Support\About Acrylic.lnk"
   Delete "$SMPROGRAMS\Acrylic DNS Proxy\Support\Acrylic Home Page.lnk"
-  Delete "$SMPROGRAMS\Acrylic DNS Proxy\Support\Contact Acrylic Support.lnk"
 
   Delete "$SMPROGRAMS\Acrylic DNS Proxy\Support\Advanced Support Tools\Browse Debug Log.lnk"
   Delete "$SMPROGRAMS\Acrylic DNS Proxy\Support\Advanced Support Tools\Enable Disable Debug Log.lnk"

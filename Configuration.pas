@@ -1,4 +1,3 @@
-
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
@@ -40,7 +39,7 @@ const
 // --------------------------------------------------------------------------
 
 const
-  MAX_NUM_DNS_SERVERS = 4;
+  MAX_NUM_DNS_SERVERS = 10;
 
 // --------------------------------------------------------------------------
 //
@@ -471,6 +470,54 @@ begin
     TConfiguration_ServerConfiguration[3].Address := TIPAddress.Parse(IniFile.ReadString('GlobalSection', 'QuaternaryServerAddress', ''));
     TConfiguration_ServerConfiguration[3].Port := StrToIntDef(IniFile.ReadString('GlobalSection', 'QuaternaryServerPort', '53'), 53);
     TConfiguration_ServerConfiguration[3].IgnoreNegativeResponsesFromServer := UpperCase(IniFile.ReadString('GlobalSection', 'IgnoreNegativeResponsesFromQuaternaryServer', '')) = 'YES';
+
+    S := IniFile.ReadString('GlobalSection', 'QuinaryServerAffinityMask', ''); if (S <> '') then begin
+      TConfiguration_ServerConfiguration[4].AffinityMask := TStringList.Create; TConfiguration_ServerConfiguration[4].AffinityMask.Delimiter := ';'; TConfiguration_ServerConfiguration[4].AffinityMask.DelimitedText := S;
+    end;
+
+    TConfiguration_ServerConfiguration[4].Address := TIPAddress.Parse(IniFile.ReadString('GlobalSection', 'QuinaryServerAddress', ''));
+    TConfiguration_ServerConfiguration[4].Port := StrToIntDef(IniFile.ReadString('GlobalSection', 'QuinaryServerPort', '53'), 53);
+    TConfiguration_ServerConfiguration[4].IgnoreNegativeResponsesFromServer := UpperCase(IniFile.ReadString('GlobalSection', 'IgnoreNegativeResponsesFromQuinaryServer', '')) = 'YES';
+
+    S := IniFile.ReadString('GlobalSection', 'SenaryServerAffinityMask', ''); if (S <> '') then begin
+      TConfiguration_ServerConfiguration[5].AffinityMask := TStringList.Create; TConfiguration_ServerConfiguration[5].AffinityMask.Delimiter := ';'; TConfiguration_ServerConfiguration[5].AffinityMask.DelimitedText := S;
+    end;
+
+    TConfiguration_ServerConfiguration[5].Address := TIPAddress.Parse(IniFile.ReadString('GlobalSection', 'SenaryServerAddress', ''));
+    TConfiguration_ServerConfiguration[5].Port := StrToIntDef(IniFile.ReadString('GlobalSection', 'SenaryServerPort', '53'), 53);
+    TConfiguration_ServerConfiguration[5].IgnoreNegativeResponsesFromServer := UpperCase(IniFile.ReadString('GlobalSection', 'IgnoreNegativeResponsesFromSenaryServer', '')) = 'YES';
+
+    S := IniFile.ReadString('GlobalSection', 'SeptenaryServerAffinityMask', ''); if (S <> '') then begin
+      TConfiguration_ServerConfiguration[6].AffinityMask := TStringList.Create; TConfiguration_ServerConfiguration[6].AffinityMask.Delimiter := ';'; TConfiguration_ServerConfiguration[6].AffinityMask.DelimitedText := S;
+    end;
+
+    TConfiguration_ServerConfiguration[6].Address := TIPAddress.Parse(IniFile.ReadString('GlobalSection', 'SeptenaryServerAddress', ''));
+    TConfiguration_ServerConfiguration[6].Port := StrToIntDef(IniFile.ReadString('GlobalSection', 'SeptenaryServerPort', '53'), 53);
+    TConfiguration_ServerConfiguration[6].IgnoreNegativeResponsesFromServer := UpperCase(IniFile.ReadString('GlobalSection', 'IgnoreNegativeResponsesFromSeptenaryServer', '')) = 'YES';
+
+    S := IniFile.ReadString('GlobalSection', 'OctonaryServerAffinityMask', ''); if (S <> '') then begin
+      TConfiguration_ServerConfiguration[7].AffinityMask := TStringList.Create; TConfiguration_ServerConfiguration[7].AffinityMask.Delimiter := ';'; TConfiguration_ServerConfiguration[7].AffinityMask.DelimitedText := S;
+    end;
+
+    TConfiguration_ServerConfiguration[7].Address := TIPAddress.Parse(IniFile.ReadString('GlobalSection', 'OctonaryServerAddress', ''));
+    TConfiguration_ServerConfiguration[7].Port := StrToIntDef(IniFile.ReadString('GlobalSection', 'OctonaryServerPort', '53'), 53);
+    TConfiguration_ServerConfiguration[7].IgnoreNegativeResponsesFromServer := UpperCase(IniFile.ReadString('GlobalSection', 'IgnoreNegativeResponsesFromOctonaryServer', '')) = 'YES';
+
+    S := IniFile.ReadString('GlobalSection', 'NonaryServerAffinityMask', ''); if (S <> '') then begin
+      TConfiguration_ServerConfiguration[8].AffinityMask := TStringList.Create; TConfiguration_ServerConfiguration[8].AffinityMask.Delimiter := ';'; TConfiguration_ServerConfiguration[8].AffinityMask.DelimitedText := S;
+    end;
+
+    TConfiguration_ServerConfiguration[8].Address := TIPAddress.Parse(IniFile.ReadString('GlobalSection', 'NonaryServerAddress', ''));
+    TConfiguration_ServerConfiguration[8].Port := StrToIntDef(IniFile.ReadString('GlobalSection', 'NonaryServerPort', '53'), 53);
+    TConfiguration_ServerConfiguration[8].IgnoreNegativeResponsesFromServer := UpperCase(IniFile.ReadString('GlobalSection', 'IgnoreNegativeResponsesFromNonaryServer', '')) = 'YES';
+
+    S := IniFile.ReadString('GlobalSection', 'DenaryServerAffinityMask', ''); if (S <> '') then begin
+      TConfiguration_ServerConfiguration[9].AffinityMask := TStringList.Create; TConfiguration_ServerConfiguration[9].AffinityMask.Delimiter := ';'; TConfiguration_ServerConfiguration[9].AffinityMask.DelimitedText := S;
+    end;
+
+    TConfiguration_ServerConfiguration[9].Address := TIPAddress.Parse(IniFile.ReadString('GlobalSection', 'DenaryServerAddress', ''));
+    TConfiguration_ServerConfiguration[9].Port := StrToIntDef(IniFile.ReadString('GlobalSection', 'DenaryServerPort', '53'), 53);
+    TConfiguration_ServerConfiguration[9].IgnoreNegativeResponsesFromServer := UpperCase(IniFile.ReadString('GlobalSection', 'IgnoreNegativeResponsesFromDenaryServer', '')) = 'YES';
 
     TConfiguration_AddressCacheNegativeTime := IniFile.ReadInteger('GlobalSection', 'AddressCacheNegativeTime', TConfiguration_AddressCacheNegativeTime);
     TConfiguration_AddressCacheScavengingTime := IniFile.ReadInteger('GlobalSection', 'AddressCacheScavengingTime', TConfiguration_AddressCacheScavengingTime);

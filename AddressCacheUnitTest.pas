@@ -1,4 +1,3 @@
-
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
@@ -25,10 +24,8 @@ type
 
 constructor TAddressCacheUnitTest.Create();
 begin
-  // Calling base
   inherited Create;
 
-  // Initializing buffers
   GetMem(BufferA, MAX_DNS_PACKET_LEN);
   GetMem(BufferB, MAX_DNS_PACKET_LEN);
   GetMem(BufferC, MAX_DNS_PACKET_LEN);
@@ -111,12 +108,10 @@ end;
 
 destructor TAddressCacheUnitTest.Destroy();
 begin
-  // Finalize buffers
   FreeMem(BufferA, MAX_DNS_PACKET_LEN);
   FreeMem(BufferB, MAX_DNS_PACKET_LEN);
   FreeMem(BufferC, MAX_DNS_PACKET_LEN);
 
-  // Call base
   inherited Destroy;
 end;
 

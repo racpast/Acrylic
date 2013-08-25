@@ -1,4 +1,3 @@
-
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
@@ -80,18 +79,24 @@ end;
 //
 // --------------------------------------------------------------------------
 
-procedure TAcrylicController.ServiceShutdown(Sender: TService);
+procedure TAcrylicController.ServiceStart(Sender: TService; var Started: Boolean);
 begin
   try
 
-    // Stop the system
-    TBootstrapper.StopSystem();
+    // Init...
+    DecimalSeparator := '.';
 
-    // Stop everything else
-    TTracer.Finalize(); TConfiguration.Finalize();
+    // Start the config and eventually set the debug file
+    TConfiguration.Initialize(); TTracer.Initialize(); if FileExists(TConfiguration.GetDebugLogFileName()) then TTracer.SetTracerAgent(TFileTracerAgent.Create(TConfiguration.GetDebugLogFileName()));
+
+    // Start the system using the Bootstrapper
+    TBootstrapper.StartSystem();
+
+    // Report to the Service Controller
+    Started := True;
 
   except
-    // Suppress any exception
+    Started := False;
   end;
 end;
 
@@ -121,24 +126,18 @@ end;
 //
 // --------------------------------------------------------------------------
 
-procedure TAcrylicController.ServiceStart(Sender: TService; var Started: Boolean);
+procedure TAcrylicController.ServiceShutdown(Sender: TService);
 begin
   try
 
-    // Init...
-    DecimalSeparator := '.';
+    // Stop the system
+    TBootstrapper.StopSystem();
 
-    // Start the config and eventually set the debug file
-    TConfiguration.Initialize(); TTracer.Initialize(); if FileExists(TConfiguration.GetDebugLogFileName()) then TTracer.SetTracerAgent(TFileTracerAgent.Create(TConfiguration.GetDebugLogFileName()));
-
-    // Start the system using the Bootstrapper
-    TBootstrapper.StartSystem();
-
-    // Report to the Service Controller
-    Started := True;
+    // Stop everything else
+    TTracer.Finalize(); TConfiguration.Finalize();
 
   except
-    Started := False;
+    // Suppress any exception
   end;
 end;
 

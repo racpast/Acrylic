@@ -1,4 +1,3 @@
-
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
@@ -68,7 +67,7 @@ end;
 
 class procedure THitLogger.FlushPendingHitsToDisk();
 var
-  Handle: THandle; Written: Cardinal; Line: String; Index: Integer; 
+  Handle: THandle; Written: Cardinal; Line: String; Index: Integer;
 begin
   if (THitLogger_BufferList <> nil) and (THitLogger_BufferList.Count > 0) then begin
 

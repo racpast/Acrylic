@@ -49,8 +49,7 @@ begin
 
     if (ParamStr(1) = 'AboutAcrylic') then begin
 
-        // Show an about dialog
-        MessageBox(0, 'Acrylic is a local DNS proxy which improves the performance of your computer and helps you fight unwanted ads by actively caching the responses coming from your DNS servers.' + #13#10 + #13#10 + 'For more informations please use the "Acrylic Home Page" shortcut available from the "Start Menu".' + #13#10 + #13#10 + 'Installed version is:' + #13#10 + '0.9.22 released on January 28th, 2013.', 'About Acrylic DNS Proxy', MB_ICONINFORMATION or MB_OK);
+        MessageBox(0, 'Acrylic is a local DNS proxy which improves the performance of your computer and helps you fight unwanted ads by actively caching the responses coming from your DNS servers.' + #13#10 + #13#10 + 'For more informations please use the "Acrylic Home Page" shortcut available from the "Start Menu".' + #13#10 + #13#10 + 'Installed version is:' + #13#10 + '0.9.23 released on August 25th, 2013.', 'About Acrylic DNS Proxy', MB_ICONINFORMATION or MB_OK);
 
     end;
 
@@ -58,18 +57,11 @@ begin
 
     if (ParamStr(1) = 'PurgeAcrylicCache') then begin
 
-      // We want to stop the service first
       CmdExec('Net.exe Stop "Acrylic DNS Proxy Service"');
-
-      // We delete the AcrylicCache.dat file
       DeleteFile(PChar('AcrylicCache.dat'));
 
-      // We tell the user that everything went fine
-      if (MessageBox(0, 'The Acrylic DNS Proxy cache has been purged successfully. You should now restart the Acrylic DNS Proxy service.' + #13#10 + #13#10 + 'Do you want to do it now?', 'Information', MB_ICONINFORMATION or MB_YESNO) = IDYES) then begin
-
-        // We want to start the Acrylic service finally
+      if (MessageBox(0, 'The Acrylic DNS Proxy cache has been purged successfully. You should restart the Acrylic DNS Proxy service.' + #13#10 + #13#10 + 'Do you want to do it now?', 'Information', MB_ICONINFORMATION or MB_YESNO) = IDYES) then begin
         if (CmdExec('Net.exe Start "Acrylic DNS Proxy Service"') = 0) then MessageBox(0, 'The Acrylic DNS Proxy service has been started successfully.', 'Information', MB_ICONINFORMATION or MB_OK) else MessageBox(0, 'An error occurred while starting the Acrylic DNS Proxy service.', 'Error', MB_ICONSTOP or MB_OK);
-
       end;
 
     end;
@@ -78,10 +70,7 @@ begin
 
     if (ParamStr(1) = 'StartAcrylicService') then begin
 
-      // We want to stop the Acrylic service first
       CmdExec('Net.exe Stop "Acrylic DNS Proxy Service"');
-
-      // We want to start the Acrylic service finally
       if (CmdExec('Net.exe Start "Acrylic DNS Proxy Service"') = 0) then MessageBox(0, 'The Acrylic DNS Proxy service has been started successfully.', 'Information', MB_ICONINFORMATION or MB_OK) else MessageBox(0, 'An error occurred while starting the Acrylic DNS Proxy service.', 'Error', MB_ICONSTOP or MB_OK);
 
     end;
@@ -90,7 +79,6 @@ begin
 
     if (ParamStr(1) = 'StopAcrylicService') then begin
 
-      // We want to stop the Acrylic service
       if (CmdExec('Net.exe Stop "Acrylic DNS Proxy Service"') = 0) then MessageBox(0, 'The Acrylic DNS Proxy service has been stopped successfully.', 'Information', MB_ICONINFORMATION or MB_OK) else MessageBox(0, 'An error occurred while stopping the Acrylic DNS Proxy service.', 'Error', MB_ICONSTOP or MB_OK);
 
     end;
@@ -99,7 +87,6 @@ begin
 
     if (ParamStr(1) = 'EditAcrylicHostsFile') then begin
 
-      // We want to edit the file using Notepad
       WinExec(PChar('Notepad.exe AcrylicHosts.txt'), SW_NORMAL);
 
     end;
@@ -108,7 +95,6 @@ begin
 
     if (ParamStr(1) = 'EditAcrylicConfigurationFile') then begin
 
-      // We want to edit the file using Notepad
       WinExec(PChar('Notepad.exe AcrylicConfiguration.ini'), SW_NORMAL);
 
     end;
@@ -117,16 +103,10 @@ begin
 
     if (ParamStr(1) = 'BrowseAcrylicDebugLog') then begin
 
-      if FileExists('AcrylicDebug.txt') then begin // If the Acrylic debug log is enabled
-
-        // We want to browse the file using Notepad
+      if FileExists('AcrylicDebug.txt') then begin
         WinExec(PChar('Notepad.exe AcrylicDebug.txt'), SW_NORMAL);
-
       end else begin
-
-        // We tell the user that the Acrylic debug log is disabled
         MessageBox(0, 'The Acrylic DNS Proxy debug log is currently disabled.', 'Information', MB_ICONINFORMATION or MB_OK);
-
       end;
 
     end;
@@ -135,36 +115,22 @@ begin
 
     if (ParamStr(1) = 'EnableDisableAcrylicDebugLog') then begin
 
-      if not(FileExists('AcrylicDebug.txt')) then begin // If the Acrylic debug log is not already enabled
+      if FileExists('AcrylicDebug.txt') then begin
 
-        // We want to stop Acrylic first
         CmdExec('Net.exe Stop "Acrylic DNS Proxy Service"');
-
-        // We enable the Acrylic debug log
-        CreateEmptyFile('AcrylicDebug.txt');
-
-        // We tell the user that everything went fine
-        if (MessageBox(0, 'The Acrylic DNS Proxy debug log has been enabled successfully. You should now restart the Acrylic DNS Proxy service.' + #13#10 + #13#10 + 'Do you want to do it now?', 'Information', MB_ICONINFORMATION or MB_YESNO) = IDYES) then begin
-
-          // We want to start the Acrylic service finally
-          if (CmdExec('Net.exe Start "Acrylic DNS Proxy Service"') = 0) then MessageBox(0, 'The Acrylic DNS Proxy service has been started successfully.', 'Information', MB_ICONINFORMATION or MB_OK) else MessageBox(0, 'An error occurred while starting the Acrylic DNS Proxy service.', 'Error', MB_ICONSTOP or MB_OK);
-
-        end;
-
-      end else begin // The Acrylic debug log is already enabled
-
-        // We want to stop Acrylic first
-        CmdExec('Net.exe Stop "Acrylic DNS Proxy Service"');
-
-        // We disable the Acrylic debug log
         DeleteFile(PChar('AcrylicDebug.txt'));
 
-        // We tell the user that everything went fine
         if (MessageBox(0, 'The Acrylic DNS Proxy debug log has been disabled successfully. You should now restart the Acrylic DNS Proxy service.' + #13#10 + #13#10 + 'Do you want to do it now?', 'Information', MB_ICONINFORMATION or MB_YESNO) = IDYES) then begin
-
-          // We want to start the Acrylic service finally
           if (CmdExec('Net.exe Start "Acrylic DNS Proxy Service"') = 0) then MessageBox(0, 'The Acrylic DNS Proxy service has been started successfully.', 'Information', MB_ICONINFORMATION or MB_OK) else MessageBox(0, 'An error occurred while starting the Acrylic DNS Proxy service.', 'Error', MB_ICONSTOP or MB_OK);
+        end;
 
+      end else begin
+
+        CmdExec('Net.exe Stop "Acrylic DNS Proxy Service"');
+        CreateEmptyFile('AcrylicDebug.txt');
+
+        if (MessageBox(0, 'The Acrylic DNS Proxy debug log has been enabled successfully. You should now restart the Acrylic DNS Proxy service.' + #13#10 + #13#10 + 'Do you want to do it now?', 'Information', MB_ICONINFORMATION or MB_YESNO) = IDYES) then begin
+          if (CmdExec('Net.exe Start "Acrylic DNS Proxy Service"') = 0) then MessageBox(0, 'The Acrylic DNS Proxy service has been started successfully.', 'Information', MB_ICONINFORMATION or MB_OK) else MessageBox(0, 'An error occurred while starting the Acrylic DNS Proxy service.', 'Error', MB_ICONSTOP or MB_OK);
         end;
 
       end;
@@ -175,10 +141,7 @@ begin
 
     if (ParamStr(1) = 'InstallAcrylicService') then begin
 
-      // We want to register the Acrylic service
       CmdExec('AcrylicService.exe /INSTALL /SILENT');
-
-      // We want to start the Acrylic service then
       CmdExec('Net.exe Start "Acrylic DNS Proxy Service"');
 
     end;
@@ -187,10 +150,7 @@ begin
 
     if (ParamStr(1) = 'UninstallAcrylicService') then begin
 
-      // We want to stop the Acrylic service first
       CmdExec('Net.exe Stop "Acrylic DNS Proxy Service"');
-
-      // We want to remove the Acrylic service from the registry afterwards
       CmdExec('AcrylicService.exe /UNINSTALL /SILENT');
 
     end;

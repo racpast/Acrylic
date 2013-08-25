@@ -1,4 +1,3 @@
-
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
@@ -49,7 +48,6 @@ var
 
 class procedure TBootstrapper.StartSystem;
 begin
-  // Initialize static classes
   TSessionCache.Initialize(); TAddressCache.Initialize(); THostsCache.Initialize();
 
   try
@@ -114,7 +112,6 @@ begin
 
   if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StopSystem: Finalization...');
 
-  // Finalize static classes
   THostsCache.Finalize(); TAddressCache.Finalize(); TSessionCache.Finalize();
 end;
 

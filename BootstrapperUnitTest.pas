@@ -1,4 +1,3 @@
-
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
@@ -15,7 +14,6 @@ type
 
 procedure TBootstrapperUnitTest.ExecuteTest();
 begin
-  // Starting bootstrapper
   TBootstrapper.StartSystem;
 
   {
@@ -25,7 +23,6 @@ begin
   if not(TIPAddress.QueryByName('www.google.com')) then raise FailedUnitTestException.Create;
   }
 
-  // Stopping bootstrapper
   TBootstrapper.StopSystem;
 end;
 

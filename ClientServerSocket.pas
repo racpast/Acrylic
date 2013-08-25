@@ -1,6 +1,5 @@
-
 // --------------------------------------------------------------------------
-// This unit handles I/O communications through sockets
+//
 // --------------------------------------------------------------------------
 
 unit
@@ -91,10 +90,8 @@ end;
 
 destructor TClientServerSocket.Destroy;
 begin
-  // If the socket handle is valid then close it
   if (SocketHandle <> INVALID_SOCKET) then WinSock.CloseSocket(SocketHandle);
 
-  // Call the base destructor
   inherited Destroy;
 end;
 
@@ -136,7 +133,7 @@ begin
     BufferLen := WinSock.recvfrom(SocketHandle, Buffer^, MaxBufferLen, 0, SocketAddrIn, SocketAddrSize);
 
     if (BufferLen > 0) then begin // If the packet is valid...
-      
+
       // Get the source remote address
       Address := SocketAddrIn.sin_addr.S_addr;
 
