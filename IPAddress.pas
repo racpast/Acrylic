@@ -18,7 +18,7 @@ interface
 type
   TIPAddress = class
     public
-      class function Parse(Value: String): Integer;
+      class function Parse(Text: String): Integer;
       class function QueryByName(Name: String): Boolean;
       class function ToString(Value: Integer): String;
   end;
@@ -40,9 +40,9 @@ uses
 //
 // --------------------------------------------------------------------------
 
-class function TIPAddress.Parse(Value: String): Integer;
+class function TIPAddress.Parse(Text: String): Integer;
 begin
-  Result := WinSock.inet_addr(PAnsiChar(Value));
+  Result := WinSock.inet_addr(PAnsiChar(Text));
 end;
 
 // --------------------------------------------------------------------------

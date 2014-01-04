@@ -26,7 +26,7 @@ end;
 
 procedure THostsCacheUnitTest.ExecuteTest();
 var
-  i, j: Integer; Address: Integer; HostsStream: TFileStream; HostsLine: String; const KHostsItems = 500;
+  i, j: Integer; Address: Integer; HostsStream: TFileStream; HostsLine: String; const KHostsItems = 750;
 begin
   // Load configuration
   TConfiguration.Initialize();
@@ -44,11 +44,11 @@ begin
 
   end;
 
-  // Add an expression to the list
-  HostsLine := '127.0.0.1 /^.*\.EXPRESSION-127-0-0-1\..*$ -NO.EXPRESSION-127-0-0-1.TEST' + #13#10; HostsStream.Write(HostsLine[1], Length(HostsLine));
-
   // Add a pattern to the list
   HostsLine := '127.0.0.1 *.PATTERN-127-0-0-1.* -NO.PATTERN-127-0-0-1.TEST' + #13#10; HostsStream.Write(HostsLine[1], Length(HostsLine));
+
+  // Add a regular expression to the list
+  HostsLine := '127.0.0.1 /^.*\.REGEXP-127-0-0-1\..*$ -NO.REGEXP-127-0-0-1.TEST' + #13#10; HostsStream.Write(HostsLine[1], Length(HostsLine));
 
   // Close the stream
   HostsStream.Free();
@@ -76,11 +76,11 @@ begin
 
   end;
 
-  // Test the expression engine
-  if not(THostsCache.Find('MATCH.EXPRESSION-127-0-0-1.TEST', Address) and (Address = LOCALHOST_ADDRESS)) or not(THostsCache.Find('match.expression-127-0-0-1.test', Address) and (Address = LOCALHOST_ADDRESS)) or THostsCache.Find('NO.EXPRESSION-127-0-0-1.TEST', Address) then raise FailedUnitTestException.Create;
-
   // Test the pattern engine
   if not(THostsCache.Find('MATCH.PATTERN-127-0-0-1.TEST', Address) and (Address = LOCALHOST_ADDRESS)) or not(THostsCache.Find('match.pattern-127-0-0-1.TEST', Address) and (Address = LOCALHOST_ADDRESS)) or THostsCache.Find('NO.PATTERN-127-0-0-1.TEST', Address) then raise FailedUnitTestException.Create;
+
+  // Test the regular expression engine
+  if not(THostsCache.Find('MATCH.REGEXP-127-0-0-1.TEST', Address) and (Address = LOCALHOST_ADDRESS)) or not(THostsCache.Find('match.regexp-127-0-0-1.test', Address) and (Address = LOCALHOST_ADDRESS)) or THostsCache.Find('NO.REGEXP-127-0-0-1.TEST', Address) then raise FailedUnitTestException.Create;
 
   TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Done.');
 

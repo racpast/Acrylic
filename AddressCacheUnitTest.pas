@@ -37,7 +37,7 @@ end;
 
 procedure TAddressCacheUnitTest.ExecuteTest();
 var
-  i, j: Integer; Time: TDateTime; Seed: Integer; const CacheItems = 500000;
+  i, j: Integer; Time: TDateTime; Seed: Integer; const CacheItems = 750000;
 begin
   // Now!
   Time := Now;

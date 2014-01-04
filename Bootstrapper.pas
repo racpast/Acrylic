@@ -101,7 +101,7 @@ begin
 
   try
 
-    if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StopSystem: Scavenging address cache to file...');
+    if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StopSystem: Saving address cache items...');
 
     // Scavenge the address cache to file
     TAddressCache.ScavengeToFile(TConfiguration.GetAddressCacheFileName());

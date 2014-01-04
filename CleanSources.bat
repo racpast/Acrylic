@@ -1,6 +1,8 @@
 @echo off
 set SD=%CD%
 
+rmdir /s /q __History
+
 del Acrylic.exe
 del Acrylic-Sources.zip
 
@@ -17,3 +19,5 @@ del /q *.tmp
 
 del AcrylicDebug.txt
 del AcrylicStats.txt
+
+C:\Wintools\Perl32\bin\perl.exe CleanSources.pl

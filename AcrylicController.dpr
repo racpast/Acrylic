@@ -49,7 +49,7 @@ begin
 
     if (ParamStr(1) = 'AboutAcrylic') then begin
 
-        MessageBox(0, 'Acrylic is a local DNS proxy which improves the performance of your computer and helps you fight unwanted ads by actively caching the responses coming from your DNS servers.' + #13#10 + #13#10 + 'For more informations please use the "Acrylic Home Page" shortcut available from the "Start Menu".' + #13#10 + #13#10 + 'Installed version is:' + #13#10 + '0.9.23 released on August 25th, 2013.', 'About Acrylic DNS Proxy', MB_ICONINFORMATION or MB_OK);
+        MessageBox(0, 'Acrylic is a local DNS proxy which improves the performance of your computer and helps you fight unwanted ads by actively caching the responses coming from your DNS servers.' + #13#10 + #13#10 + 'For more informations please use the "Acrylic Home Page" shortcut available from the "Start Menu".' + #13#10 + #13#10 + 'Installed version is:' + #13#10 + '0.9.24 released on January 3, 2014.', 'About Acrylic DNS Proxy', MB_ICONINFORMATION or MB_OK);
 
     end;
 
