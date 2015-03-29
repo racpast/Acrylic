@@ -28,8 +28,8 @@ type
       FileName: String;
     public
       constructor Create(FileName: String);
-        procedure RenderTrace(Time: Double; Priority: TracePriority; Message: String);
-        procedure CloseTrace();
+      procedure   RenderTrace(Time: Double; Priority: TracePriority; Message: String);
+      procedure   CloseTrace();
   end;
 
 // --------------------------------------------------------------------------

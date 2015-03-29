@@ -5,37 +5,44 @@
 #                                                                           #
 # This is the AcrylicHosts.txt file.                                        #
 #                                                                           #
-# It contains predefined mappings between names and addresses exactly the   #
-# same way the native HOSTS file does.                                      #
+# It contains predefined mappings between HOSTNAMES and addresses exactly   #
+# the same way the native Windows HOSTS file does but with a few upgrades.  #
 #                                                                           #
 # The format is: IPADDRESS HOSTNAME1 [HOSTNAME2] [HOSTNAME3] ...            #
 #                                                                           #
 # Where IPADDRESS is in quad-dotted notation and HOSTNAMES are strings.     #
 #                                                                           #
-# The separator between IPADDRESS and HOSTNAMES can be any number of spaces #
-# or tabs or both. If the HOSTNAMES contain the special characters '*' and  #
-# '?' a (slow) "dir" like pattern matching algorithm is used instead of a   #
-# (fast) binary search within the list of host names:                       #
+# HOSTNAMES can contain wildcard characters '*' (matches zero or more       #
+# characters) and '?' (matches exactly one character):                      #
 #                                                                           #
 # 127.0.0.1 ad.* ads.*                                                      #
 #                                                                           #
-# If a HOSTNAME starts with the '/' character instead it is treated like a  #
-# regular expression (also very slow compared to a binary search):          #
+# HOSTNAMES can be regular expressions if starting with a '/' character:    #
 #                                                                           #
 # 127.0.0.1 /^ads?\..*$                                                     #
 #                                                                           #
-# Note: More info about the regular expression engine and its syntax can be #
-# found at: http://regexpstudio.com                                         #
+# A '>' character at the beginning of a HOSTNAME is a convenient shortcut   #
+# for representing all HOSTNAMES ending with what follows after that        #
+# character. For example an entry like this one:                            #
 #                                                                           #
-# It is also possible to specify exceptions when regular expressions or     #
-# pattern based matching is used. If for example we would like to filter    #
-# out all ads.* like domains except for the ads.test1 and the ads.test2 we  #
-# should write:                                                             #
+# 127.0.0.1 >google.com                                                     #
+#                                                                           #
+# Is equivalent (and internally is expanded to) an entry like this one:     #
+#                                                                           #
+# 127.0.0.1 google.com *.google.com                                         #
+#                                                                           #
+# When using wildcard characters or regular expressions you can specify     #
+# exceptions like these for example to filter out all ads.* like HOSTNAMES  #
+# except for the ads.test1 and the ads.test2:                               #
 #                                                                           #
 # 127.0.0.1 ads.* -ads.test1 -ads.test2                                     #
 #                                                                           #
-# Note: A line starting with the '#' character (and everything after it if  #
-# it's found within a line) is considered a comment and therefore ignored.  #
+# A line starting with the '#' character (and everything after it if it's   #
+# found within a line) is considered a comment and therefore ignored.       #
+#                                                                           #
+# Note: If all HOSTNAMES are provided in ascending order Acrylic will be    #
+# able to load them much faster. If you are building a large list of        #
+# HOSTNAMES for example then having it sorted before use is better.         #
 #                                                                           #
 #############################################################################
 

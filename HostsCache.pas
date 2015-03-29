@@ -22,6 +22,8 @@ type
       class function  Find(HostName: String; var HostAddress: Integer): Boolean;
       class procedure LoadFromFile(FileName: String);
       class procedure Finalize();
+    private
+      class procedure ParseHostsLine(FileStreamLineData: String; HostsLineIndexA: Integer; HostsLineIndexB: Integer; HostsLineAddressData: Integer; var HostsCacheListLastAdded: String; var HostsCacheListNeedsSorting: Boolean);
   end;
 
 // --------------------------------------------------------------------------
@@ -35,7 +37,7 @@ implementation
 // --------------------------------------------------------------------------
 
 uses
-  SysUtils, Classes, IniFiles, FileStreamLineEx, RegExpr, PatternMatching, IPAddress;
+  Classes, IniFiles, SysUtils, StrUtils, FileStreamLineEx, IPAddress, PatternMatching, RegExpr, Tracer;
 
 // --------------------------------------------------------------------------
 //
@@ -63,7 +65,7 @@ type
 
 var
   THostsCache_List: THashedStringList;
-  THostsCache_Exceptions: THashedStringList; THostsCache_Expressions: TRegExprList; THostsCache_Patterns: TStringList;
+  THostsCache_Expressions: TRegExprList; THostsCache_Patterns: TStringList; THostsCache_Exceptions: THashedStringList;
 
 // --------------------------------------------------------------------------
 //
@@ -119,12 +121,38 @@ end;
 //
 // --------------------------------------------------------------------------
 
+class procedure THostsCache.ParseHostsLine(FileStreamLineData: String; HostsLineIndexA: Integer; HostsLineIndexB: Integer; HostsLineAddressData: Integer; var HostsCacheListLastAdded: String; var HostsCacheListNeedsSorting: Boolean);
+var
+  HostsLineTextData: String;
+begin
+  HostsLineTextData := Copy(FileStreamLineData, HostsLineIndexA, HostsLineIndexB - HostsLineIndexA);
+
+  if (FileStreamLineData[HostsLineIndexA] = '-') then begin
+    THostsCache_Exceptions.Add(Copy(HostsLineTextData, 2, MaxInt))
+  end else if (FileStreamLineData[HostsLineIndexA] = '/') then begin
+    THostsCache_Expressions.Add(Copy(HostsLineTextData, 2, MaxInt), TObject(HostsLineAddressData))
+  end else if (FileStreamLineData[HostsLineIndexA] = '>') then begin
+    HostsLineTextData := Copy(HostsLineTextData, 2, MaxInt);
+    THostsCache_Patterns.AddObject('*.' + HostsLineTextData, TObject(HostsLineAddressData));
+    THostsCache_List.AddObject(HostsLineTextData, TObject(HostsLineAddressData)); if (HostsLineTextData < HostsCacheListLastAdded) then HostsCacheListNeedsSorting := True; HostsCacheListLastAdded := HostsLineTextData;
+  end else if (Pos('*', HostsLineTextData) > 0) or (Pos('?', HostsLineTextData) > 0) then begin
+    THostsCache_Patterns.AddObject(HostsLineTextData, TObject(HostsLineAddressData))
+  end else begin
+    THostsCache_List.AddObject(HostsLineTextData, TObject(HostsLineAddressData)); if (HostsLineTextData < HostsCacheListLastAdded) then HostsCacheListNeedsSorting := True; HostsCacheListLastAdded := HostsLineTextData;
+  end;
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
 class procedure THostsCache.LoadFromFile(FileName: String);
 var
   FileStream: TFileStream; FileStreamLineEx: TFileStreamLineEx;
-  FileStreamLineData: String; FileStreamLineMoreAvailable: Boolean; FileStreamLineSize: Integer; HostsLineIndexA: Integer; HostsLineIndexB: Integer; HostsLineTextData: String; HostsLineAddressData: Integer; HostsLineAddressDone: Boolean;
+  FileStreamLineData: String; FileStreamLineMoreAvailable: Boolean; FileStreamLineSize: Integer; HostsLineIndexA: Integer; HostsLineIndexB: Integer; HostsLineAddressData: Integer; HostsLineAddressDone: Boolean; HostsCacheListLastAdded: String; HostsCacheListNeedsSorting: Boolean;
 begin
-  // Create the stream object
+  if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'THostsCache.LoadFromFile: Loading hosts cache items...');
+
   FileStream := TFileStream.Create(FileName, fmOpenRead, fmShareDenyWrite); try
 
     // Create the decorator object
@@ -133,7 +161,7 @@ begin
     // Signal that we're going to do a big update
     THostsCache_List.BeginUpdate(); THostsCache_Expressions.BeginUpdate(); THostsCache_Patterns.BeginUpdate(); THostsCache_Exceptions.BeginUpdate();
 
-    repeat // Until there are no more lines available
+    SetLength(HostsCacheListLastAdded, 0); HostsCacheListNeedsSorting := False; repeat // Until there are no more lines available
 
       // Read the next line from the stream
       FileStreamLineMoreAvailable := FileStreamLineEx.ReadLine(FileStreamLineData); FileStreamLineSize := Length(FileStreamLineData); if (FileStreamLineSize > 0) then begin
@@ -152,8 +180,7 @@ begin
 
                 if HostsLineAddressDone then begin
 
-                  HostsLineTextData := Copy(FileStreamLineData, HostsLineIndexA, HostsLineIndexB - HostsLineIndexA);
-                  if (FileStreamLineData[HostsLineIndexA] = '-') then THostsCache_Exceptions.Add(Copy(HostsLineTextData, 2, MaxInt)) else if (FileStreamLineData[HostsLineIndexA] = '/') then THostsCache_Expressions.Add(Copy(HostsLineTextData, 2, MaxInt), TObject(HostsLineAddressData)) else if (Pos('*', HostsLineTextData) > 0) or (Pos('?', HostsLineTextData) > 0) then THostsCache_Patterns.AddObject(HostsLineTextData, TObject(HostsLineAddressData)) else THostsCache_List.AddObject(HostsLineTextData, TObject(HostsLineAddressData));
+                  Self.ParseHostsLine(FileStreamLineData, HostsLineIndexA, HostsLineIndexB, HostsLineAddressData, HostsCacheListLastAdded, HostsCacheListNeedsSorting);
 
                 end else begin
 
@@ -176,8 +203,7 @@ begin
 
           if HostsLineAddressDone then begin
 
-            HostsLineTextData := Copy(FileStreamLineData, HostsLineIndexA, HostsLineIndexB - HostsLineIndexA);
-            if (FileStreamLineData[HostsLineIndexA] = '-') then THostsCache_Exceptions.Add(Copy(HostsLineTextData, 2, MaxInt)) else if (FileStreamLineData[HostsLineIndexA] = '/') then THostsCache_Expressions.Add(Copy(HostsLineTextData, 2, MaxInt), TObject(HostsLineAddressData)) else if (Pos('*', HostsLineTextData) > 0) or (Pos('?', HostsLineTextData) > 0) then THostsCache_Patterns.AddObject(HostsLineTextData, TObject(HostsLineAddressData)) else THostsCache_List.AddObject(HostsLineTextData, TObject(HostsLineAddressData));
+            Self.ParseHostsLine(FileStreamLineData, HostsLineIndexA, HostsLineIndexB, HostsLineAddressData, HostsCacheListLastAdded, HostsCacheListNeedsSorting);
 
           end;
 
@@ -187,18 +213,19 @@ begin
 
     until not(FileStreamLineMoreAvailable);
 
+    // Sort the lists now to improve search later
+    if (HostsCacheListNeedsSorting) then THostsCache_List.Sort; THostsCache_Exceptions.Sort;
+
     // Signal that the big update is done
     THostsCache_Exceptions.EndUpdate(); THostsCache_Patterns.EndUpdate(); THostsCache_Expressions.EndUpdate(); THostsCache_List.EndUpdate();
 
-    // Set some of the lists as sorted
-    THostsCache_List.Sorted := True; THostsCache_Exceptions.Sorted := True;
-
   finally
 
-    // Close the stream
     FileStream.Free;
 
   end;
+
+  if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'THostsCache.LoadFromFile: Loaded ' + IntToStr(THostsCache_List.Count) + ' ' + IfThen(HostsCacheListNeedsSorting, 'unordered', 'sorted') + ' hostnames, ' + IntToStr(THostsCache_Expressions.Count) + ' regexes, ' + IntToStr(THostsCache_Patterns.Count) + ' patterns and ' + IntToStr(THostsCache_Exceptions.Count) + ' exceptions successfully.');
 end;
 
 // --------------------------------------------------------------------------

@@ -16,7 +16,7 @@ program
 // --------------------------------------------------------------------------
 
 uses
-  SysUtils, AddressCache in 'AddressCache.pas', Bootstrapper in 'Bootstrapper.pas', ClientServerSocket in 'ClientServerSocket.pas', Compression in 'Compression.pas', Configuration in 'Configuration.pas', ConsoleTracerAgent in 'ConsoleTracerAgent.pas', Digest in 'Digest.pas', FileStreamLineEx in 'FileStreamLineEx.pas', FileTracerAgent in 'FileTracerAgent.pas', HitLogger in 'HitLogger.pas', HostsCache in 'HostsCache.pas', IPAddress in 'IPAddress.pas', PatternMatching in 'PatternMatching.pas', Performance in 'Performance.pas', QueryTypeUtils in 'QueryTypeUtils.pas', RegExpr in 'RegExpr.pas', Resolver in 'Resolver.pas', SessionCache in 'SessionCache.pas', Statistics in 'Statistics.pas', Tracer in 'Tracer.pas', WinSock2 in 'WinSock2.pas';
+  SysUtils, AcrylicVersionInfo in 'AcrylicVersionInfo.pas', AddressCache in 'AddressCache.pas', Bootstrapper in 'Bootstrapper.pas', ClientServerSocket in 'ClientServerSocket.pas', Compression in 'Compression.pas', Configuration in 'Configuration.pas', ConsoleTracerAgent in 'ConsoleTracerAgent.pas', Digest in 'Digest.pas', FileStreamLineEx in 'FileStreamLineEx.pas', FileTracerAgent in 'FileTracerAgent.pas', HitLogger in 'HitLogger.pas', HostsCache in 'HostsCache.pas', IPAddress in 'IPAddress.pas', PatternMatching in 'PatternMatching.pas', Performance in 'Performance.pas', QueryTypeUtils in 'QueryTypeUtils.pas', RegExpr in 'RegExpr.pas', Resolver in 'Resolver.pas', SessionCache in 'SessionCache.pas', Statistics in 'Statistics.pas', Tracer in 'Tracer.pas', WinSock2 in 'WinSock2.pas';
 
 // --------------------------------------------------------------------------
 //
@@ -32,6 +32,9 @@ begin
 
   // Initialize the configuration, the tracer and set the console tracer agent
   TConfiguration.Initialize(); TTracer.Initialize(); TTracer.SetTracerAgent(TConsoleTracerAgent.Create());
+
+  // Trace Acrylic version info if a tracer is enabled
+  if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'Acrylic version is ' + AcrylicVersionInfo.Number + ' released on ' + AcrylicVersionInfo.ReleaseDate + '.');
 
   // Start the system using the Bootstrapper
   TBootstrapper.StartSystem();

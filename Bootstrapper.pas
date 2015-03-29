@@ -33,7 +33,7 @@ implementation
 // --------------------------------------------------------------------------
 
 uses
-  SysUtils, Configuration, Tracer, SessionCache, AddressCache, HostsCache, Resolver;
+  SysUtils, AddressCache, Configuration, HostsCache, Resolver, SessionCache, Tracer;
 
 // --------------------------------------------------------------------------
 //

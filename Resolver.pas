@@ -39,11 +39,18 @@ type
       procedure   SetStringIntoPacket(Value: String; Buffer: Pointer; var Offset: Integer; BufferLen: Integer);
       function    GetStringFromPacket(Value: String; Buffer: Pointer; var OffsetL1: Integer; var OffsetLX: Integer; Level: Integer; BufferLen: Integer): String;
     private
-      procedure   GetHostNameAndQueryTypeFromRequestPacket(Buffer: Pointer; BufferLen: Integer; var HostName: String; var QueryType: Word);
       procedure   BuildNegativeResponsePacketFromHostName(HostName: String; Buffer: Pointer; var BufferLen: Integer);
       procedure   BuildPositiveResponsePacketFromHostNameAndAddress(HostName: String; HostAddress: Integer; Buffer: Pointer; var BufferLen: Integer);
-      function    PrintResponsePacketDescriptionAsStringFromPacket(Buffer: Pointer; BufferLen: Integer): String;
     private
+      procedure   GetHostNameAndQueryTypeFromRequestPacket(Buffer: Pointer; BufferLen: Integer; var HostName: String; var QueryType: Word);
+    private
+      function    PrintGenericPacketBytesAsStringFromPacket(Buffer: Pointer; BufferLen: Integer): String;
+      function    PrintGenericPacketBytesAsStringFromPacketWithOffset(Buffer: Pointer; BufferLen: Integer; Offset: Integer; NumBytes: Integer): String;
+    private
+      function    PrintRequestPacketDescriptionAsStringFromPacket(Buffer: Pointer; BufferLen: Integer; IncludePacketBytesAlways: Boolean): String;
+      function    PrintResponsePacketDescriptionAsStringFromPacket(Buffer: Pointer; BufferLen: Integer; IncludePacketBytesAlways: Boolean): String;
+    private
+      function    IsFailureResponsePacket(Buffer: Pointer; BufferLen: Integer): Boolean;
       function    IsNegativeResponsePacket(Buffer: Pointer; BufferLen: Integer): Boolean;
     public
       constructor Create();
@@ -62,7 +69,7 @@ implementation
 // --------------------------------------------------------------------------
 
 uses
-  SysUtils, Configuration, Tracer, ClientServerSocket, Digest, SessionCache, AddressCache, HostsCache, HitLogger, Performance, QueryTypeUtils, Statistics, IPAddress;
+  Math, SysUtils, Configuration, Tracer, ClientServerSocket, Digest, SessionCache, AddressCache, HostsCache, HitLogger, Performance, QueryTypeUtils, Statistics, IPAddress;
 
 // --------------------------------------------------------------------------
 //
@@ -212,7 +219,7 @@ procedure TResolver.GetHostNameAndQueryTypeFromRequestPacket(Buffer: Pointer; Bu
 var
   OffsetL1: Integer; OffsetLX: Integer;
 begin
-  OffsetL1 := REQ_HOST_NAME_OFFSET; OffsetLX := OffsetL1; HostName := GetStringFromPacket('', Buffer, OffsetL1, OffsetLX, 1, BufferLen); QueryType := GetWordFromPacket(Buffer, OffsetL1, BufferLen);
+  OffsetL1 := $0C; OffsetLX := OffsetL1; HostName := GetStringFromPacket('', Buffer, OffsetL1, OffsetLX, 1, BufferLen); QueryType := GetWordFromPacket(Buffer, OffsetL1, BufferLen);
 end;
 
 // --------------------------------------------------------------------------
@@ -224,21 +231,21 @@ var
   Offset: Integer;
 begin
   // Set the header
-  PByteArray(Buffer)^[00] := $00; // Query ID (LSB)
-  PByteArray(Buffer)^[01] := $00; // Query ID (LSB)
-  PByteArray(Buffer)^[02] := $85; // QRESP1=1, OPCODE4=0, AUTH1=1, TRUNC1=0, RECURSD1=1
-  PByteArray(Buffer)^[03] := $83; // RECURSA1=0, RESERV3=0, RESPCODE4=3
-  PByteArray(Buffer)^[04] := $00; // NQUESTIONS (MSB)
-  PByteArray(Buffer)^[05] := $01; // NQUESTIONS (LSB)
-  PByteArray(Buffer)^[06] := $00; // NANSWERSRR (MSB)
-  PByteArray(Buffer)^[07] := $00; // NANSWERSRR (LSB)
-  PByteArray(Buffer)^[08] := $00; // NAUTHORIRR (MSB)
-  PByteArray(Buffer)^[09] := $00; // NAUTHORIRR (LSB)
-  PByteArray(Buffer)^[10] := $00; // NADDITIORR (MSB)
-  PByteArray(Buffer)^[11] := $00; // NADDITIORR (LSB)
+  PByteArray(Buffer)^[$00] := $00; // Query ID (LSB)
+  PByteArray(Buffer)^[$01] := $00; // Query ID (LSB)
+  PByteArray(Buffer)^[$02] := $85; // QRESP1=1, OPCODE4=0, AUTH1=1, TRUNC1=0, RECURSD1=1
+  PByteArray(Buffer)^[$03] := $83; // RECURSA1=0, RESERV3=0, RESPCODE4=3
+  PByteArray(Buffer)^[$04] := $00; // NQUESTIONS (MSB)
+  PByteArray(Buffer)^[$05] := $01; // NQUESTIONS (LSB)
+  PByteArray(Buffer)^[$06] := $00; // NANSWERSRR (MSB)
+  PByteArray(Buffer)^[$07] := $00; // NANSWERSRR (LSB)
+  PByteArray(Buffer)^[$08] := $00; // NAUTHORIRR (MSB)
+  PByteArray(Buffer)^[$09] := $00; // NAUTHORIRR (LSB)
+  PByteArray(Buffer)^[$0A] := $00; // NADDITIORR (MSB)
+  PByteArray(Buffer)^[$0B] := $00; // NADDITIORR (LSB)
 
   // Initialize the offset
-  Offset := REQ_HOST_NAME_OFFSET;
+  Offset := $0C;
 
   // Set the question name
   SetStringIntoPacket(HostName, Buffer, Offset, BufferLen);
@@ -262,21 +269,21 @@ var
   Offset: Integer;
 begin
   // Set the header
-  PByteArray(Buffer)^[00] := $00; // Query ID (LSB)
-  PByteArray(Buffer)^[01] := $00; // Query ID (LSB)
-  PByteArray(Buffer)^[02] := $85; // QRESP1=1, OPCODE4=0, AUTH1=1, TRUNC1=0, RECURSD1=1
-  PByteArray(Buffer)^[03] := $80; // RECURSA1=1, RESERV3=0, RESCODE4=0
-  PByteArray(Buffer)^[04] := $00; // NQUESTIONS (MSB)
-  PByteArray(Buffer)^[05] := $01; // NQUESTIONS (LSB)
-  PByteArray(Buffer)^[06] := $00; // NANSWERSRR (MSB)
-  PByteArray(Buffer)^[07] := $01; // NANSWERSRR (LSB)
-  PByteArray(Buffer)^[08] := $00; // NAUTHORIRR (MSB)
-  PByteArray(Buffer)^[09] := $00; // NAUTHORIRR (LSB)
-  PByteArray(Buffer)^[10] := $00; // NADDITIORR (MSB)
-  PByteArray(Buffer)^[11] := $00; // NADDITIORR (LSB)
+  PByteArray(Buffer)^[$00] := $00; // Query ID (LSB)
+  PByteArray(Buffer)^[$01] := $00; // Query ID (LSB)
+  PByteArray(Buffer)^[$02] := $85; // QRESP1=1, OPCODE4=0, AUTH1=1, TRUNC1=0, RECURSD1=1
+  PByteArray(Buffer)^[$03] := $80; // RECURSA1=1, RESERV3=0, RESCODE4=0
+  PByteArray(Buffer)^[$04] := $00; // NQUESTIONS (MSB)
+  PByteArray(Buffer)^[$05] := $01; // NQUESTIONS (LSB)
+  PByteArray(Buffer)^[$06] := $00; // NANSWERSRR (MSB)
+  PByteArray(Buffer)^[$07] := $01; // NANSWERSRR (LSB)
+  PByteArray(Buffer)^[$08] := $00; // NAUTHORIRR (MSB)
+  PByteArray(Buffer)^[$09] := $00; // NAUTHORIRR (LSB)
+  PByteArray(Buffer)^[$0A] := $00; // NADDITIORR (MSB)
+  PByteArray(Buffer)^[$0B] := $00; // NADDITIORR (LSB)
 
   // Initialize the offset
-  Offset := REQ_HOST_NAME_OFFSET;
+  Offset := $0C;
 
   // Set the question name
   SetStringIntoPacket(HostName, Buffer, Offset, BufferLen);
@@ -289,7 +296,7 @@ begin
 
   // Set the answer reference informations
   PByteArray(Buffer)^[Offset] := $C0; Inc(Offset);
-  PByteArray(Buffer)^[Offset] := REQ_HOST_NAME_OFFSET; Inc(Offset);
+  PByteArray(Buffer)^[Offset] := $0C; Inc(Offset);
 
   // Set the answer additional informations
   PByteArray(Buffer)^[Offset] := $00; Inc(Offset); // QUERYTYPE (MSB)
@@ -316,25 +323,63 @@ end;
 //
 // --------------------------------------------------------------------------
 
-function TResolver.PrintResponsePacketDescriptionAsStringFromPacket(Buffer: Pointer; BufferLen: Integer): String;
+function TResolver.PrintGenericPacketBytesAsStringFromPacket(Buffer: Pointer; BufferLen: Integer): String;
 var
-  FValue: String; AValue: String; BValue: String; OffsetL1: Integer; OffsetLX: Integer; QdCount: Word; AnCount: Word; Index: Integer; AnType: Word; AnData: Word;
+  Index: Integer;
 begin
-  QdCount := GetWordFromPacket(Buffer, 04, BufferLen);
-  AnCount := GetWordFromPacket(Buffer, 06, BufferLen);
+  Result := 'Z='; for Index := 0 to BufferLen - 1 do Result := Result + IntToHex(PByteArray(Buffer)^[Index], 2);
+end;
 
-  if (QdCount = 1) and (AnCount > 0) then begin // We are only able to understand this
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+function TResolver.PrintGenericPacketBytesAsStringFromPacketWithOffset(Buffer: Pointer; BufferLen: Integer; Offset: Integer; NumBytes: Integer): String;
+var
+  Index: Integer;
+begin
+  SetLength(Result, 0); for Index := Offset to Min(BufferLen - 1, Offset + NumBytes - 1) do Result := Result + IntToHex(PByteArray(Buffer)^[Index], 2);
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+function TResolver.PrintRequestPacketDescriptionAsStringFromPacket(Buffer: Pointer; BufferLen: Integer; IncludePacketBytesAlways: Boolean): String;
+var
+    HostName: String; QueryType: Word;
+begin
+  // Get the host name and query type from the request
+  Self.GetHostNameAndQueryTypeFromRequestPacket(Buffer, BufferLen, HostName, QueryType);
+
+  if (IncludePacketBytesAlways) then Result := 'Q=' + HostName + ';T=' + TQueryTypeUtils.ToString(QueryType) + ';' + Self.PrintGenericPacketBytesAsStringFromPacket(Buffer, BufferLen) else Result := 'Q=' + HostName + ';T=' + TQueryTypeUtils.ToString(QueryType);
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+function TResolver.PrintResponsePacketDescriptionAsStringFromPacket(Buffer: Pointer; BufferLen: Integer; IncludePacketBytesAlways: Boolean): String;
+var
+  FValue: String; AValue: String; BValue: String; OffsetL1: Integer; OffsetLX: Integer; RCode: Byte; QdCnt: Word; AnCnt: Word; Index: Integer; AnTyp: Word; AnDta: Word;
+begin
+  RCode := PByteArray(Buffer)^[$03] and $0f;
+
+  QdCnt := GetWordFromPacket(Buffer, $04, BufferLen);
+  AnCnt := GetWordFromPacket(Buffer, $06, BufferLen);
+
+  if (RCode = 0) and (QdCnt = 1) and (AnCnt > 0) then begin // We are only able to understand this
 
     // Initialize
     SetLength(FValue, 0);
 
     // Read the first question
-    OffsetL1 := REQ_HOST_NAME_OFFSET; OffsetLX := OffsetL1; AValue := GetStringFromPacket('', Buffer, OffsetL1, OffsetLX, 1, BufferLen); Inc(OffsetL1, 4);
+    OffsetL1 := $0C; OffsetLX := OffsetL1; AValue := GetStringFromPacket('', Buffer, OffsetL1, OffsetLX, 1, BufferLen); Inc(OffsetL1, 4);
 
     // Update the packet description
     FValue := 'Q=' + AValue;
 
-    for Index := 1 to AnCount do begin
+    for Index := 1 to AnCnt do begin
 
       if (OffsetL1 < BufferLen) then begin
 
@@ -342,26 +387,36 @@ begin
 
         if ((OffsetL1 + 10) <= BufferLen) then begin
 
-          AnType := GetWordFromPacket(Buffer, OffsetL1, BufferLen); Inc(OffsetL1, 8);
-          AnData := GetWordFromPacket(Buffer, OffsetL1, BufferLen); Inc(OffsetL1, 2);
+          AnTyp := GetWordFromPacket(Buffer, OffsetL1, BufferLen); Inc(OffsetL1, 8);
+          AnDta := GetWordFromPacket(Buffer, OffsetL1, BufferLen); Inc(OffsetL1, 2);
 
-          if (AnData > 0) and ((OffsetL1 + AnData) <= BufferLen) then begin
+          if (AnDta > 0) and ((OffsetL1 + AnDta) <= BufferLen) then begin
 
-            case AnType of
+            FValue := FValue + ';T[' + IntToStr(Index) + ']=' + TQueryTypeUtils.ToString(AnTyp);
+
+            case AnTyp of
 
               QueryTypeUtils.QUERY_TYPE_A:
 
-                if (AnData = 4) then begin
+                if (AnDta = 4) then begin
 
                   // Read the answer contents
                   BValue := TIPAddress.ToString(GetIntegerFromPacket(Buffer, OffsetL1, BufferLen));
 
                   // Update the packet description
-                  FValue := FValue + ';A=' + AValue + '>' + BValue;
+                  FValue := FValue + ';A[' + IntToStr(Index) + ']=' + AValue + '>' + BValue;
+
+                end else begin
+
+                  FValue := FValue + ';A[' + IntToStr(Index) + ']=' + Self.PrintGenericPacketBytesAsStringFromPacketWithOffset(Buffer, BufferLen, OffsetL1, AnDta);
 
                 end;
 
-            end; Inc(OffsetL1, AnData);
+              else
+
+                FValue := FValue + ';A[' + IntToStr(Index) + ']=' + Self.PrintGenericPacketBytesAsStringFromPacketWithOffset(Buffer, BufferLen, OffsetL1, AnDta);
+
+            end; Inc(OffsetL1, AnDta);
 
           end else begin
             Break;
@@ -377,10 +432,10 @@ begin
 
     end;
 
-    Result := FValue;
+    if (IncludePacketBytesAlways) then Result := FValue + ';' + Self.PrintGenericPacketBytesAsStringFromPacket(Buffer, BufferLen) else Result := FValue;
 
   end else begin
-    Result := '?=' + IntToHex(PByteArray(Buffer)^[00], 2) + IntToHex(PByteArray(Buffer)^[01], 2) + IntToHex(PByteArray(Buffer)^[02], 2) + IntToHex(PByteArray(Buffer)^[03], 2) + IntToHex(PByteArray(Buffer)^[04], 2) + IntToHex(PByteArray(Buffer)^[05], 2) + IntToHex(PByteArray(Buffer)^[06], 2) + IntToHex(PByteArray(Buffer)^[07], 2) + IntToHex(PByteArray(Buffer)^[08], 2) + IntToHex(PByteArray(Buffer)^[09], 2) + IntToHex(PByteArray(Buffer)^[10], 2) + IntToHex(PByteArray(Buffer)^[11], 2) + '';
+    Result := Self.PrintGenericPacketBytesAsStringFromPacket(Buffer, BufferLen);
   end;
 end;
 
@@ -388,9 +443,22 @@ end;
 //
 // --------------------------------------------------------------------------
 
-function TResolver.IsNegativeResponsePacket(Buffer: Pointer; BufferLen: Integer): Boolean;
+function TResolver.IsFailureResponsePacket(Buffer: Pointer; BufferLen: Integer): Boolean;
+var
+  RCode: Byte;
 begin
-  Result := not((PByteArray(Buffer)^[03] and $0f) = 0);
+  RCode := PByteArray(Buffer)^[$03] and $0f; Result := not((RCode = 0) or (RCode = 3));
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+function TResolver.IsNegativeResponsePacket(Buffer: Pointer; BufferLen: Integer): Boolean;
+var
+  RCode: Byte;
+begin
+  RCode := PByteArray(Buffer)^[$03] and $0f; Result := (RCode = 3);
 end;
 
 // --------------------------------------------------------------------------
@@ -418,13 +486,11 @@ begin
           // If the packet is not too small or large
           if (Self.BufferLen >= MIN_DNS_PACKET_LEN) and (Self.BufferLen <= MAX_DNS_PACKET_LEN) then begin
 
+            // Low res
             Arrival := Now;
 
             // Mark the packet arrival time
             ArrivalExt := TPerformance.GetInstantValue();
-
-            // Get the id field from the packet
-            SessionId := Self.GetIdFromPacket(Self.Buffer);
 
             // If it's a response coming from one of the DNS servers
             if ((Address = TConfiguration.GetServerConfiguration(0).Address) and (Port = TConfiguration.GetServerConfiguration(0).Port)) or
@@ -438,40 +504,20 @@ begin
                ((Address = TConfiguration.GetServerConfiguration(8).Address) and (Port = TConfiguration.GetServerConfiguration(8).Port)) or
                ((Address = TConfiguration.GetServerConfiguration(9).Address) and (Port = TConfiguration.GetServerConfiguration(9).Port)) then begin
 
+              // Get the id field from the packet
+              SessionId := Self.GetIdFromPacket(Self.Buffer);
+
               // Trace the event if a tracer is enabled
-              if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' received from server ' + TIPAddress.ToString(Address) + ':' + IntToStr(Port) + '.');
+              if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' received from server ' + TIPAddress.ToString(Address) + ':' + IntToStr(Port) + ' [' + Self.PrintResponsePacketDescriptionAsStringFromPacket(Self.Buffer, Self.BufferLen, True) + '].');
 
-              // If the item exists in the session cache
-              if TSessionCache.Extract(SessionId, RequestHash, AltAddress, AltPort, SilentUpdate, CacheException) then begin
+              if not(Self.IsFailureResponsePacket(Self.Buffer, Self.BufferLen)) then begin // If the response is not a failure
 
-                if CacheException then begin // If it's a response to a cache exception request
+                // If the item exists in the session cache
+                if TSessionCache.Extract(SessionId, RequestHash, AltAddress, AltPort, SilentUpdate, CacheException) then begin
 
-                  if not(Self.IsNegativeResponsePacket(Self.Buffer, Self.BufferLen)) then begin // If the response is not negative
+                  if CacheException then begin // If it's a response to a cache exception request
 
-                    // Clear the item
-                    TSessionCache.Delete(SessionId);
-
-                    // Forward the packet to the client
-                    ClientServerSocket.SendTo(Self.Buffer, Self.BufferLen, AltAddress, AltPort);
-
-                    // Trace the event if a tracer is enabled
-                    if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' sent to client ' + TIPAddress.ToString(AltAddress) + ':' + IntToStr(AltPort) + ' as positive.');
-
-                    // Trace the event into the hit log if enabled
-                    if THitLogger.IsEnabled() and (Pos('R', TConfiguration.GetHitLogFileWhat()) > 0) then THitLogger.AddHit(Arrival, 'R', Address, Self.PrintResponsePacketDescriptionAsStringFromPacket(Self.Buffer, Self.BufferLen));
-
-                  end else begin // The response is negative!
-
-                    if ((Address = TConfiguration.GetServerConfiguration(0).Address) and not(TConfiguration.GetServerConfiguration(0).IgnoreNegativeResponsesFromServer)) or
-                       ((Address = TConfiguration.GetServerConfiguration(1).Address) and not(TConfiguration.GetServerConfiguration(1).IgnoreNegativeResponsesFromServer)) or
-                       ((Address = TConfiguration.GetServerConfiguration(2).Address) and not(TConfiguration.GetServerConfiguration(2).IgnoreNegativeResponsesFromServer)) or
-                       ((Address = TConfiguration.GetServerConfiguration(3).Address) and not(TConfiguration.GetServerConfiguration(3).IgnoreNegativeResponsesFromServer)) or
-                       ((Address = TConfiguration.GetServerConfiguration(4).Address) and not(TConfiguration.GetServerConfiguration(4).IgnoreNegativeResponsesFromServer)) or
-                       ((Address = TConfiguration.GetServerConfiguration(5).Address) and not(TConfiguration.GetServerConfiguration(5).IgnoreNegativeResponsesFromServer)) or
-                       ((Address = TConfiguration.GetServerConfiguration(6).Address) and not(TConfiguration.GetServerConfiguration(6).IgnoreNegativeResponsesFromServer)) or
-                       ((Address = TConfiguration.GetServerConfiguration(7).Address) and not(TConfiguration.GetServerConfiguration(7).IgnoreNegativeResponsesFromServer)) or
-                       ((Address = TConfiguration.GetServerConfiguration(8).Address) and not(TConfiguration.GetServerConfiguration(8).IgnoreNegativeResponsesFromServer)) or
-                       ((Address = TConfiguration.GetServerConfiguration(9).Address) and not(TConfiguration.GetServerConfiguration(9).IgnoreNegativeResponsesFromServer)) then begin
+                    if not(Self.IsNegativeResponsePacket(Self.Buffer, Self.BufferLen)) then begin // If the response is not negative
 
                       // Clear the item
                       TSessionCache.Delete(SessionId);
@@ -480,87 +526,75 @@ begin
                       ClientServerSocket.SendTo(Self.Buffer, Self.BufferLen, AltAddress, AltPort);
 
                       // Trace the event if a tracer is enabled
-                      if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' sent to client ' + TIPAddress.ToString(AltAddress) + ':' + IntToStr(AltPort) + ' as negative.');
-
-                      // Trace the event into the hit log if enabled
-                      if THitLogger.IsEnabled() and (Pos('R', TConfiguration.GetHitLogFileWhat()) > 0) then THitLogger.AddHit(Arrival, 'R', Address, Self.PrintResponsePacketDescriptionAsStringFromPacket(Self.Buffer, Self.BufferLen));
-
-                    end else begin
-
-                      // Trace the event if a tracer is enabled
-                      if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' discarded as negative.');
-
-                    end;
-
-                  end;
-
-                end else if SilentUpdate then begin // If it's a response to a silent update request
-
-                  if not(Self.IsNegativeResponsePacket(Self.Buffer, Self.BufferLen)) then begin // If the response is not negative
-
-                    // Clear the item
-                    TSessionCache.Delete(SessionId);
-
-                    if not TConfiguration.GetAddressCacheDisabled() then begin
-
-                      // Put the item into the address cache
-                      Self.SetIdIntoPacket(0, Self.Buffer); TAddressCache.Add(Arrival, RequestHash, Self.Buffer, Self.BufferLen, False);
-
-                      // Trace the event if a tracer is enabled
-                      if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' put into the address cache as positive silent update.');
-
-                    end;
-
-                    // Trace the event into the hit log if enabled
-                    if THitLogger.IsEnabled() and (Pos('U', TConfiguration.GetHitLogFileWhat()) > 0) then THitLogger.AddHit(Arrival, 'U', Address, Self.PrintResponsePacketDescriptionAsStringFromPacket(Self.Buffer, Self.BufferLen));
-
-                  end else begin // The response is negative!
-
-                    // Trace the event if a tracer is enabled
-                    if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Response ID ' + ' discarded as negative silent update.');
-
-                  end;
-
-                end else begin // It's a response to a standard request!
-
-                  if not(IsNegativeResponsePacket(Self.Buffer, Self.BufferLen)) then begin // If the response is not negative
-
-                    // Clear the item
-                    TSessionCache.Delete(SessionId);
-
-                    // Forward the packet to the client
-                    ClientServerSocket.SendTo(Self.Buffer, Self.BufferLen, AltAddress, AltPort);
-
-                    if not TConfiguration.GetAddressCacheDisabled() then begin
-
-                      // Put the item into the address cache
-                      Self.SetIdIntoPacket(0, Self.Buffer); TAddressCache.Add(Arrival, RequestHash, Self.Buffer, Self.BufferLen, False);
-
-                      // Trace the event if a tracer is enabled
-                      if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' sent to client ' + TIPAddress.ToString(AltAddress) + ':' + IntToStr(AltPort) + ' and put into the address cache as positive.');
-
-                    end else begin
-
-                      // Trace the event if a tracer is enabled
                       if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' sent to client ' + TIPAddress.ToString(AltAddress) + ':' + IntToStr(AltPort) + ' as positive.');
 
+                      // Trace the event into the hit log if enabled
+                      if THitLogger.IsEnabled() and (Pos('R', TConfiguration.GetHitLogFileWhat()) > 0) then THitLogger.AddHit(Arrival, 'R', Address, Self.PrintResponsePacketDescriptionAsStringFromPacket(Self.Buffer, Self.BufferLen, False));
+
+                    end else begin // The response is negative!
+
+                      if ((Address = TConfiguration.GetServerConfiguration(0).Address) and not(TConfiguration.GetServerConfiguration(0).IgnoreNegativeResponsesFromServer)) or
+                         ((Address = TConfiguration.GetServerConfiguration(1).Address) and not(TConfiguration.GetServerConfiguration(1).IgnoreNegativeResponsesFromServer)) or
+                         ((Address = TConfiguration.GetServerConfiguration(2).Address) and not(TConfiguration.GetServerConfiguration(2).IgnoreNegativeResponsesFromServer)) or
+                         ((Address = TConfiguration.GetServerConfiguration(3).Address) and not(TConfiguration.GetServerConfiguration(3).IgnoreNegativeResponsesFromServer)) or
+                         ((Address = TConfiguration.GetServerConfiguration(4).Address) and not(TConfiguration.GetServerConfiguration(4).IgnoreNegativeResponsesFromServer)) or
+                         ((Address = TConfiguration.GetServerConfiguration(5).Address) and not(TConfiguration.GetServerConfiguration(5).IgnoreNegativeResponsesFromServer)) or
+                         ((Address = TConfiguration.GetServerConfiguration(6).Address) and not(TConfiguration.GetServerConfiguration(6).IgnoreNegativeResponsesFromServer)) or
+                         ((Address = TConfiguration.GetServerConfiguration(7).Address) and not(TConfiguration.GetServerConfiguration(7).IgnoreNegativeResponsesFromServer)) or
+                         ((Address = TConfiguration.GetServerConfiguration(8).Address) and not(TConfiguration.GetServerConfiguration(8).IgnoreNegativeResponsesFromServer)) or
+                         ((Address = TConfiguration.GetServerConfiguration(9).Address) and not(TConfiguration.GetServerConfiguration(9).IgnoreNegativeResponsesFromServer)) then begin
+
+                        // Clear the item
+                        TSessionCache.Delete(SessionId);
+
+                        // Forward the packet to the client
+                        ClientServerSocket.SendTo(Self.Buffer, Self.BufferLen, AltAddress, AltPort);
+
+                        // Trace the event if a tracer is enabled
+                        if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' sent to client ' + TIPAddress.ToString(AltAddress) + ':' + IntToStr(AltPort) + ' as negative.');
+
+                        // Trace the event into the hit log if enabled
+                        if THitLogger.IsEnabled() and (Pos('R', TConfiguration.GetHitLogFileWhat()) > 0) then THitLogger.AddHit(Arrival, 'R', Address, Self.PrintResponsePacketDescriptionAsStringFromPacket(Self.Buffer, Self.BufferLen, False));
+
+                      end else begin
+
+                        // Trace the event if a tracer is enabled
+                        if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' discarded as negative.');
+
+                      end;
+
                     end;
 
-                    // Trace the event into the hit log if enabled
-                    if THitLogger.IsEnabled() and (Pos('R', TConfiguration.GetHitLogFileWhat()) > 0) then THitLogger.AddHit(Arrival, 'R', Address, Self.PrintResponsePacketDescriptionAsStringFromPacket(Self.Buffer, Self.BufferLen));
+                  end else if SilentUpdate then begin // If it's a response to a silent update request
 
-                  end else begin // The response is negative!
+                    if not(Self.IsNegativeResponsePacket(Self.Buffer, Self.BufferLen)) then begin // If the response is not negative
 
-                    if ((Address = TConfiguration.GetServerConfiguration(0).Address) and not(TConfiguration.GetServerConfiguration(0).IgnoreNegativeResponsesFromServer)) or
-                       ((Address = TConfiguration.GetServerConfiguration(1).Address) and not(TConfiguration.GetServerConfiguration(1).IgnoreNegativeResponsesFromServer)) or
-                       ((Address = TConfiguration.GetServerConfiguration(2).Address) and not(TConfiguration.GetServerConfiguration(2).IgnoreNegativeResponsesFromServer)) or
-                       ((Address = TConfiguration.GetServerConfiguration(3).Address) and not(TConfiguration.GetServerConfiguration(3).IgnoreNegativeResponsesFromServer)) or
-                       ((Address = TConfiguration.GetServerConfiguration(4).Address) and not(TConfiguration.GetServerConfiguration(4).IgnoreNegativeResponsesFromServer)) or
-                       ((Address = TConfiguration.GetServerConfiguration(5).Address) and not(TConfiguration.GetServerConfiguration(5).IgnoreNegativeResponsesFromServer)) or
-                       ((Address = TConfiguration.GetServerConfiguration(6).Address) and not(TConfiguration.GetServerConfiguration(6).IgnoreNegativeResponsesFromServer)) or
-                       ((Address = TConfiguration.GetServerConfiguration(7).Address) and not(TConfiguration.GetServerConfiguration(7).IgnoreNegativeResponsesFromServer)) or
-                       ((Address = TConfiguration.GetServerConfiguration(8).Address) and not(TConfiguration.GetServerConfiguration(8).IgnoreNegativeResponsesFromServer)) or
-                       ((Address = TConfiguration.GetServerConfiguration(9).Address) and not(TConfiguration.GetServerConfiguration(9).IgnoreNegativeResponsesFromServer)) then begin
+                      // Clear the item
+                      TSessionCache.Delete(SessionId);
+
+                      if not TConfiguration.GetAddressCacheDisabled() then begin
+
+                        // Put the item into the address cache
+                        Self.SetIdIntoPacket(0, Self.Buffer); TAddressCache.Add(Arrival, RequestHash, Self.Buffer, Self.BufferLen, False);
+
+                        // Trace the event if a tracer is enabled
+                        if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' put into the address cache as positive silent update.');
+
+                      end;
+
+                      // Trace the event into the hit log if enabled
+                      if THitLogger.IsEnabled() and (Pos('U', TConfiguration.GetHitLogFileWhat()) > 0) then THitLogger.AddHit(Arrival, 'U', Address, Self.PrintResponsePacketDescriptionAsStringFromPacket(Self.Buffer, Self.BufferLen, False));
+
+                    end else begin // The response is negative!
+
+                      // Trace the event if a tracer is enabled
+                      if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Response ID ' + ' discarded as negative silent update.');
+
+                    end;
+
+                  end else begin // It's a response to a standard request!
+
+                    if not(IsNegativeResponsePacket(Self.Buffer, Self.BufferLen)) then begin // If the response is not negative
 
                       // Clear the item
                       TSessionCache.Delete(SessionId);
@@ -571,40 +605,84 @@ begin
                       if not TConfiguration.GetAddressCacheDisabled() then begin
 
                         // Put the item into the address cache
-                        Self.SetIdIntoPacket(0, Self.Buffer); TAddressCache.Add(Arrival, RequestHash, Self.Buffer, Self.BufferLen, True);
+                        Self.SetIdIntoPacket(0, Self.Buffer); TAddressCache.Add(Arrival, RequestHash, Self.Buffer, Self.BufferLen, False);
 
                         // Trace the event if a tracer is enabled
-                        if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' sent to client ' + TIPAddress.ToString(AltAddress) + ':' + IntToStr(AltPort) + ' and put into the address cache as negative.');
+                        if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' sent to client ' + TIPAddress.ToString(AltAddress) + ':' + IntToStr(AltPort) + ' and put into the address cache as positive.');
 
                       end else begin
 
                         // Trace the event if a tracer is enabled
-                        if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' sent to client ' + TIPAddress.ToString(AltAddress) + ':' + IntToStr(AltPort) + ' as negative.');
+                        if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' sent to client ' + TIPAddress.ToString(AltAddress) + ':' + IntToStr(AltPort) + ' as positive.');
 
                       end;
 
                       // Trace the event into the hit log if enabled
-                      if THitLogger.IsEnabled() and (Pos('R', TConfiguration.GetHitLogFileWhat()) > 0) then THitLogger.AddHit(Arrival, 'R', Address, Self.PrintResponsePacketDescriptionAsStringFromPacket(Self.Buffer, Self.BufferLen));
+                      if THitLogger.IsEnabled() and (Pos('R', TConfiguration.GetHitLogFileWhat()) > 0) then THitLogger.AddHit(Arrival, 'R', Address, Self.PrintResponsePacketDescriptionAsStringFromPacket(Self.Buffer, Self.BufferLen, False));
 
-                    end else begin
+                    end else begin // The response is negative!
 
-                      // Trace the event if a tracer is enabled
-                      if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' discarded as negative.');
+                      if ((Address = TConfiguration.GetServerConfiguration(0).Address) and not(TConfiguration.GetServerConfiguration(0).IgnoreNegativeResponsesFromServer)) or
+                         ((Address = TConfiguration.GetServerConfiguration(1).Address) and not(TConfiguration.GetServerConfiguration(1).IgnoreNegativeResponsesFromServer)) or
+                         ((Address = TConfiguration.GetServerConfiguration(2).Address) and not(TConfiguration.GetServerConfiguration(2).IgnoreNegativeResponsesFromServer)) or
+                         ((Address = TConfiguration.GetServerConfiguration(3).Address) and not(TConfiguration.GetServerConfiguration(3).IgnoreNegativeResponsesFromServer)) or
+                         ((Address = TConfiguration.GetServerConfiguration(4).Address) and not(TConfiguration.GetServerConfiguration(4).IgnoreNegativeResponsesFromServer)) or
+                         ((Address = TConfiguration.GetServerConfiguration(5).Address) and not(TConfiguration.GetServerConfiguration(5).IgnoreNegativeResponsesFromServer)) or
+                         ((Address = TConfiguration.GetServerConfiguration(6).Address) and not(TConfiguration.GetServerConfiguration(6).IgnoreNegativeResponsesFromServer)) or
+                         ((Address = TConfiguration.GetServerConfiguration(7).Address) and not(TConfiguration.GetServerConfiguration(7).IgnoreNegativeResponsesFromServer)) or
+                         ((Address = TConfiguration.GetServerConfiguration(8).Address) and not(TConfiguration.GetServerConfiguration(8).IgnoreNegativeResponsesFromServer)) or
+                         ((Address = TConfiguration.GetServerConfiguration(9).Address) and not(TConfiguration.GetServerConfiguration(9).IgnoreNegativeResponsesFromServer)) then begin
+
+                        // Clear the item
+                        TSessionCache.Delete(SessionId);
+
+                        // Forward the packet to the client
+                        ClientServerSocket.SendTo(Self.Buffer, Self.BufferLen, AltAddress, AltPort);
+
+                        if not TConfiguration.GetAddressCacheDisabled() then begin
+
+                          // Put the item into the address cache
+                          Self.SetIdIntoPacket(0, Self.Buffer); TAddressCache.Add(Arrival, RequestHash, Self.Buffer, Self.BufferLen, True);
+
+                          // Trace the event if a tracer is enabled
+                          if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' sent to client ' + TIPAddress.ToString(AltAddress) + ':' + IntToStr(AltPort) + ' and put into the address cache as negative.');
+
+                        end else begin
+
+                          // Trace the event if a tracer is enabled
+                          if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' sent to client ' + TIPAddress.ToString(AltAddress) + ':' + IntToStr(AltPort) + ' as negative.');
+
+                        end;
+
+                        // Trace the event into the hit log if enabled
+                        if THitLogger.IsEnabled() and (Pos('R', TConfiguration.GetHitLogFileWhat()) > 0) then THitLogger.AddHit(Arrival, 'R', Address, Self.PrintResponsePacketDescriptionAsStringFromPacket(Self.Buffer, Self.BufferLen, False));
+
+                      end else begin
+
+                        // Trace the event if a tracer is enabled
+                        if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' discarded as negative.');
+
+                      end;
 
                     end;
 
                   end;
 
+                end else begin // The item has not been found in the session cache!
+
+                  // Trace the event if a tracer is enabled
+                  if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' discarded because no session cache entry matched.');
+
                 end;
 
-              end else begin // The item has not been found in the session cache!
+              end else begin // The response is a failure
 
                 // Trace the event if a tracer is enabled
-                if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' discarded because no session cache entry matched.');
+                if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' discarded as failure.');
 
               end;
 
-              // Update performance statistics if enabled
+              // Update performance stats if enabled
               if TStatistics.IsEnabled() then begin if (Address = TConfiguration.GetServerConfiguration(0).Address) then TStatistics.IncTotalResponsesAndMeasureFlyTime(ArrivalExt, True, 0, SessionId)
                                                else if (Address = TConfiguration.GetServerConfiguration(1).Address) then TStatistics.IncTotalResponsesAndMeasureFlyTime(ArrivalExt, True, 1, SessionId)
                                                else if (Address = TConfiguration.GetServerConfiguration(2).Address) then TStatistics.IncTotalResponsesAndMeasureFlyTime(ArrivalExt, True, 2, SessionId)
@@ -620,11 +698,14 @@ begin
             // If it's a request coming from one of the DNS clients
             end else if (Address = LOCALHOST_ADDRESS) or TConfiguration.IsAllowedAddress(TIPAddress.ToString(Address)) then begin
 
+              // Get the id field from the packet
+              SessionId := Self.GetIdFromPacket(Self.Buffer);
+
               // Get the host name and query type from the request
               Self.GetHostNameAndQueryTypeFromRequestPacket(Buffer, BufferLen, HostName, QueryType);
 
               // Trace the event if a tracer is enabled
-              if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Request  ID ' + FormatCurr('00000', SessionId) + ' received from client ' + TIPAddress.ToString(Address) + ':' + IntToStr(Port) + ' regarding "' + HostName + '" of type ' + TQueryTypeUtils.ToString(QueryType) + '.');
+              if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Request  ID ' + FormatCurr('00000', SessionId) + ' received from client ' + TIPAddress.ToString(Address) + ':' + IntToStr(Port) + ' [' + Self.PrintRequestPacketDescriptionAsStringFromPacket(Buffer, BufferLen, True) + '].');
 
               if TConfiguration.IsBlackException(HostName) then begin // If a black exception
 
@@ -638,9 +719,9 @@ begin
                 if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' sent to client ' + TIPAddress.ToString(Address) + ':' + IntToStr(Port) + ' as black exception.');
 
                 // Trace the event into the hit log if enabled
-                if THitLogger.IsEnabled() and (Pos('B', TConfiguration.GetHitLogFileWhat()) > 0) then THitLogger.AddHit(Arrival, 'B', Address, HostName);
+                if THitLogger.IsEnabled() and (Pos('B', TConfiguration.GetHitLogFileWhat()) > 0) then THitLogger.AddHit(Arrival, 'B', Address, Self.PrintRequestPacketDescriptionAsStringFromPacket(Self.Buffer, Self.BufferLen, False));
 
-                // Update performance statistics if enabled
+                // Update performance stats if enabled
                 if TStatistics.IsEnabled() then TStatistics.IncTotalRequestsResolvedThroughOtherWays();
 
               end else if THostsCache.Find(HostName, AltAddress) and ((QueryType = QueryTypeUtils.QUERY_TYPE_A) or (QueryType = QueryTypeUtils.QUERY_TYPE_AAAA)) then begin // If the host name exists in the hosts cache and the query type is A (IPv4) or AAAA (IPv6)
@@ -655,9 +736,9 @@ begin
                 if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' sent to client ' + TIPAddress.ToString(Address) + ':' + IntToStr(Port) + ' directly from hosts cache.');
 
                 // Trace the event into the hit log if enabled
-                if THitLogger.IsEnabled() and (Pos('H', TConfiguration.GetHitLogFileWhat()) > 0) then THitLogger.AddHit(Arrival, 'H', Address, HostName);
+                if THitLogger.IsEnabled() and (Pos('H', TConfiguration.GetHitLogFileWhat()) > 0) then THitLogger.AddHit(Arrival, 'H', Address, Self.PrintRequestPacketDescriptionAsStringFromPacket(Self.Buffer, Self.BufferLen, False));
 
-                // Update performance statistics if enabled
+                // Update performance stats if enabled
                 if TStatistics.IsEnabled() then TStatistics.IncTotalRequestsResolvedThroughHostsFile();
 
               end else if TConfiguration.IsCacheException(HostName) then begin // If the host name is configured as a cache exception
@@ -674,7 +755,7 @@ begin
                       // Forward the request to the server
                       ClientServerSocket.SendTo(Self.Buffer, Self.BufferLen, TConfiguration.GetServerConfiguration(DnsIndex).Address, TConfiguration.GetServerConfiguration(DnsIndex).Port);
 
-                      // Update performance data if enabled
+                      // Update performance stats if enabled
                       if TStatistics.IsEnabled() then TStatistics.IncTotalResponsesAndMeasureFlyTime(TPerformance.GetInstantValue(), False, DnsIndex, SessionId);
 
                       // Trace the event if a tracer is enabled
@@ -692,9 +773,9 @@ begin
                   Self.SetIdIntoPacket(0, Self.Buffer); TSessionCache.Insert(SessionId, RequestHash, Address, Port, False, True);
 
                   // Trace the event into the hit log if enabled
-                  if THitLogger.IsEnabled() and (Pos('F', TConfiguration.GetHitLogFileWhat()) > 0) then THitLogger.AddHit(Arrival, 'F', Address, HostName);
+                  if THitLogger.IsEnabled() and (Pos('F', TConfiguration.GetHitLogFileWhat()) > 0) then THitLogger.AddHit(Arrival, 'F', Address, Self.PrintRequestPacketDescriptionAsStringFromPacket(Self.Buffer, Self.BufferLen, False));
 
-                  // Update performance statistics if enabled
+                  // Update performance stats if enabled
                   if TStatistics.IsEnabled() then TStatistics.IncTotalRequestsForwarded();
 
                 end else begin
@@ -725,12 +806,12 @@ begin
                       Self.SetIdIntoPacket(SessionId, Self.Output); ClientServerSocket.SendTo(Self.Output, Self.OutputLen, Address, Port);
 
                       // Trace the event if a tracer is enabled
-                      if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' sent to client ' + TIPAddress.ToString(Address) + ':' + IntToStr(Port) + ' directly from address cache.');
+                      if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' sent to client ' + TIPAddress.ToString(Address) + ':' + IntToStr(Port) + ' directly from address cache [' + Self.PrintResponsePacketDescriptionAsStringFromPacket(Self.Output, Self.OutputLen, True) + '].');
 
                       // Trace the event into the hit log if enabled
-                      if THitLogger.IsEnabled() and (Pos('C', TConfiguration.GetHitLogFileWhat()) > 0) then THitLogger.AddHit(Arrival, 'C', Address, HostName);
+                      if THitLogger.IsEnabled() and (Pos('C', TConfiguration.GetHitLogFileWhat()) > 0) then THitLogger.AddHit(Arrival, 'C', Address, Self.PrintRequestPacketDescriptionAsStringFromPacket(Self.Buffer, Self.BufferLen, False));
 
-                      // Update performance statistics if enabled
+                      // Update performance stats if enabled
                       if TStatistics.IsEnabled() then TStatistics.IncTotalRequestsResolvedThroughCache();
 
                     end;
@@ -741,7 +822,7 @@ begin
                       Self.SetIdIntoPacket(SessionId, Self.Output); ClientServerSocket.SendTo(Self.Output, Self.OutputLen, Address, Port);
 
                       // Trace the event if a tracer is enabled
-                      if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' sent to client ' + TIPAddress.ToString(Address) + ':' + IntToStr(Port) + ' directly from address cache.');
+                      if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' sent to client ' + TIPAddress.ToString(Address) + ':' + IntToStr(Port) + ' directly from address cache [' + Self.PrintResponsePacketDescriptionAsStringFromPacket(Self.Output, Self.OutputLen, True) + '].');
 
                       // We need to know if the request has been forwarded to at least one DNS server or not
                       Forwarded := False;
@@ -755,7 +836,7 @@ begin
                             // Forward the request to the server
                             ClientServerSocket.SendTo(Self.Buffer, Self.BufferLen, TConfiguration.GetServerConfiguration(DnsIndex).Address, TConfiguration.GetServerConfiguration(DnsIndex).Port);
 
-                            // Update performance data if enabled
+                            // Update performance stats if enabled
                             if TStatistics.IsEnabled() then TStatistics.IncTotalResponsesAndMeasureFlyTime(TPerformance.GetInstantValue(), False, DnsIndex, SessionId);
 
                             // Trace the event if a tracer is enabled
@@ -773,21 +854,10 @@ begin
                         Self.SetIdIntoPacket(0, Self.Buffer); TSessionCache.Insert(SessionId, RequestHash, Address, Port, True, False);
 
                         // Trace the event into the hit log if enabled
-                        if THitLogger.IsEnabled() and (Pos('C', TConfiguration.GetHitLogFileWhat()) > 0) then THitLogger.AddHit(Arrival, 'C', Address, HostName);
+                        if THitLogger.IsEnabled() and (Pos('C', TConfiguration.GetHitLogFileWhat()) > 0) then THitLogger.AddHit(Arrival, 'C', Address, Self.PrintRequestPacketDescriptionAsStringFromPacket(Self.Buffer, Self.BufferLen, False));
 
-                        // Update performance statistics if enabled
+                        // Update performance stats if enabled
                         if TStatistics.IsEnabled() then TStatistics.IncTotalRequestsResolvedThroughCache();
-
-                      end else begin
-
-                        // Build a negative response
-                        Self.BuildNegativeResponsePacketFromHostName(HostName, Self.Output, Self.OutputLen);
-
-                        // Send the response to the client
-                        Self.SetIdIntoPacket(SessionId, Self.Output); ClientServerSocket.SendTo(Self.Output, Self.OutputLen, Address, Port);
-
-                        // Trace the event if a tracer is enabled
-                        if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' sent to client ' + TIPAddress.ToString(Address) + ':' + IntToStr(Port) + ' directly as negative.');
 
                       end;
 
@@ -807,7 +877,7 @@ begin
                             // Forward the request to the server
                             ClientServerSocket.SendTo(Self.Buffer, Self.BufferLen, TConfiguration.GetServerConfiguration(DnsIndex).Address, TConfiguration.GetServerConfiguration(DnsIndex).Port);
 
-                            // Update performance data if enabled
+                            // Update performance stats if enabled
                             if TStatistics.IsEnabled() then TStatistics.IncTotalResponsesAndMeasureFlyTime(TPerformance.GetInstantValue(), False, DnsIndex, SessionId);
 
                             // Trace the event if a tracer is enabled
@@ -825,9 +895,9 @@ begin
                         Self.SetIdIntoPacket(0, Self.Buffer); TSessionCache.Insert(SessionId, RequestHash, Address, Port, False, False);
 
                         // Trace the event into the hit log if enabled
-                        if THitLogger.IsEnabled() and (Pos('F', TConfiguration.GetHitLogFileWhat()) > 0) then THitLogger.AddHit(Arrival, 'F', Address, HostName);
+                        if THitLogger.IsEnabled() and (Pos('F', TConfiguration.GetHitLogFileWhat()) > 0) then THitLogger.AddHit(Arrival, 'F', Address, Self.PrintRequestPacketDescriptionAsStringFromPacket(Self.Buffer, Self.BufferLen, False));
 
-                        // Update performance statistics if enabled
+                        // Update performance stats if enabled
                         if TStatistics.IsEnabled() then TStatistics.IncTotalRequestsForwarded();
 
                       end else begin
@@ -861,7 +931,7 @@ begin
                         // Forward the request to the server
                         ClientServerSocket.SendTo(Self.Buffer, Self.BufferLen, TConfiguration.GetServerConfiguration(DnsIndex).Address, TConfiguration.GetServerConfiguration(DnsIndex).Port);
 
-                        // Update performance data if enabled
+                        // Update performance stats if enabled
                         if TStatistics.IsEnabled() then TStatistics.IncTotalResponsesAndMeasureFlyTime(TPerformance.GetInstantValue(), False, DnsIndex, SessionId);
 
                         // Trace the event if a tracer is enabled
@@ -879,9 +949,9 @@ begin
                     Self.SetIdIntoPacket(0, Self.Buffer); TSessionCache.Insert(SessionId, RequestHash, Address, Port, False, False);
 
                     // Trace the event into the hit log if enabled
-                    if THitLogger.IsEnabled() and (Pos('F', TConfiguration.GetHitLogFileWhat()) > 0) then THitLogger.AddHit(Arrival, 'F', Address, HostName);
+                    if THitLogger.IsEnabled() and (Pos('F', TConfiguration.GetHitLogFileWhat()) > 0) then THitLogger.AddHit(Arrival, 'F', Address, Self.PrintRequestPacketDescriptionAsStringFromPacket(Self.Buffer, Self.BufferLen, False));
 
-                    // Update performance statistics if enabled
+                    // Update performance stats if enabled
                     if TStatistics.IsEnabled() then TStatistics.IncTotalRequestsForwarded();
 
                   end else begin
@@ -901,15 +971,15 @@ begin
 
               end;
 
-              // Update performance statistics if enabled
+              // Update performance stats if enabled
               if TStatistics.IsEnabled() then TStatistics.IncTotalRequestsReceived();
 
             end else begin // It's a spurious packet coming from the infinite
 
               // Trace the event if a tracer is enabled
-              if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Unexpected packet received from address ' + TIPAddress.ToString(Address) + ':' + IntToStr(Port) + '.');
+              if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Unexpected packet received from address ' + TIPAddress.ToString(Address) + ':' + IntToStr(Port) + ' [' + Self.PrintGenericPacketBytesAsStringFromPacket(Self.Buffer, Self.BufferLen) + '].');
 
-              // Update performance statistics if enabled
+              // Update performance stats if enabled
               if TStatistics.IsEnabled() then TStatistics.IncTotalPacketsDiscarded();
 
             end;
@@ -917,9 +987,9 @@ begin
           end else begin // It's a spurious packet coming from the infinite
 
             // Trace the event if a tracer is enabled
-            if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Malformed packet received from address ' + TIPAddress.ToString(Address) + ':' + IntToStr(Port) + '.');
+            if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Malformed packet received from address ' + TIPAddress.ToString(Address) + ':' + IntToStr(Port) + ' [' + Self.PrintGenericPacketBytesAsStringFromPacket(Self.Buffer, Self.BufferLen) + '].');
 
-            // Update performance statistics if enabled
+            // Update performance stats if enabled
             if TStatistics.IsEnabled() then TStatistics.IncTotalPacketsDiscarded();
 
           end;

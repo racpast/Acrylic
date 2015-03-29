@@ -88,7 +88,7 @@ implementation
 // --------------------------------------------------------------------------
 
 uses
-  SysUtils, Classes, Configuration, Compression;
+  Classes, SysUtils, Configuration, Compression, Tracer;
 
 // --------------------------------------------------------------------------
 //
@@ -382,7 +382,8 @@ end;
 
 class procedure TAddressCache.ScavengeToFile(FileName: String);
 begin
-  // Open the stream for writing
+  if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TAddressCache.ScavengeToFile: Saving address cache items...');
+
   TAddressCache_FileStream := TFileStream.Create(FileName, fmCreate, fmShareDenyWrite);
 
   try
@@ -392,10 +393,11 @@ begin
 
   finally
 
-    // Close the stream
     TAddressCache_FileStream.Free;
 
   end;
+
+  if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TAddressCache.ScavengeToFile: Address cache items saved successfully.');
 end;
 
 // --------------------------------------------------------------------------
@@ -404,12 +406,12 @@ end;
 
 class procedure TAddressCache.LoadFromFile(FileName: String);
 var
-  Hash: Int64; AddressCacheItem: PAddressCacheItem;
+  Hash: Int64; AddressCacheItem: PAddressCacheItem; NumberOfItemsLoaded: Cardinal;
 begin
-  // Wrap a stream object around the specified file name
-  TAddressCache_FileStream := TFileStream.Create(FileName, fmOpenRead, fmShareDenyWrite); try
+  if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TAddressCache.LoadFromFile: Loading address cache items...');
 
-    // While the end of the stream has not been reached...
+  NumberOfItemsLoaded := 0; TAddressCache_FileStream := TFileStream.Create(FileName, fmOpenRead, fmShareDenyWrite); try
+
     while (TAddressCache_FileStream.Position < TAddressCache_FileStream.Size) do begin
 
       AddressCacheItem := nil; try
@@ -430,6 +432,8 @@ begin
         // Add the item into the AddressCache list
         Self.InternalAdd(Hash, Pointer(AddressCacheItem));
 
+        Inc(NumberOfItemsLoaded);
+
       except
 
         on E: Exception do begin
@@ -444,7 +448,6 @@ begin
 
           end;
 
-          // Propagate exception upper in the hierarchy
           raise E;
 
         end;
@@ -455,10 +458,11 @@ begin
 
   finally
 
-    // Close the stream
     TAddressCache_FileStream.Free;
 
   end;
+
+  if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TAddressCache.LoadFromFile: Loaded ' + IntToStr(NumberOfItemsLoaded) + ' address cache items successfully.');
 end;
 
 // --------------------------------------------------------------------------

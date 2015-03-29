@@ -1,69 +1,95 @@
-@echo off
+@Echo Off
 
-set DST=C:\Temp
+Set DST=C:\Temp
 
-echo.
-echo Cleaning...
-echo.
+Echo.
+Echo Cleaning...
+Echo.
 
-call CleanSources.bat
+Call CleanSources.bat
 
-echo.
-echo Searching the compiler...
-echo.
+Echo.
+Echo Searching the compiler...
+Echo.
 
-if exist "%PROGRAMFILES%\Delphi 10 Lite\Bin\DCC32.exe" set DCC="%PROGRAMFILES%\Delphi 10 Lite\Bin\DCC32.exe"
-if exist "%PROGRAMFILES(X86)%\Delphi 10 Lite\Bin\DCC32.exe" set DCC="%PROGRAMFILES(X86)%\Delphi 10 Lite\Bin\DCC32.exe"
+If Exist "%PROGRAMFILES%\Delphi 10 Lite\Bin\DCC32.exe" Set DCC=%PROGRAMFILES%\Delphi 10 Lite\Bin\DCC32.exe
+If Exist "%PROGRAMFILES(X86)%\Delphi 10 Lite\Bin\DCC32.exe" Set DCC=%PROGRAMFILES(X86)%\Delphi 10 Lite\Bin\DCC32.exe
 
-echo Compiler found here: %DCC%
+Echo Compiler found here: %DCC%
 
-echo.
-echo Compiling Acrylic Console...
-echo.
+Echo.
+Echo Compiling Acrylic console...
+Echo.
 
-%DCC% AcrylicConsole.dpr
+"%DCC%" AcrylicConsole.dpr
 
-echo.
-echo Compiling Acrylic Service...
-echo.
+Echo.
+Echo Compressing Acrylic console...
+Echo.
 
-%DCC% AcrylicService.dpr
+C:\Wintools\Console\Upx.exe --best AcrylicConsole.exe
 
-echo.
-echo Compiling Acrylic Controller...
-echo.
+Echo.
+Echo Compiling Acrylic service...
+Echo.
 
-%DCC% AcrylicController.dpr
+"%DCC%" AcrylicService.dpr
 
-echo.
-echo Building Acrylic Setup Package...
-echo.
+Echo.
+Echo Compressing Acrylic service...
+Echo.
+
+C:\Wintools\Console\Upx.exe --best AcrylicService.exe
+
+Echo.
+Echo Compiling Acrylic controller...
+Echo.
+
+"%DCC%" AcrylicController.dpr
+
+Echo.
+Echo Compressing Acrylic controller...
+Echo.
+
+C:\Wintools\Console\Upx.exe --best AcrylicController.exe
+
+Echo.
+Echo Building Acrylic setup package...
+Echo.
 
 "C:\Wintools\NSIS\makensis.exe" AcrylicSetup.nsi
 
-echo.
-echo Moving Acrylic Setup Package To "%DST%"...
-echo.
+Echo.
+Echo Moving Acrylic setup package to "%DST%"...
+Echo.
 
-move /y Acrylic.exe "%DST%"
+If Not Exist "%DST%" MkDir "%DST%" >NUL 2>NUL
+If Exist "%DST%\Acrylic.exe" Del "%DST%\Acrylic.exe" >NUL 2>NUL
 
-echo.
-echo Cleaning...
-echo.
+Move /y Acrylic.exe "%DST%"
 
-call CleanSources.bat
+Echo.
+Echo Cleaning...
+Echo.
 
-echo.
-echo Building Acrylic Source Archive...
-echo.
+Call CleanSources.bat
 
-C:\Wintools\Console\7za.exe a Acrylic-Sources.zip *
+Echo.
+Echo Building Acrylic source archive...
+Echo.
 
-echo.
-echo Moving Acrylic Source Archive To "%DST%"...
-echo.
+C:\Wintools\Console\7za.exe a Acrylic-Sources.zip -xr!.git -x!.gitignore *
 
-move /y Acrylic-Sources.zip "%DST%"
+Echo.
+Echo Moving Acrylic source archive to "%DST%"...
+Echo.
 
-echo.
-echo Done. & pause.
+If Not Exist "%DST%" MkDir "%DST%" >NUL 2>NUL
+If Exist "%DST%\Acrylic-Sources.zip" Del "%DST%\Acrylic-Sources.zip" >NUL 2>NUL
+
+Move /y Acrylic-Sources.zip "%DST%"
+
+Echo.
+Echo Done.
+
+Pause

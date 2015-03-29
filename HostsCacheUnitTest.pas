@@ -16,7 +16,6 @@ type
 
 constructor THostsCacheUnitTest.Create();
 begin
-  // Call base
   inherited Create;
 end;
 
@@ -26,18 +25,15 @@ end;
 
 procedure THostsCacheUnitTest.ExecuteTest();
 var
-  i, j: Integer; Address: Integer; HostsStream: TFileStream; HostsLine: String; const KHostsItems = 750;
+  i, j: Integer; Address: Integer; HostsStream: TFileStream; HostsLine: String; const KHostsItems = 5000;
 begin
-  // Load configuration
-  TConfiguration.Initialize();
-
   // Open a stream to build a hosts file
   HostsStream := TFileStream.Create(ClassName + '.tmp', fmCreate);
 
   for i := 0 to (KHostsItems - 1) do begin // Massive item production...
 
     // Fill a block of host items
-    SetLength(HostsLine, 0); for j := 0 to 999 do HostsLine := HostsLine + IntToStr((1000 * i + j) and 255) + '.' + IntToStr(((1000 * i + j) shr 8) and 255) + '.' + IntToStr(((1000 * i + j) shr 16) and 255) + '.' + IntToStr((1000 * i + j) shr 24) + #32 + 'HOSTNAME-PRI-' + FormatCurr('000000000', (1000 * i + j)) + #32 + 'HOSTNAME-ALT-' + FormatCurr('000000000', (1000 * i + j)) + #13#10;
+    SetLength(HostsLine, 0); for j := 0 to 999 do HostsLine := HostsLine + IntToStr((1000 * i + j) and 255) + '.' + IntToStr(((1000 * i + j) shr 8) and 255) + '.' + IntToStr(((1000 * i + j) shr 16) and 255) + '.' + IntToStr((1000 * i + j) shr 24) + #32 + 'HOSTNAME-' + FormatCurr('000000000', (1000 * i + j)) + '-A' + #32 + 'HOSTNAME-' + FormatCurr('000000000', (1000 * i + j)) + '-B' + #13#10;
 
     // Write the block of host items to disk
     HostsStream.Write(HostsLine[1], Length(HostsLine));
@@ -70,7 +66,7 @@ begin
     for j := 0 to 999 do begin
 
       // Search the item by name
-      if not(THostsCache.Find('HOSTNAME-PRI-' + FormatCurr('000000000', (1000 * i + j)), Address) and (Address = (1000 * i + j))) or not(THostsCache.Find('HOSTNAME-ALT-' + FormatCurr('000000000', (1000 * i + j)), Address) and (Address = (1000 * i + j))) then raise FailedUnitTestException.Create;
+      if not(THostsCache.Find('HOSTNAME-' + FormatCurr('000000000', (1000 * i + j)) + '-A', Address) and (Address = (1000 * i + j))) or not(THostsCache.Find('HOSTNAME-' + FormatCurr('000000000', (1000 * i + j)) + '-B', Address) and (Address = (1000 * i + j))) then raise FailedUnitTestException.Create;
 
     end;
 
@@ -87,8 +83,8 @@ begin
   // Try to look for a nonexistant item
   if THostsCache.Find('NONEXISTANT', Address) then raise FailedUnitTestException.Create;
 
-  // Finalize class and configuration
-  THostsCache.Finalize(); TConfiguration.Finalize();
+  // Finalize class
+  THostsCache.Finalize();
 end;
 
 // --------------------------------------------------------------------------

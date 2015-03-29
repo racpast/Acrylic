@@ -31,7 +31,7 @@ const
 
 const
   MIN_DNS_PACKET_LEN = 16;
-  MAX_DNS_PACKET_LEN = 512;
+  MAX_DNS_PACKET_LEN = 4096;
   MAX_DNS_BUFFER_LEN = 65536;
 
 // --------------------------------------------------------------------------
@@ -40,13 +40,6 @@ const
 
 const
   MAX_NUM_DNS_SERVERS = 10;
-
-// --------------------------------------------------------------------------
-//
-// --------------------------------------------------------------------------
-
-const
-  REQ_HOST_NAME_OFFSET = 12;
 
 // --------------------------------------------------------------------------
 //
@@ -119,7 +112,7 @@ implementation
 // --------------------------------------------------------------------------
 
 uses
-  IniFiles, IPAddress, PatternMatching, QueryTypeUtils, SysUtils;
+  IniFiles, SysUtils, IPAddress, PatternMatching, QueryTypeUtils, Tracer;
 
 // --------------------------------------------------------------------------
 //
@@ -200,9 +193,9 @@ begin
 
   // Initialize caching config
   TConfiguration_AddressCacheDisabled := False;
-  TConfiguration_AddressCacheNegativeTime := 57600;
-  TConfiguration_AddressCacheScavengingTime := 57600;
-  TConfiguration_AddressCacheSilentUpdateTime := 2147483647;
+  TConfiguration_AddressCacheNegativeTime := 10;
+  TConfiguration_AddressCacheScavengingTime := 28800;
+  TConfiguration_AddressCacheSilentUpdateTime := 1440;
   TConfiguration_AddressCacheDisableCompression := False;
 
   // Initialize local binding params
@@ -453,9 +446,18 @@ class procedure TConfiguration.LoadFromFile(FileName: String);
 var
   IniFile: TIniFile; StringList: TStringList; i: Integer; S: String; W: Word;
 begin
+  if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TConfiguration.LoadFromFile: Loading configuration file...');
+
   IniFile := nil; try
 
     IniFile := TIniFile.Create(FileName);
+
+    if TTracer.IsEnabled() then begin
+      StringList := TStringList.Create; IniFile.ReadSectionValues('GlobalSection'          , StringList); for i := 0 to (StringList.Count - 1) do TTracer.Trace(TracePriorityInfo, 'TConfiguration.LoadFromFile: [GlobalSection] '           + StringList[i]); StringList.Free;
+      StringList := TStringList.Create; IniFile.ReadSectionValues('AllowedAddressesSection', StringList); for i := 0 to (StringList.Count - 1) do TTracer.Trace(TracePriorityInfo, 'TConfiguration.LoadFromFile: [AllowedAddressesSection] ' + StringList[i]); StringList.Free;
+      StringList := TStringList.Create; IniFile.ReadSectionValues('CacheExceptionsSection' , StringList); for i := 0 to (StringList.Count - 1) do TTracer.Trace(TracePriorityInfo, 'TConfiguration.LoadFromFile: [CacheExceptionsSection] '  + StringList[i]); StringList.Free;
+      StringList := TStringList.Create; IniFile.ReadSectionValues('WhiteExceptionsSection' , StringList); for i := 0 to (StringList.Count - 1) do TTracer.Trace(TracePriorityInfo, 'TConfiguration.LoadFromFile: [WhiteExceptionsSection] '  + StringList[i]); StringList.Free;
+    end;
 
     S := IniFile.ReadString('GlobalSection', 'PrimaryServerHostNameAffinityMask', ''); if (S <> '') then begin
       TConfiguration_ServerConfiguration[0].HostNameAffinityMask := TStringList.Create; TConfiguration_ServerConfiguration[0].HostNameAffinityMask.Delimiter := ';'; TConfiguration_ServerConfiguration[0].HostNameAffinityMask.DelimitedText := S;
@@ -608,6 +610,8 @@ begin
     if (IniFile <> nil) then IniFile.Free;
 
   end;
+
+  if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TConfiguration.LoadFromFile: Configuration file loaded successfully.');
 end;
 
 // --------------------------------------------------------------------------

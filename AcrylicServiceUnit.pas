@@ -49,7 +49,7 @@ implementation
 // --------------------------------------------------------------------------
 
 uses
-  SysUtils, Configuration, Tracer, FileTracerAgent, Bootstrapper;
+  SysUtils, Configuration, Tracer, FileTracerAgent, AcrylicVersionInfo, Bootstrapper;
 
 // --------------------------------------------------------------------------
 //
@@ -88,6 +88,9 @@ begin
 
     // Start the config and eventually set the debug file
     TConfiguration.Initialize(); TTracer.Initialize(); if FileExists(TConfiguration.GetDebugLogFileName()) then TTracer.SetTracerAgent(TFileTracerAgent.Create(TConfiguration.GetDebugLogFileName()));
+
+    // Trace Acrylic version info if a tracer is enabled
+    if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'Acrylic version is ' + AcrylicVersionInfo.Number + ' released on ' + AcrylicVersionInfo.ReleaseDate + '.');
 
     // Start the system using the Bootstrapper
     TBootstrapper.StartSystem();

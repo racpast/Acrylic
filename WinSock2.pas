@@ -18,20 +18,20 @@ interface
 type
   PHostEnt = ^THostEnt;
   THostEnt = packed record
-    h_name: PChar;                 // Official name of host
-    h_aliases: ^PChar;             // Alias list
-    h_addrtype: Smallint;          // Host address type
-    h_length: Smallint;            // Length of address
+    h_name: PChar;
+    h_aliases: ^PChar;
+    h_addrtype: Smallint;
+    h_length: Smallint;
     case Byte of
-      0: (h_addr_list: ^PChar);    // List of addresses
-      1: (h_addr: ^PChar);         // Address, for backward compatibility
+      0: (h_addr_list: ^PChar);
+      1: (h_addr: ^PChar);
   end;
 
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
 
-function gethostbyname (name: PChar): PHostEnt; external 'WinSock2.dll';
+function gethostbyname(name: PChar): PHostEnt; external 'WinSock2.dll';
 
 // --------------------------------------------------------------------------
 //

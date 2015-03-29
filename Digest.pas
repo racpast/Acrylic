@@ -18,7 +18,7 @@ interface
 type
   TDigest = class
     public
-      class function  ComputeCRC64(Buffer: Pointer; Size: Integer): Int64;
+      class function ComputeCRC64(Buffer: Pointer; Size: Integer): Int64;
   end;
 
 // --------------------------------------------------------------------------

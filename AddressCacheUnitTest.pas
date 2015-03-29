@@ -37,16 +37,15 @@ end;
 
 procedure TAddressCacheUnitTest.ExecuteTest();
 var
-  i, j: Integer; Time: TDateTime; Seed: Integer; const CacheItems = 750000;
+  i, j: Integer; Time: TDateTime; Seed: Integer; const CacheItems = 5000000;
 begin
-  // Now!
-  Time := Now;
+  Time := Now();
 
-  // Random seed
-  Seed := Round(Frac(Time) * 86400000.0);
+  // Init seed
+  Seed := Round(Frac(Time) * 8640000.0);
 
-  // Load configuration and init class
-  TConfiguration.Initialize; TAddressCache.Initialize;
+  // Init class
+  TAddressCache.Initialize;
 
   TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Start massive insertion...');
 
@@ -98,8 +97,8 @@ begin
 
   TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Done.');
 
-  // Finalize class and configuration
-  TAddressCache.Finalize; TConfiguration.Finalize;
+  // Finalize class
+  TAddressCache.Finalize;
 end;
 
 // --------------------------------------------------------------------------

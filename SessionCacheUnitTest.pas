@@ -30,13 +30,15 @@ end;
 
 procedure TSessionCacheUnitTest.ExecuteTest();
 var
-  i, j: Integer; Seed: Integer; RequestHash: Int64; ClientAddress: Integer; ClientPort: Word; SilentUpdate, CacheException: Boolean; const CacheItems = 65536;
+  i, j: Integer; Time: TDateTime; Seed: Integer; RequestHash: Int64; ClientAddress: Integer; ClientPort: Word; SilentUpdate, CacheException: Boolean; const CacheItems = 65536;
 begin
-  // Random seed
-  Seed := Round(Frac(Now()) * 8640000.0);
+  Time := Now();
 
-  // Load configuration and class
-  TConfiguration.Initialize(); TSessionCache.Initialize();
+  // Init seed
+  Seed := Round(Frac(Time) * 8640000.0);
+
+  // Init class
+  TSessionCache.Initialize();
 
   RandSeed := Seed; for i := 0 to (CacheItems - 1) do begin // Massive item insertion
 
@@ -64,8 +66,8 @@ begin
   // Trying to extract a nonexistant item
   if TSessionCache.Extract(0, RequestHash, ClientAddress, ClientPort, SilentUpdate, CacheException) then raise FailedUnitTestException.Create;
 
-  // Finalize class and configuration
-  TSessionCache.Finalize(); TConfiguration.Finalize();
+  // Finalize class
+  TSessionCache.Finalize();
 end;
 
 // --------------------------------------------------------------------------
