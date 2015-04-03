@@ -47,8 +47,11 @@ type
       function    PrintGenericPacketBytesAsStringFromPacket(Buffer: Pointer; BufferLen: Integer): String;
       function    PrintGenericPacketBytesAsStringFromPacketWithOffset(Buffer: Pointer; BufferLen: Integer; Offset: Integer; NumBytes: Integer): String;
     private
-      function    PrintRequestPacketDescriptionAsStringFromPacket(Buffer: Pointer; BufferLen: Integer; IncludePacketBytesAlways: Boolean): String;
-      function    PrintResponsePacketDescriptionAsStringFromPacket(Buffer: Pointer; BufferLen: Integer; IncludePacketBytesAlways: Boolean): String;
+      function    PrintRequestPacketDescriptionAsNormalStringFromPacket(Buffer: Pointer; BufferLen: Integer; IncludePacketBytesAlways: Boolean): String;
+      function    PrintResponsePacketDescriptionAsNormalStringFromPacket(Buffer: Pointer; BufferLen: Integer; IncludePacketBytesAlways: Boolean): String;
+    private
+      function    PrintRequestPacketDescriptionAsLegacyStringFromPacket(Buffer: Pointer; BufferLen: Integer; IncludePacketBytesAlways: Boolean): String;
+      function    PrintResponsePacketDescriptionAsLegacyStringFromPacket(Buffer: Pointer; BufferLen: Integer; IncludePacketBytesAlways: Boolean): String;
     private
       function    IsFailureResponsePacket(Buffer: Pointer; BufferLen: Integer): Boolean;
       function    IsNegativeResponsePacket(Buffer: Pointer; BufferLen: Integer): Boolean;
@@ -345,7 +348,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-function TResolver.PrintRequestPacketDescriptionAsStringFromPacket(Buffer: Pointer; BufferLen: Integer; IncludePacketBytesAlways: Boolean): String;
+function TResolver.PrintRequestPacketDescriptionAsNormalStringFromPacket(Buffer: Pointer; BufferLen: Integer; IncludePacketBytesAlways: Boolean): String;
 var
     HostName: String; QueryType: Word;
 begin
@@ -359,7 +362,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-function TResolver.PrintResponsePacketDescriptionAsStringFromPacket(Buffer: Pointer; BufferLen: Integer; IncludePacketBytesAlways: Boolean): String;
+function TResolver.PrintResponsePacketDescriptionAsNormalStringFromPacket(Buffer: Pointer; BufferLen: Integer; IncludePacketBytesAlways: Boolean): String;
 var
   FValue: String; AValue: String; BValue: String; OffsetL1: Integer; OffsetLX: Integer; RCode: Byte; QdCnt: Word; AnCnt: Word; Index: Integer; AnTyp: Word; AnDta: Word;
 begin
@@ -408,13 +411,13 @@ begin
 
                 end else begin
 
-                  FValue := FValue + ';A[' + IntToStr(Index) + ']=' + Self.PrintGenericPacketBytesAsStringFromPacketWithOffset(Buffer, BufferLen, OffsetL1, AnDta);
+                  FValue := FValue + ';A[' + IntToStr(Index) + ']=' + AValue + '>' + Self.PrintGenericPacketBytesAsStringFromPacketWithOffset(Buffer, BufferLen, OffsetL1, AnDta);
 
                 end;
 
               else
 
-                FValue := FValue + ';A[' + IntToStr(Index) + ']=' + Self.PrintGenericPacketBytesAsStringFromPacketWithOffset(Buffer, BufferLen, OffsetL1, AnDta);
+                FValue := FValue + ';A[' + IntToStr(Index) + ']=' + AValue + '>' + Self.PrintGenericPacketBytesAsStringFromPacketWithOffset(Buffer, BufferLen, OffsetL1, AnDta);
 
             end; Inc(OffsetL1, AnDta);
 
@@ -433,6 +436,102 @@ begin
     end;
 
     if (IncludePacketBytesAlways) then Result := FValue + ';' + Self.PrintGenericPacketBytesAsStringFromPacket(Buffer, BufferLen) else Result := FValue;
+
+  end else begin
+    Result := Self.PrintGenericPacketBytesAsStringFromPacket(Buffer, BufferLen);
+  end;
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+function TResolver.PrintRequestPacketDescriptionAsLegacyStringFromPacket(Buffer: Pointer; BufferLen: Integer; IncludePacketBytesAlways: Boolean): String;
+var
+    HostName: String; QueryType: Word;
+begin
+  // Get the host name and query type from the request
+  Self.GetHostNameAndQueryTypeFromRequestPacket(Buffer, BufferLen, HostName, QueryType);
+
+  Result := HostName;
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+function TResolver.PrintResponsePacketDescriptionAsLegacyStringFromPacket(Buffer: Pointer; BufferLen: Integer; IncludePacketBytesAlways: Boolean): String;
+var
+  FValue: String; AValue: String; BValue: String; OffsetL1: Integer; OffsetLX: Integer; RCode: Byte; QdCnt: Word; AnCnt: Word; Index: Integer; AnTyp: Word; AnDta: Word;
+begin
+  RCode := PByteArray(Buffer)^[$03] and $0f;
+
+  QdCnt := GetWordFromPacket(Buffer, $04, BufferLen);
+  AnCnt := GetWordFromPacket(Buffer, $06, BufferLen);
+
+  if (RCode = 0) and (QdCnt = 1) and (AnCnt > 0) then begin // We are only able to understand this
+
+    // Initialize
+    SetLength(FValue, 0);
+
+    // Read the first question
+    OffsetL1 := $0C; OffsetLX := OffsetL1; AValue := GetStringFromPacket('', Buffer, OffsetL1, OffsetLX, 1, BufferLen); Inc(OffsetL1, 4);
+
+    // Update the packet description
+    FValue := 'Q=' + AValue;
+
+    for Index := 1 to AnCnt do begin
+
+      if (OffsetL1 < BufferLen) then begin
+
+        OffsetLX := OffsetL1; AValue := GetStringFromPacket('', Buffer, OffsetL1, OffsetLX, 1, BufferLen);
+
+        if ((OffsetL1 + 10) <= BufferLen) then begin
+
+          AnTyp := GetWordFromPacket(Buffer, OffsetL1, BufferLen); Inc(OffsetL1, 8);
+          AnDta := GetWordFromPacket(Buffer, OffsetL1, BufferLen); Inc(OffsetL1, 2);
+
+          if (AnDta > 0) and ((OffsetL1 + AnDta) <= BufferLen) then begin
+
+            case AnTyp of
+
+              QueryTypeUtils.QUERY_TYPE_A:
+
+                if (AnDta = 4) then begin
+
+                  // Read the answer contents
+                  BValue := TIPAddress.ToString(GetIntegerFromPacket(Buffer, OffsetL1, BufferLen));
+
+                  // Update the packet description
+                  FValue := FValue + ';A=' + AValue + '>' + BValue;
+
+                end else begin
+
+                  FValue := FValue + ';A=' + AValue + '>' + Self.PrintGenericPacketBytesAsStringFromPacketWithOffset(Buffer, BufferLen, OffsetL1, AnDta);
+
+                end;
+
+              else
+
+                FValue := FValue + ';A=' + AValue + '>' + Self.PrintGenericPacketBytesAsStringFromPacketWithOffset(Buffer, BufferLen, OffsetL1, AnDta);
+
+            end; Inc(OffsetL1, AnDta);
+
+          end else begin
+            Break;
+          end;
+
+        end else begin
+          Break;
+        end;
+
+      end else begin
+        Break;
+      end;
+
+    end;
+
+    Result := FValue;
 
   end else begin
     Result := Self.PrintGenericPacketBytesAsStringFromPacket(Buffer, BufferLen);
@@ -508,7 +607,7 @@ begin
               SessionId := Self.GetIdFromPacket(Self.Buffer);
 
               // Trace the event if a tracer is enabled
-              if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' received from server ' + TIPAddress.ToString(Address) + ':' + IntToStr(Port) + ' [' + Self.PrintResponsePacketDescriptionAsStringFromPacket(Self.Buffer, Self.BufferLen, True) + '].');
+              if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' received from server ' + TIPAddress.ToString(Address) + ':' + IntToStr(Port) + ' [' + Self.PrintResponsePacketDescriptionAsNormalStringFromPacket(Self.Buffer, Self.BufferLen, True) + '].');
 
               if not(Self.IsFailureResponsePacket(Self.Buffer, Self.BufferLen)) then begin // If the response is not a failure
 
@@ -529,7 +628,7 @@ begin
                       if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' sent to client ' + TIPAddress.ToString(AltAddress) + ':' + IntToStr(AltPort) + ' as positive.');
 
                       // Trace the event into the hit log if enabled
-                      if THitLogger.IsEnabled() and (Pos('R', TConfiguration.GetHitLogFileWhat()) > 0) then THitLogger.AddHit(Arrival, 'R', Address, Self.PrintResponsePacketDescriptionAsStringFromPacket(Self.Buffer, Self.BufferLen, False));
+                      if THitLogger.IsEnabled() and (Pos('R', TConfiguration.GetHitLogFileWhat()) > 0) then begin if (TConfiguration.GetHitLogFileMode() = 'Legacy') then THitLogger.AddHit(Arrival, 'R', Address, Self.PrintResponsePacketDescriptionAsLegacyStringFromPacket(Self.Buffer, Self.BufferLen, False)) else THitLogger.AddHit(Arrival, 'R', Address, Self.PrintResponsePacketDescriptionAsNormalStringFromPacket(Self.Buffer, Self.BufferLen, False)); end;
 
                     end else begin // The response is negative!
 
@@ -554,7 +653,7 @@ begin
                         if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' sent to client ' + TIPAddress.ToString(AltAddress) + ':' + IntToStr(AltPort) + ' as negative.');
 
                         // Trace the event into the hit log if enabled
-                        if THitLogger.IsEnabled() and (Pos('R', TConfiguration.GetHitLogFileWhat()) > 0) then THitLogger.AddHit(Arrival, 'R', Address, Self.PrintResponsePacketDescriptionAsStringFromPacket(Self.Buffer, Self.BufferLen, False));
+                        if THitLogger.IsEnabled() and (Pos('R', TConfiguration.GetHitLogFileWhat()) > 0) then begin if (TConfiguration.GetHitLogFileMode() = 'Legacy') then THitLogger.AddHit(Arrival, 'R', Address, Self.PrintResponsePacketDescriptionAsLegacyStringFromPacket(Self.Buffer, Self.BufferLen, False)) else THitLogger.AddHit(Arrival, 'R', Address, Self.PrintResponsePacketDescriptionAsNormalStringFromPacket(Self.Buffer, Self.BufferLen, False)); end;
 
                       end else begin
 
@@ -583,7 +682,7 @@ begin
                       end;
 
                       // Trace the event into the hit log if enabled
-                      if THitLogger.IsEnabled() and (Pos('U', TConfiguration.GetHitLogFileWhat()) > 0) then THitLogger.AddHit(Arrival, 'U', Address, Self.PrintResponsePacketDescriptionAsStringFromPacket(Self.Buffer, Self.BufferLen, False));
+                      if THitLogger.IsEnabled() and (Pos('U', TConfiguration.GetHitLogFileWhat()) > 0) then begin if (TConfiguration.GetHitLogFileMode() = 'Legacy') then THitLogger.AddHit(Arrival, 'U', Address, Self.PrintResponsePacketDescriptionAsLegacyStringFromPacket(Self.Buffer, Self.BufferLen, False)) else THitLogger.AddHit(Arrival, 'U', Address, Self.PrintResponsePacketDescriptionAsNormalStringFromPacket(Self.Buffer, Self.BufferLen, False)); end;
 
                     end else begin // The response is negative!
 
@@ -618,7 +717,7 @@ begin
                       end;
 
                       // Trace the event into the hit log if enabled
-                      if THitLogger.IsEnabled() and (Pos('R', TConfiguration.GetHitLogFileWhat()) > 0) then THitLogger.AddHit(Arrival, 'R', Address, Self.PrintResponsePacketDescriptionAsStringFromPacket(Self.Buffer, Self.BufferLen, False));
+                      if THitLogger.IsEnabled() and (Pos('R', TConfiguration.GetHitLogFileWhat()) > 0) then begin if (TConfiguration.GetHitLogFileMode() = 'Legacy') then THitLogger.AddHit(Arrival, 'R', Address, Self.PrintResponsePacketDescriptionAsLegacyStringFromPacket(Self.Buffer, Self.BufferLen, False)) else THitLogger.AddHit(Arrival, 'R', Address, Self.PrintResponsePacketDescriptionAsNormalStringFromPacket(Self.Buffer, Self.BufferLen, False)); end;
 
                     end else begin // The response is negative!
 
@@ -655,7 +754,7 @@ begin
                         end;
 
                         // Trace the event into the hit log if enabled
-                        if THitLogger.IsEnabled() and (Pos('R', TConfiguration.GetHitLogFileWhat()) > 0) then THitLogger.AddHit(Arrival, 'R', Address, Self.PrintResponsePacketDescriptionAsStringFromPacket(Self.Buffer, Self.BufferLen, False));
+                        if THitLogger.IsEnabled() and (Pos('R', TConfiguration.GetHitLogFileWhat()) > 0) then begin if (TConfiguration.GetHitLogFileMode() = 'Legacy') then THitLogger.AddHit(Arrival, 'R', Address, Self.PrintResponsePacketDescriptionAsLegacyStringFromPacket(Self.Buffer, Self.BufferLen, False)) else THitLogger.AddHit(Arrival, 'R', Address, Self.PrintResponsePacketDescriptionAsNormalStringFromPacket(Self.Buffer, Self.BufferLen, False)); end;
 
                       end else begin
 
@@ -705,7 +804,7 @@ begin
               Self.GetHostNameAndQueryTypeFromRequestPacket(Buffer, BufferLen, HostName, QueryType);
 
               // Trace the event if a tracer is enabled
-              if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Request  ID ' + FormatCurr('00000', SessionId) + ' received from client ' + TIPAddress.ToString(Address) + ':' + IntToStr(Port) + ' [' + Self.PrintRequestPacketDescriptionAsStringFromPacket(Buffer, BufferLen, True) + '].');
+              if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Request  ID ' + FormatCurr('00000', SessionId) + ' received from client ' + TIPAddress.ToString(Address) + ':' + IntToStr(Port) + ' [' + Self.PrintRequestPacketDescriptionAsNormalStringFromPacket(Buffer, BufferLen, True) + '].');
 
               if TConfiguration.IsBlackException(HostName) then begin // If a black exception
 
@@ -719,7 +818,7 @@ begin
                 if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' sent to client ' + TIPAddress.ToString(Address) + ':' + IntToStr(Port) + ' as black exception.');
 
                 // Trace the event into the hit log if enabled
-                if THitLogger.IsEnabled() and (Pos('B', TConfiguration.GetHitLogFileWhat()) > 0) then THitLogger.AddHit(Arrival, 'B', Address, Self.PrintRequestPacketDescriptionAsStringFromPacket(Self.Buffer, Self.BufferLen, False));
+                if THitLogger.IsEnabled() and (Pos('B', TConfiguration.GetHitLogFileWhat()) > 0) then begin if (TConfiguration.GetHitLogFileMode() = 'Legacy') then THitLogger.AddHit(Arrival, 'B', Address, Self.PrintRequestPacketDescriptionAsLegacyStringFromPacket(Self.Buffer, Self.BufferLen, False)) else THitLogger.AddHit(Arrival, 'B', Address, Self.PrintRequestPacketDescriptionAsNormalStringFromPacket(Self.Buffer, Self.BufferLen, False)); end;
 
                 // Update performance stats if enabled
                 if TStatistics.IsEnabled() then TStatistics.IncTotalRequestsResolvedThroughOtherWays();
@@ -736,7 +835,7 @@ begin
                 if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' sent to client ' + TIPAddress.ToString(Address) + ':' + IntToStr(Port) + ' directly from hosts cache.');
 
                 // Trace the event into the hit log if enabled
-                if THitLogger.IsEnabled() and (Pos('H', TConfiguration.GetHitLogFileWhat()) > 0) then THitLogger.AddHit(Arrival, 'H', Address, Self.PrintRequestPacketDescriptionAsStringFromPacket(Self.Buffer, Self.BufferLen, False));
+                if THitLogger.IsEnabled() and (Pos('H', TConfiguration.GetHitLogFileWhat()) > 0) then begin if (TConfiguration.GetHitLogFileMode() = 'Legacy') then THitLogger.AddHit(Arrival, 'H', Address, Self.PrintRequestPacketDescriptionAsLegacyStringFromPacket(Self.Buffer, Self.BufferLen, False)) else THitLogger.AddHit(Arrival, 'H', Address, Self.PrintRequestPacketDescriptionAsNormalStringFromPacket(Self.Buffer, Self.BufferLen, False)); end;
 
                 // Update performance stats if enabled
                 if TStatistics.IsEnabled() then TStatistics.IncTotalRequestsResolvedThroughHostsFile();
@@ -773,7 +872,7 @@ begin
                   Self.SetIdIntoPacket(0, Self.Buffer); TSessionCache.Insert(SessionId, RequestHash, Address, Port, False, True);
 
                   // Trace the event into the hit log if enabled
-                  if THitLogger.IsEnabled() and (Pos('F', TConfiguration.GetHitLogFileWhat()) > 0) then THitLogger.AddHit(Arrival, 'F', Address, Self.PrintRequestPacketDescriptionAsStringFromPacket(Self.Buffer, Self.BufferLen, False));
+                  if THitLogger.IsEnabled() and (Pos('F', TConfiguration.GetHitLogFileWhat()) > 0) then begin if (TConfiguration.GetHitLogFileMode() = 'Legacy') then THitLogger.AddHit(Arrival, 'F', Address, Self.PrintRequestPacketDescriptionAsLegacyStringFromPacket(Self.Buffer, Self.BufferLen, False)) else THitLogger.AddHit(Arrival, 'F', Address, Self.PrintRequestPacketDescriptionAsNormalStringFromPacket(Self.Buffer, Self.BufferLen, False)); end;
 
                   // Update performance stats if enabled
                   if TStatistics.IsEnabled() then TStatistics.IncTotalRequestsForwarded();
@@ -806,10 +905,10 @@ begin
                       Self.SetIdIntoPacket(SessionId, Self.Output); ClientServerSocket.SendTo(Self.Output, Self.OutputLen, Address, Port);
 
                       // Trace the event if a tracer is enabled
-                      if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' sent to client ' + TIPAddress.ToString(Address) + ':' + IntToStr(Port) + ' directly from address cache [' + Self.PrintResponsePacketDescriptionAsStringFromPacket(Self.Output, Self.OutputLen, True) + '].');
+                      if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' sent to client ' + TIPAddress.ToString(Address) + ':' + IntToStr(Port) + ' directly from address cache [' + Self.PrintResponsePacketDescriptionAsNormalStringFromPacket(Self.Output, Self.OutputLen, True) + '].');
 
                       // Trace the event into the hit log if enabled
-                      if THitLogger.IsEnabled() and (Pos('C', TConfiguration.GetHitLogFileWhat()) > 0) then THitLogger.AddHit(Arrival, 'C', Address, Self.PrintRequestPacketDescriptionAsStringFromPacket(Self.Buffer, Self.BufferLen, False));
+                      if THitLogger.IsEnabled() and (Pos('C', TConfiguration.GetHitLogFileWhat()) > 0) then begin if (TConfiguration.GetHitLogFileMode() = 'Legacy') then THitLogger.AddHit(Arrival, 'C', Address, Self.PrintRequestPacketDescriptionAsLegacyStringFromPacket(Self.Buffer, Self.BufferLen, False)) else THitLogger.AddHit(Arrival, 'C', Address, Self.PrintRequestPacketDescriptionAsNormalStringFromPacket(Self.Buffer, Self.BufferLen, False)); end;
 
                       // Update performance stats if enabled
                       if TStatistics.IsEnabled() then TStatistics.IncTotalRequestsResolvedThroughCache();
@@ -822,7 +921,7 @@ begin
                       Self.SetIdIntoPacket(SessionId, Self.Output); ClientServerSocket.SendTo(Self.Output, Self.OutputLen, Address, Port);
 
                       // Trace the event if a tracer is enabled
-                      if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' sent to client ' + TIPAddress.ToString(Address) + ':' + IntToStr(Port) + ' directly from address cache [' + Self.PrintResponsePacketDescriptionAsStringFromPacket(Self.Output, Self.OutputLen, True) + '].');
+                      if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' sent to client ' + TIPAddress.ToString(Address) + ':' + IntToStr(Port) + ' directly from address cache [' + Self.PrintResponsePacketDescriptionAsNormalStringFromPacket(Self.Output, Self.OutputLen, True) + '].');
 
                       // We need to know if the request has been forwarded to at least one DNS server or not
                       Forwarded := False;
@@ -854,7 +953,7 @@ begin
                         Self.SetIdIntoPacket(0, Self.Buffer); TSessionCache.Insert(SessionId, RequestHash, Address, Port, True, False);
 
                         // Trace the event into the hit log if enabled
-                        if THitLogger.IsEnabled() and (Pos('C', TConfiguration.GetHitLogFileWhat()) > 0) then THitLogger.AddHit(Arrival, 'C', Address, Self.PrintRequestPacketDescriptionAsStringFromPacket(Self.Buffer, Self.BufferLen, False));
+                        if THitLogger.IsEnabled() and (Pos('C', TConfiguration.GetHitLogFileWhat()) > 0) then begin if (TConfiguration.GetHitLogFileMode() = 'Legacy') then THitLogger.AddHit(Arrival, 'C', Address, Self.PrintRequestPacketDescriptionAsLegacyStringFromPacket(Self.Buffer, Self.BufferLen, False)) else THitLogger.AddHit(Arrival, 'C', Address, Self.PrintRequestPacketDescriptionAsNormalStringFromPacket(Self.Buffer, Self.BufferLen, False)); end;
 
                         // Update performance stats if enabled
                         if TStatistics.IsEnabled() then TStatistics.IncTotalRequestsResolvedThroughCache();
@@ -895,7 +994,7 @@ begin
                         Self.SetIdIntoPacket(0, Self.Buffer); TSessionCache.Insert(SessionId, RequestHash, Address, Port, False, False);
 
                         // Trace the event into the hit log if enabled
-                        if THitLogger.IsEnabled() and (Pos('F', TConfiguration.GetHitLogFileWhat()) > 0) then THitLogger.AddHit(Arrival, 'F', Address, Self.PrintRequestPacketDescriptionAsStringFromPacket(Self.Buffer, Self.BufferLen, False));
+                        if THitLogger.IsEnabled() and (Pos('F', TConfiguration.GetHitLogFileWhat()) > 0) then begin if (TConfiguration.GetHitLogFileMode() = 'Legacy') then THitLogger.AddHit(Arrival, 'F', Address, Self.PrintRequestPacketDescriptionAsLegacyStringFromPacket(Self.Buffer, Self.BufferLen, False)) else THitLogger.AddHit(Arrival, 'F', Address, Self.PrintRequestPacketDescriptionAsNormalStringFromPacket(Self.Buffer, Self.BufferLen, False)); end;
 
                         // Update performance stats if enabled
                         if TStatistics.IsEnabled() then TStatistics.IncTotalRequestsForwarded();
@@ -949,7 +1048,7 @@ begin
                     Self.SetIdIntoPacket(0, Self.Buffer); TSessionCache.Insert(SessionId, RequestHash, Address, Port, False, False);
 
                     // Trace the event into the hit log if enabled
-                    if THitLogger.IsEnabled() and (Pos('F', TConfiguration.GetHitLogFileWhat()) > 0) then THitLogger.AddHit(Arrival, 'F', Address, Self.PrintRequestPacketDescriptionAsStringFromPacket(Self.Buffer, Self.BufferLen, False));
+                    if THitLogger.IsEnabled() and (Pos('F', TConfiguration.GetHitLogFileWhat()) > 0) then begin if (TConfiguration.GetHitLogFileMode = 'Legacy') then THitLogger.AddHit(Arrival, 'F', Address, Self.PrintRequestPacketDescriptionAsLegacyStringFromPacket(Self.Buffer, Self.BufferLen, False)) else THitLogger.AddHit(Arrival, 'F', Address, Self.PrintRequestPacketDescriptionAsNormalStringFromPacket(Self.Buffer, Self.BufferLen, False)); end;
 
                     // Update performance stats if enabled
                     if TStatistics.IsEnabled() then TStatistics.IncTotalRequestsForwarded();

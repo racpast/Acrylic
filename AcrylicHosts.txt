@@ -41,8 +41,7 @@
 # found within a line) is considered a comment and therefore ignored.       #
 #                                                                           #
 # Note: If all HOSTNAMES are provided in ascending order Acrylic will be    #
-# able to load them much faster. If you are building a large list of        #
-# HOSTNAMES for example then having it sorted before use is better.         #
+# able to load them faster.                                                 #
 #                                                                           #
 #############################################################################
 

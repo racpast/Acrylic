@@ -72,6 +72,7 @@ type
     public
       class function  GetHitLogFileName(): String;
       class function  GetHitLogFileWhat(): String;
+      class function  GetHitLogFileMode(): String;
       class function  GetStatsLogFileName(): String;
       class function  GetDebugLogFileName(): String;
       class function  GetConfigurationFileName(): String;
@@ -168,6 +169,7 @@ var
 var
   TConfiguration_HitLogFileName: String;
   TConfiguration_HitLogFileWhat: String;
+  TConfiguration_HitLogFileMode: String;
   TConfiguration_StatsLogFileName: String;
   TConfiguration_DebugLogFileName: String;
   TConfiguration_ConfigurationFileName: String;
@@ -205,6 +207,7 @@ begin
   // Initialize various file names
   TConfiguration_HitLogFileName := '';
   TConfiguration_HitLogFileWhat := '';
+  TConfiguration_HitLogFileMode := '';
   TConfiguration_StatsLogFileName := '';
   TConfiguration_DebugLogFileName := Self.MakeAbsolutePath('AcrylicDebug.txt');
   TConfiguration_ConfigurationFileName := Self.MakeAbsolutePath('AcrylicConfiguration.ini');
@@ -242,6 +245,15 @@ end;
 class function TConfiguration.GetHitLogFileWhat(): String;
 begin
   Result := TConfiguration_HitLogFileWhat;
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class function TConfiguration.GetHitLogFileMode(): String;
+begin
+  Result := TConfiguration_HitLogFileMode;
 end;
 
 // --------------------------------------------------------------------------
@@ -590,6 +602,7 @@ begin
 
     TConfiguration_HitLogFileName := IniFile.ReadString('GlobalSection', 'HitLogFileName', ''); if (TConfiguration_HitLogFileName <> '') then TConfiguration_HitLogFileName := Self.MakeAbsolutePath(TConfiguration_HitLogFileName);
     TConfiguration_HitLogFileWhat := IniFile.ReadString('GlobalSection', 'HitLogFileWhat', '');
+    TConfiguration_HitLogFileMode := IniFile.ReadString('GlobalSection', 'HitLogFileMode', '');
 
     TConfiguration_StatsLogFileName := IniFile.ReadString('GlobalSection', 'StatsLogFileName', ''); if (TConfiguration_StatsLogFileName <> '') then TConfiguration_StatsLogFileName := Self.MakeAbsolutePath(TConfiguration_StatsLogFileName);
 

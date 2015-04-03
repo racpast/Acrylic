@@ -1,0 +1,21 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<BorlandProject>
+  <PersonalityInfo>
+    <Option>
+      <Option Name="Personality">Default.Personality</Option>
+      <Option Name="ProjectType"></Option>
+      <Option Name="Version">1.0</Option>
+      <Option Name="GUID">{5D4605C8-A130-4E98-800D-AA5D63DF1A6D}</Option>
+    </Option>
+  </PersonalityInfo>
+  <Default.Personality>
+    <Projects>
+      <Projects Name="AcrylicTest.exe">AcrylicTest.bdsproj</Projects>
+      <Projects Name="AcrylicService.exe">AcrylicService.bdsproj</Projects>
+      <Projects Name="AcrylicConsole.exe">AcrylicConsole.bdsproj</Projects>
+      <Projects Name="AcrylicController.exe">AcrylicController.bdsproj</Projects>
+      <Projects Name="Targets">AcrylicTest.exe AcrylicService.exe AcrylicConsole.exe AcrylicController.exe</Projects>
+    </Projects>
+    <Dependencies/>
+  </Default.Personality>
+</BorlandProject>

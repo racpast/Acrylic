@@ -20,7 +20,7 @@ type
     public
       class function  IsEnabled(): Boolean;
     public
-      class procedure AddHit(When: TDateTime; Treatment: String; Client: Integer; Host: String);
+      class procedure AddHit(When: TDateTime; Treatment: String; Client: Integer; Description: String);
     public
       class procedure FlushPendingHitsToDisk();
   end;
@@ -90,9 +90,9 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class procedure THitLogger.AddHit(When: TDateTime; Treatment: String; Client: Integer; Host: String);
+class procedure THitLogger.AddHit(When: TDateTime; Treatment: String; Client: Integer; Description: String);
 begin
-  if (THitLogger_BufferList = nil) then begin THitLogger_BufferList := TStringList.Create; THitLogger_BufferList.Capacity := MAX_PENDING_HITS; end; THitLogger_BufferList.Add(FormatDateTime('yyyy-mm-dd HH":"nn":"ss.zzz', When) + #9 + TIpAddress.ToString(Client) + #9 + Treatment + #9 + Host); if (THitLogger_BufferList.Count >= MAX_PENDING_HITS) then Self.FlushPendingHitsToDisk();
+  if (THitLogger_BufferList = nil) then begin THitLogger_BufferList := TStringList.Create; THitLogger_BufferList.Capacity := MAX_PENDING_HITS; end; THitLogger_BufferList.Add(FormatDateTime('yyyy-mm-dd HH":"nn":"ss.zzz', When) + #9 + TIpAddress.ToString(Client) + #9 + Treatment + #9 + Description); if (THitLogger_BufferList.Count >= MAX_PENDING_HITS) then Self.FlushPendingHitsToDisk();
 end;
 
 // --------------------------------------------------------------------------

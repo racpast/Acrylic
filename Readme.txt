@@ -11,4 +11,4 @@ Another good thing is that Acrylic is released as open source, which means that 
 For more informations please use the "Acrylic Home Page" shortcut available from the "Start Menu".
 
 Installed version is:
-0.9.25 released on March 29, 2015.
+0.9.26 released on April 4, 2015.

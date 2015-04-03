@@ -23,11 +23,11 @@ Echo.
 
 "%DCC%" AcrylicConsole.dpr
 
-Echo.
-Echo Compressing Acrylic console...
-Echo.
+Rem Echo.
+Rem Echo Compressing Acrylic console...
+Rem Echo.
 
-C:\Wintools\Console\Upx.exe --best AcrylicConsole.exe
+Rem C:\Wintools\Console\Upx.exe --best AcrylicConsole.exe
 
 Echo.
 Echo Compiling Acrylic service...
@@ -35,11 +35,11 @@ Echo.
 
 "%DCC%" AcrylicService.dpr
 
-Echo.
-Echo Compressing Acrylic service...
-Echo.
+Rem Echo.
+Rem Echo Compressing Acrylic service...
+Rem Echo.
 
-C:\Wintools\Console\Upx.exe --best AcrylicService.exe
+Rem C:\Wintools\Console\Upx.exe --best AcrylicService.exe
 
 Echo.
 Echo Compiling Acrylic controller...
@@ -47,11 +47,11 @@ Echo.
 
 "%DCC%" AcrylicController.dpr
 
-Echo.
-Echo Compressing Acrylic controller...
-Echo.
+Rem Echo.
+Rem Echo Compressing Acrylic controller...
+Rem Echo.
 
-C:\Wintools\Console\Upx.exe --best AcrylicController.exe
+Rem C:\Wintools\Console\Upx.exe --best AcrylicController.exe
 
 Echo.
 Echo Building Acrylic setup package...
