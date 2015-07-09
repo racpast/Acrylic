@@ -385,7 +385,7 @@ begin
     Result := False; for i := 0 to (HostNameAffinityMask.Count - 1) do begin
       S := HostNameAffinityMask[i]; if (S <> '') then begin
         if (S[1] = '^') then begin
-          if TPatternMatching.Match(PChar(HostName), PChar(Copy(S, 2))) then begin Result := False; Exit; end;
+          if TPatternMatching.Match(PChar(HostName), PChar(Copy(S, 2, Length(S) - 1))) then begin Result := False; Exit; end;
         end else begin
           if TPatternMatching.Match(PChar(HostName), PChar(S)) then begin Result := True; Exit; end;
         end;

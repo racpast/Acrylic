@@ -25,7 +25,7 @@ end;
 
 procedure THostsCacheUnitTest.ExecuteTest();
 var
-  i, j: Integer; Address: Integer; HostsStream: TFileStream; HostsLine: String; const KHostsItems = 5000;
+  i, j: Integer; Address: Integer; HostsStream: TFileStream; HostsLine: String; const KHostsItems = 1000;
 begin
   // Open a stream to build a hosts file
   HostsStream := TFileStream.Create(ClassName + '.tmp', fmCreate);
@@ -40,11 +40,13 @@ begin
 
   end;
 
-  // Add a pattern to the list
-  HostsLine := '127.0.0.1 *.PATTERN-127-0-0-1.* -NO.PATTERN-127-0-0-1.TEST' + #13#10; HostsStream.Write(HostsLine[1], Length(HostsLine));
+  // Add patterns to the list
+  HostsLine := '127.0.0.1 >PATTERN1-127-0-0-1 -NO.PATTERN1-127-0-0-1' + #13#10; HostsStream.Write(HostsLine[1], Length(HostsLine));
+  HostsLine := '127.0.0.1 >PATTERN2-127-0-0-1.* -NO.PATTERN2-127-0-0-1.TEST' + #13#10; HostsStream.Write(HostsLine[1], Length(HostsLine));
+  HostsLine := '127.0.0.1 *.PATTERN3-127-0-0-1.* -NO.PATTERN3-127-0-0-1.TEST' + #13#10; HostsStream.Write(HostsLine[1], Length(HostsLine));
 
-  // Add a regular expression to the list
-  HostsLine := '127.0.0.1 /^.*\.REGEXP-127-0-0-1\..*$ -NO.REGEXP-127-0-0-1.TEST' + #13#10; HostsStream.Write(HostsLine[1], Length(HostsLine));
+  // Add regular expressions to the list
+  HostsLine := '127.0.0.1 /^.*\.REGEXP1-127-0-0-1\..*$ -NO.REGEXP1-127-0-0-1.TEST' + #13#10; HostsStream.Write(HostsLine[1], Length(HostsLine));
 
   // Close the stream
   HostsStream.Free();
@@ -72,16 +74,24 @@ begin
 
   end;
 
-  // Test the pattern engine
-  if not(THostsCache.Find('MATCH.PATTERN-127-0-0-1.TEST', Address) and (Address = LOCALHOST_ADDRESS)) or not(THostsCache.Find('match.pattern-127-0-0-1.TEST', Address) and (Address = LOCALHOST_ADDRESS)) or THostsCache.Find('NO.PATTERN-127-0-0-1.TEST', Address) then raise FailedUnitTestException.Create;
+  // Test the pattern engine (1)
+  if not(THostsCache.Find('PATTERN1-127-0-0-1', Address) and (Address = LOCALHOST_ADDRESS)) or not(THostsCache.Find('pattern1-127-0-0-1', Address) and (Address = LOCALHOST_ADDRESS)) or THostsCache.Find('NO.PATTERN1-127-0-0-1', Address) then raise FailedUnitTestException.Create;
+  if not(THostsCache.Find('MATCH.PATTERN1-127-0-0-1', Address) and (Address = LOCALHOST_ADDRESS)) or not(THostsCache.Find('match.pattern1-127-0-0-1', Address) and (Address = LOCALHOST_ADDRESS)) or THostsCache.Find('NO.PATTERN1-127-0-0-1', Address) then raise FailedUnitTestException.Create;
 
-  // Test the regular expression engine
-  if not(THostsCache.Find('MATCH.REGEXP-127-0-0-1.TEST', Address) and (Address = LOCALHOST_ADDRESS)) or not(THostsCache.Find('match.regexp-127-0-0-1.test', Address) and (Address = LOCALHOST_ADDRESS)) or THostsCache.Find('NO.REGEXP-127-0-0-1.TEST', Address) then raise FailedUnitTestException.Create;
+  // Test the pattern engine (2)
+  if not(THostsCache.Find('PATTERN2-127-0-0-1.TEST', Address) and (Address = LOCALHOST_ADDRESS)) or not(THostsCache.Find('pattern2-127-0-0-1.test', Address) and (Address = LOCALHOST_ADDRESS)) or THostsCache.Find('NO.PATTERN2-127-0-0-1.TEST', Address) then raise FailedUnitTestException.Create;
+  if not(THostsCache.Find('MATCH.PATTERN2-127-0-0-1.TEST', Address) and (Address = LOCALHOST_ADDRESS)) or not(THostsCache.Find('match.pattern2-127-0-0-1.test', Address) and (Address = LOCALHOST_ADDRESS)) or THostsCache.Find('NO.PATTERN2-127-0-0-1.TEST', Address) then raise FailedUnitTestException.Create;
 
-  TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Done.');
+  // Test the pattern engine (3)
+  if not(THostsCache.Find('MATCH.PATTERN3-127-0-0-1.TEST', Address) and (Address = LOCALHOST_ADDRESS)) or not(THostsCache.Find('match.pattern3-127-0-0-1.test', Address) and (Address = LOCALHOST_ADDRESS)) or THostsCache.Find('NO.PATTERN3-127-0-0-1.TEST', Address) then raise FailedUnitTestException.Create;
+
+  // Test the regular expression engine (1)
+  if not(THostsCache.Find('MATCH.REGEXP1-127-0-0-1.TEST', Address) and (Address = LOCALHOST_ADDRESS)) or not(THostsCache.Find('match.regexp1-127-0-0-1.test', Address) and (Address = LOCALHOST_ADDRESS)) or THostsCache.Find('NO.REGEXP1-127-0-0-1.TEST', Address) then raise FailedUnitTestException.Create;
 
   // Try to look for a nonexistant item
   if THostsCache.Find('NONEXISTANT', Address) then raise FailedUnitTestException.Create;
+
+  TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Done.');
 
   // Finalize class
   THostsCache.Finalize();

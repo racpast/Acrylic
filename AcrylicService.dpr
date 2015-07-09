@@ -17,7 +17,5 @@ uses
 // --------------------------------------------------------------------------
 
 begin
-  Application.Initialize;
-  Application.CreateForm(TAcrylicController, AcrylicController);
-  Application.Run;
+  Application.Initialize; Application.CreateForm(TAcrylicServiceController, AcrylicServiceController); Application.Run;
 end.

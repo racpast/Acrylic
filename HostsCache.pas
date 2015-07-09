@@ -134,7 +134,7 @@ begin
   end else if (FileStreamLineData[HostsLineIndexA] = '>') then begin
     HostsLineTextData := Copy(HostsLineTextData, 2, MaxInt);
     THostsCache_Patterns.AddObject('*.' + HostsLineTextData, TObject(HostsLineAddressData));
-    THostsCache_List.AddObject(HostsLineTextData, TObject(HostsLineAddressData)); if (HostsLineTextData < HostsCacheListLastAdded) then HostsCacheListNeedsSorting := True; HostsCacheListLastAdded := HostsLineTextData;
+    if (Pos('*', HostsLineTextData) > 0) or (Pos('?', HostsLineTextData) > 0) then THostsCache_Patterns.AddObject(HostsLineTextData, TObject(HostsLineAddressData)) else begin THostsCache_List.AddObject(HostsLineTextData, TObject(HostsLineAddressData)); if (HostsLineTextData < HostsCacheListLastAdded) then HostsCacheListNeedsSorting := True; HostsCacheListLastAdded := HostsLineTextData; end;
   end else if (Pos('*', HostsLineTextData) > 0) or (Pos('?', HostsLineTextData) > 0) then begin
     THostsCache_Patterns.AddObject(HostsLineTextData, TObject(HostsLineAddressData))
   end else begin

@@ -12,8 +12,8 @@ Echo.
 Echo Searching the compiler...
 Echo.
 
-If Exist "%PROGRAMFILES%\Delphi 10 Lite\Bin\DCC32.exe" Set DCC=%PROGRAMFILES%\Delphi 10 Lite\Bin\DCC32.exe
-If Exist "%PROGRAMFILES(X86)%\Delphi 10 Lite\Bin\DCC32.exe" Set DCC=%PROGRAMFILES(X86)%\Delphi 10 Lite\Bin\DCC32.exe
+If Exist "%PROGRAMFILES%\Delphi7SE\Bin\DCC32.exe" Set DCC=%PROGRAMFILES%\Delphi7SE\Bin\DCC32.exe
+If Exist "%PROGRAMFILES(X86)%\Delphi7SE\Bin\DCC32.exe" Set DCC=%PROGRAMFILES(X86)%\Delphi7SE\Bin\DCC32.exe
 
 Echo Compiler found here: %DCC%
 
@@ -23,23 +23,11 @@ Echo.
 
 "%DCC%" AcrylicConsole.dpr
 
-Rem Echo.
-Rem Echo Compressing Acrylic console...
-Rem Echo.
-
-Rem C:\Wintools\Console\Upx.exe --best AcrylicConsole.exe
-
 Echo.
 Echo Compiling Acrylic service...
 Echo.
 
 "%DCC%" AcrylicService.dpr
-
-Rem Echo.
-Rem Echo Compressing Acrylic service...
-Rem Echo.
-
-Rem C:\Wintools\Console\Upx.exe --best AcrylicService.exe
 
 Echo.
 Echo Compiling Acrylic controller...
@@ -47,11 +35,20 @@ Echo.
 
 "%DCC%" AcrylicController.dpr
 
-Rem Echo.
-Rem Echo Compressing Acrylic controller...
-Rem Echo.
+Echo.
+Echo Building Acrylic portable package...
+Echo.
 
-Rem C:\Wintools\Console\Upx.exe --best AcrylicController.exe
+C:\Wintools\Console\7za.exe a -tzip Acrylic-Portable.zip AcrylicHosts.txt AcrylicConfiguration.ini InstallAcrylicService.bat UninstallAcrylicService.bat AcrylicController.exe.manifest AcrylicController.exe AcrylicService.exe AcrylicConsole.exe License.txt Readme.txt
+
+Echo.
+Echo Moving Acrylic portable package to "%DST%"...
+Echo.
+
+If Not Exist "%DST%" MkDir "%DST%" >NUL 2>NUL
+If Exist "%DST%\Acrylic-Portable.zip" Del "%DST%\Acrylic-Portable.zip" >NUL 2>NUL
+
+Move /y Acrylic-Portable.zip "%DST%"
 
 Echo.
 Echo Building Acrylic setup package...
