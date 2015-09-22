@@ -40,6 +40,7 @@ type
       function    GetStringFromPacket(Value: String; Buffer: Pointer; var OffsetL1: Integer; var OffsetLX: Integer; Level: Integer; BufferLen: Integer): String;
     private
       procedure   BuildNegativeResponsePacketFromHostName(HostName: String; Buffer: Pointer; var BufferLen: Integer);
+      procedure   BuildPositiveResponsePacketFromHostName(HostName: String; Buffer: Pointer; var BufferLen: Integer);
       procedure   BuildPositiveResponsePacketFromHostNameAndAddress(HostName: String; HostAddress: Integer; Buffer: Pointer; var BufferLen: Integer);
     private
       procedure   GetHostNameAndQueryTypeFromRequestPacket(Buffer: Pointer; BufferLen: Integer; var HostName: String; var QueryType: Word);
@@ -238,6 +239,44 @@ begin
   PByteArray(Buffer)^[$01] := $00; // Query ID (LSB)
   PByteArray(Buffer)^[$02] := $85; // QRESP1=1, OPCODE4=0, AUTH1=1, TRUNC1=0, RECURSD1=1
   PByteArray(Buffer)^[$03] := $83; // RECURSA1=0, RESERV3=0, RESPCODE4=3
+  PByteArray(Buffer)^[$04] := $00; // NQUESTIONS (MSB)
+  PByteArray(Buffer)^[$05] := $01; // NQUESTIONS (LSB)
+  PByteArray(Buffer)^[$06] := $00; // NANSWERSRR (MSB)
+  PByteArray(Buffer)^[$07] := $00; // NANSWERSRR (LSB)
+  PByteArray(Buffer)^[$08] := $00; // NAUTHORIRR (MSB)
+  PByteArray(Buffer)^[$09] := $00; // NAUTHORIRR (LSB)
+  PByteArray(Buffer)^[$0A] := $00; // NADDITIORR (MSB)
+  PByteArray(Buffer)^[$0B] := $00; // NADDITIORR (LSB)
+
+  // Initialize the offset
+  Offset := $0C;
+
+  // Set the question name
+  SetStringIntoPacket(HostName, Buffer, Offset, BufferLen);
+
+  // Set the question additional info
+  PByteArray(Buffer)^[Offset] := $00; Inc(Offset); // QUERYTYPE (MSB)
+  PByteArray(Buffer)^[Offset] := $01; Inc(Offset); // QUERYTYPE (LSB)
+  PByteArray(Buffer)^[Offset] := $00; Inc(Offset); // QUERYCLASS (MSB)
+  PByteArray(Buffer)^[Offset] := $01; Inc(Offset); // QUERYCLASS (LSB)
+
+  // Set the packet length
+  BufferLen := Offset;
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+procedure TResolver.BuildPositiveResponsePacketFromHostName(HostName: String; Buffer: Pointer; var BufferLen: Integer);
+var
+  Offset: Integer;
+begin
+  // Set the header
+  PByteArray(Buffer)^[$00] := $00; // Query ID (LSB)
+  PByteArray(Buffer)^[$01] := $00; // Query ID (LSB)
+  PByteArray(Buffer)^[$02] := $85; // QRESP1=1, OPCODE4=0, AUTH1=1, TRUNC1=0, RECURSD1=1
+  PByteArray(Buffer)^[$03] := $80; // RECURSA1=1, RESERV3=0, RESCODE4=0
   PByteArray(Buffer)^[$04] := $00; // NQUESTIONS (MSB)
   PByteArray(Buffer)^[$05] := $01; // NQUESTIONS (LSB)
   PByteArray(Buffer)^[$06] := $00; // NANSWERSRR (MSB)
@@ -825,8 +864,8 @@ begin
 
               end else if THostsCache.Find(HostName, AltAddress) and ((QueryType = QueryTypeUtils.QUERY_TYPE_A) or (QueryType = QueryTypeUtils.QUERY_TYPE_AAAA)) then begin // If the host name exists in the hosts cache and the query type is A (IPv4) or AAAA (IPv6)
 
-                // Build a standard response
-                Self.BuildPositiveResponsePacketFromHostNameAndAddress(HostName, AltAddress, Self.Output, Self.OutputLen);
+                // Build a positive response
+                if (QueryType = QueryTypeUtils.QUERY_TYPE_A) then Self.BuildPositiveResponsePacketFromHostNameAndAddress(HostName, AltAddress, Self.Output, Self.OutputLen) else Self.BuildPositiveResponsePacketFromHostName(HostName, Self.Output, Self.OutputLen);
 
                 // Send the response to the client
                 Self.SetIdIntoPacket(SessionId, Self.Output); ClientServerSocket.SendTo(Self.Output, Self.OutputLen, Address, Port);
