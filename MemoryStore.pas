@@ -3,7 +3,7 @@
 // --------------------------------------------------------------------------
 
 unit
-  FileStreamLineEx;
+  MemoryStore;
 
 // --------------------------------------------------------------------------
 //
@@ -16,21 +16,23 @@ interface
 // --------------------------------------------------------------------------
 
 uses
-  Classes;
+  Classes, SysUtils;
 
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
 
 type
-  TFileStreamLineEx = class
+  TMemoryStore = class
     private
-      Stream: TStream;
-      CurrentLine: String;
+      MemoryBlockSize: Integer;
+      MemoryBlockList: TList;
+      PositionInCurrentMemoryBlock: Integer;
     public
-      constructor Create(Stream: TStream);
+      constructor Create(MemoryBlockSize: Integer);
+      destructor Destroy; override;
     public
-      function    ReadLine(var OutputLine: String): Boolean;
+      function GetMemory(Size: Integer): Pointer;
   end;
 
 // --------------------------------------------------------------------------
@@ -43,68 +45,52 @@ implementation
 //
 // --------------------------------------------------------------------------
 
-{$ifdef WIN32}
-const LINE_TERMINATOR = #13#10;
-{$else}
-const LINE_TERMINATOR = #10;
-{$endif}
+uses
+  MemoryManager;
 
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
 
-const
-  LINE_READ_CHUNK = 2048;
-
-// --------------------------------------------------------------------------
-//
-// --------------------------------------------------------------------------
-
-constructor TFileStreamLineEx.Create(Stream: TStream);
+constructor TMemoryStore.Create(MemoryBlockSize: Integer);
 begin
-  Self.Stream := Stream; SetLength(Self.CurrentLine, 0);
+  Self.MemoryBlockSize := MemoryBlockSize;
+  Self.MemoryBlockList := TList.Create;
 end;
 
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
 
-function TFileStreamLineEx.ReadLine(var OutputLine: String): Boolean;
+destructor TMemoryStore.Destroy;
 var
-  Buffer: String; Bytes, Position: Integer;
+  i: Integer;
 begin
-  Position := Pos(LINE_TERMINATOR, CurrentLine); while not(Position > 0) do begin
-
-    // Read a chunk of data into the buffer
-    SetLength(Buffer, LINE_READ_CHUNK); Bytes := Stream.Read(Buffer[1], LINE_READ_CHUNK); if (Bytes > 0) then begin // If there is data...
-
-      // Append the chunk of data to the current line
-      CurrentLine := CurrentLine + Copy(Buffer, 1, Bytes);
-
-      // Find line terminator in the current line
-      Position := Pos(LINE_TERMINATOR, CurrentLine);
-
-    end else begin // There is no data
-      Break;
+  if (Self.MemoryBlockList.Count > 0) then begin
+    for i := 0 to Self.MemoryBlockList.Count - 1 do begin
+      TMemoryManager.FreeMemory(Self.MemoryBlockList[i], Self.MemoryBlockSize);
     end;
+  end;
+end;
 
-  end; if (Position > 0) then begin // If a line terminator has been found...
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
 
-    // Transfer part of the current line into the output line
-    OutputLine := Copy(CurrentLine, 1, Position - 1); Delete(CurrentLine, 1, Position + Length(LINE_TERMINATOR) - 1);
+function TMemoryStore.GetMemory(Size: Integer): Pointer;
+var
+  MemoryBlockPointer: Pointer;
+begin
+  // If there is not enough space inside an already existing memory block...
+  if (Self.MemoryBlockList.Count = 0) or (Size > Self.MemoryBlockSize - Self.PositionInCurrentMemoryBlock) then begin
 
-    // There should be more lines
-    Result := True;
-
-  end else begin // A line terminator has not been found
-
-    // Transfer all of the current line into the output line
-    OutputLine := CurrentLine; SetLength(CurrentLine, 0);
-
-    // There should be no more lines
-    Result := False;
+    // We have to allocate a new one
+    TMemoryManager.GetMemory(MemoryBlockPointer, Self.MemoryBlockSize); Self.MemoryBlockList.Add(MemoryBlockPointer); Self.PositionInCurrentMemoryBlock := 0;
 
   end;
+
+  // A pointer inside the memory block is returned and the position is advanced
+  Result := Pointer(Integer(Self.MemoryBlockList.Last) + Self.PositionInCurrentMemoryBlock); Inc(Self.PositionInCurrentMemoryBlock, Size);
 end;
 
 // --------------------------------------------------------------------------

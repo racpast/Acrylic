@@ -16,23 +16,9 @@ interface
 // --------------------------------------------------------------------------
 
 uses
-  Classes;
-
-// --------------------------------------------------------------------------
-//
-// --------------------------------------------------------------------------
-
-const
-  LOCALHOST_ADDRESS = $100007F;
-
-// --------------------------------------------------------------------------
-//
-// --------------------------------------------------------------------------
-
-const
-  MIN_DNS_PACKET_LEN = 16;
-  MAX_DNS_PACKET_LEN = 4096;
-  MAX_DNS_BUFFER_LEN = 65536;
+  Classes,
+  CommunicationChannels,
+  DnsProtocol;
 
 // --------------------------------------------------------------------------
 //
@@ -45,19 +31,14 @@ const
 //
 // --------------------------------------------------------------------------
 
-const
-  RESOLVER_THREAD_MAX_BLOCK_TIME = 6283;
-
-// --------------------------------------------------------------------------
-//
-// --------------------------------------------------------------------------
-
 type
-  TServerConfiguration = record
-    HostNameAffinityMask: TStringList;
+  TDnsServerConfiguration = record
+    IsEnabled: Boolean;
+    DomainNameAffinityMask: TStringList;
     QueryTypeAffinityMask: TList;
-    Address: Integer;
+    Address: TDualIPAddress;
     Port: Word;
+    Protocol: TDnsProtocol;
     IgnoreNegativeResponsesFromServer: Boolean;
   end;
 
@@ -70,36 +51,43 @@ type
     private
       class function  MakeAbsolutePath(Path: String): String;
     public
-      class function  GetHitLogFileName(): String;
-      class function  GetHitLogFileWhat(): String;
-      class function  GetHitLogFileMode(): String;
-      class function  GetStatsLogFileName(): String;
-      class function  GetDebugLogFileName(): String;
-      class function  GetConfigurationFileName(): String;
-      class function  GetAddressCacheFileName(): String;
-      class function  GetHostsCacheFileName(): String;
+      class function  GetHitLogFileName: String;
+      class function  GetHitLogFileWhat: String;
+      class function  GetHitLogFileMode: String;
+      class function  GetStatsLogFileName: String;
+      class function  GetDebugLogFileName: String;
+      class function  GetConfigurationFileName: String;
+      class function  GetAddressCacheFileName: String;
+      class function  GetHostsCacheFileName: String;
     public
-      class function  GetServerConfiguration(Index: Integer): TServerConfiguration;
+      class function  GetDnsServerConfiguration(Index: Integer): TDnsServerConfiguration;
+      class function  FindDnsServerConfiguration(Address: TDualIPAddress; Port: Word): Integer;
     public
-      class function  GetAddressCacheDisabled(): Boolean;
-      class function  GetAddressCacheNegativeTime(): Integer;
-      class function  GetAddressCacheScavengingTime(): Integer;
-      class function  GetAddressCacheSilentUpdateTime(): Integer;
-      class function  GetAddressCacheDisableCompression(): Boolean;
+      class function  GetAddressCacheDisabled: Boolean;
+      class function  GetAddressCacheNegativeTime: Integer;
+      class function  GetAddressCacheScavengingTime: Integer;
+      class function  GetAddressCacheSilentUpdateTime: Integer;
     public
-      class function  GetLocalBindingAddress(): Integer;
-      class function  GetLocalBindingPort(): Word;
+      class function  IsLocalIPv4BindingEnabled: Boolean;
     public
-      class function  IsHostNameAffinityMatch(HostName: String; HostNameAffinityMask: TStringList): Boolean;
+      class function  GetLocalIPv4BindingAddress: TIPv4Address;
+      class function  GetLocalIPv4BindingPort: Word;
+    public
+      class function  IsLocalIPv6BindingEnabled: Boolean;
+    public
+      class function  GetLocalIPv6BindingAddress: TIPv6Address;
+      class function  GetLocalIPv6BindingPort: Word;
+    public
+      class function  IsDomainNameAffinityMatch(DomainName: String; DomainNameAffinityMask: TStringList): Boolean;
       class function  IsQueryTypeAffinityMatch(QueryType: Word; QueryTypeAffinityMask: TList): Boolean;
     public
       class function  IsAllowedAddress(Value: String): Boolean;
       class function  IsCacheException(Value: String): Boolean;
       class function  IsBlackException(Value: String): Boolean;
     public
-      class procedure Initialize();
+      class procedure Initialize;
       class procedure LoadFromFile(FileName: String);
-      class procedure Finalize();
+      class procedure Finalize;
   end;
 
 // --------------------------------------------------------------------------
@@ -113,14 +101,24 @@ implementation
 // --------------------------------------------------------------------------
 
 uses
-  IniFiles, SysUtils, IPAddress, PatternMatching, QueryTypeUtils, Tracer;
+  IniFiles,
+  SysUtils,
+  PatternMatching,
+  Tracer;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+const
+  DNS_SERVER_INDEX_DESCRIPTION: Array [0..(MAX_NUM_DNS_SERVERS - 1)] of String = ('Primary', 'Secondary', 'Tertiary', 'Quaternary', 'Quinary', 'Senary', 'Septenary', 'Octonary', 'Nonary', 'Denary');
 
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
 
 var
-  TConfiguration_ServerConfiguration: Array [0..(MAX_NUM_DNS_SERVERS - 1)] of TServerConfiguration;
+  TConfiguration_DnsServerConfiguration: Array [0..(MAX_NUM_DNS_SERVERS - 1)] of TDnsServerConfiguration;
 
 // --------------------------------------------------------------------------
 //
@@ -131,15 +129,36 @@ var
   TConfiguration_AddressCacheNegativeTime: Integer;
   TConfiguration_AddressCacheScavengingTime: Integer;
   TConfiguration_AddressCacheSilentUpdateTime: Integer;
-  TConfiguration_AddressCacheDisableCompression: Boolean;
 
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
 
 var
-  TConfiguration_LocalBindingAddress: Integer;
-  TConfiguration_LocalBindingPort: Word;
+  TConfiguration_IsLocalIPv4BindingEnabled: Boolean;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+var
+  TConfiguration_LocalIPv4BindingAddress: TIPv4Address;
+  TConfiguration_LocalIPv4BindingPort: Word;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+var
+  TConfiguration_IsLocalIPv6BindingEnabled: Boolean;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+var
+  TConfiguration_LocalIPv6BindingAddress: TIPv6Address;
+  TConfiguration_LocalIPv6BindingPort: Word;
 
 // --------------------------------------------------------------------------
 //
@@ -180,31 +199,36 @@ var
 //
 // --------------------------------------------------------------------------
 
-class procedure TConfiguration.Initialize();
+class procedure TConfiguration.Initialize;
 var
   i: Integer;
 begin
-  // Initialize server config
   for i := 0 to (MAX_NUM_DNS_SERVERS - 1) do begin
-    TConfiguration_ServerConfiguration[i].HostNameAffinityMask := nil;
-    TConfiguration_ServerConfiguration[i].QueryTypeAffinityMask := nil;
-    TConfiguration_ServerConfiguration[i].Address := -1;
-    TConfiguration_ServerConfiguration[i].Port := 0;
-    TConfiguration_ServerConfiguration[i].IgnoreNegativeResponsesFromServer := False;
+    TConfiguration_DnsServerConfiguration[i].IsEnabled := False;
+    TConfiguration_DnsServerConfiguration[i].DomainNameAffinityMask := nil;
+    TConfiguration_DnsServerConfiguration[i].QueryTypeAffinityMask := nil;
+    TConfiguration_DnsServerConfiguration[i].Address.IPv6Address := LOCALHOST_IPV6_ADDRESS;
+    TConfiguration_DnsServerConfiguration[i].Address.IsIPv6Address := True;
+    TConfiguration_DnsServerConfiguration[i].Port := 0;
+    TConfiguration_DnsServerConfiguration[i].Protocol := UdpProtocol;
+    TConfiguration_DnsServerConfiguration[i].IgnoreNegativeResponsesFromServer := False;
   end;
 
-  // Initialize caching config
   TConfiguration_AddressCacheDisabled := False;
   TConfiguration_AddressCacheNegativeTime := 10;
   TConfiguration_AddressCacheScavengingTime := 28800;
   TConfiguration_AddressCacheSilentUpdateTime := 1440;
-  TConfiguration_AddressCacheDisableCompression := False;
 
-  // Initialize local binding params
-  TConfiguration_LocalBindingAddress := 0;
-  TConfiguration_LocalBindingPort := 53;
+  TConfiguration_IsLocalIPv4BindingEnabled := False;
 
-  // Initialize various file names
+  TConfiguration_LocalIPv4BindingAddress := ANY_IPV4_ADDRESS;
+  TConfiguration_LocalIPv4BindingPort := 53;
+
+  TConfiguration_IsLocalIPv6BindingEnabled := False;
+
+  TConfiguration_LocalIPv6BindingAddress := ANY_IPV6_ADDRESS;
+  TConfiguration_LocalIPv6BindingPort := 53;
+
   TConfiguration_HitLogFileName := '';
   TConfiguration_HitLogFileWhat := '';
   TConfiguration_HitLogFileMode := '';
@@ -214,7 +238,6 @@ begin
   TConfiguration_AddressCacheFileName := Self.MakeAbsolutePath('AcrylicCache.dat');
   TConfiguration_HostsCacheFileName := Self.MakeAbsolutePath('AcrylicHosts.txt');
 
-  // Initialize various lists
   TConfiguration_AllowedAddresses := nil;
   TConfiguration_CacheExceptions := nil;
   TConfiguration_WhiteExceptions := nil;
@@ -233,7 +256,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class function TConfiguration.GetHitLogFileName(): String;
+class function TConfiguration.GetHitLogFileName: String;
 begin
   Result := TConfiguration_HitLogFileName;
 end;
@@ -242,7 +265,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class function TConfiguration.GetHitLogFileWhat(): String;
+class function TConfiguration.GetHitLogFileWhat: String;
 begin
   Result := TConfiguration_HitLogFileWhat;
 end;
@@ -251,7 +274,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class function TConfiguration.GetHitLogFileMode(): String;
+class function TConfiguration.GetHitLogFileMode: String;
 begin
   Result := TConfiguration_HitLogFileMode;
 end;
@@ -260,16 +283,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class function TConfiguration.GetDebugLogFileName(): String;
-begin
-  Result := TConfiguration_DebugLogFileName;
-end;
-
-// --------------------------------------------------------------------------
-//
-// --------------------------------------------------------------------------
-
-class function TConfiguration.GetStatsLogFileName(): String;
+class function TConfiguration.GetStatsLogFileName: String;
 begin
   Result := TConfiguration_StatsLogFileName;
 end;
@@ -278,7 +292,16 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class function TConfiguration.GetConfigurationFileName(): String;
+class function TConfiguration.GetDebugLogFileName: String;
+begin
+  Result := TConfiguration_DebugLogFileName;
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class function TConfiguration.GetConfigurationFileName: String;
 begin
   Result := TConfiguration_ConfigurationFileName;
 end;
@@ -287,7 +310,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class function TConfiguration.GetAddressCacheFileName(): String;
+class function TConfiguration.GetAddressCacheFileName: String;
 begin
   Result := TConfiguration_AddressCacheFileName;
 end;
@@ -296,7 +319,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class function TConfiguration.GetHostsCacheFileName(): String;
+class function TConfiguration.GetHostsCacheFileName: String;
 begin
   Result := TConfiguration_HostsCacheFileName;
 end;
@@ -305,16 +328,31 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class function TConfiguration.GetServerConfiguration(Index: Integer): TServerConfiguration;
+class function TConfiguration.GetDnsServerConfiguration(Index: Integer): TDnsServerConfiguration;
 begin
-  Result := TConfiguration_ServerConfiguration[Index];
+  Result := TConfiguration_DnsServerConfiguration[Index];
 end;
 
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
 
-class function TConfiguration.GetAddressCacheDisabled(): Boolean;
+class function TConfiguration.FindDnsServerConfiguration(Address: TDualIPAddress; Port: Word): Integer;
+var
+  Index: Integer;
+begin
+  for Index := 0 to (MAX_NUM_DNS_SERVERS - 1) do begin
+    if TConfiguration_DnsServerConfiguration[Index].IsEnabled and TDualIPAddressUtility.AreEqual(Address, TConfiguration_DnsServerConfiguration[Index].Address) then begin
+      Result := Index; Exit;
+    end;
+  end; Result := -1;
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class function TConfiguration.GetAddressCacheDisabled: Boolean;
 begin
   Result := TConfiguration_AddressCacheDisabled;
 end;
@@ -323,7 +361,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class function TConfiguration.GetAddressCacheSilentUpdateTime(): Integer;
+class function TConfiguration.GetAddressCacheSilentUpdateTime: Integer;
 begin
   Result := TConfiguration_AddressCacheSilentUpdateTime;
 end;
@@ -332,7 +370,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class function TConfiguration.GetAddressCacheScavengingTime(): Integer;
+class function TConfiguration.GetAddressCacheScavengingTime: Integer;
 begin
   Result := TConfiguration_AddressCacheScavengingTime;
 end;
@@ -341,7 +379,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class function TConfiguration.GetAddressCacheNegativeTime(): Integer;
+class function TConfiguration.GetAddressCacheNegativeTime: Integer;
 begin
   Result := TConfiguration_AddressCacheNegativeTime;
 end;
@@ -350,44 +388,71 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class function TConfiguration.GetAddressCacheDisableCompression(): Boolean;
+class function TConfiguration.IsLocalIPv4BindingEnabled: Boolean;
 begin
-  Result := TConfiguration_AddressCacheDisableCompression;
+  Result := TConfiguration_IsLocalIPv4BindingEnabled;
 end;
 
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
 
-class function TConfiguration.GetLocalBindingAddress(): Integer;
+class function TConfiguration.GetLocalIPv4BindingAddress: TIPv4Address;
 begin
-  Result := TConfiguration_LocalBindingAddress;
+  Result := TConfiguration_LocalIPv4BindingAddress;
 end;
 
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
 
-class function TConfiguration.GetLocalBindingPort(): Word;
+class function TConfiguration.GetLocalIPv4BindingPort: Word;
 begin
-  Result := TConfiguration_LocalBindingPort;
+  Result := TConfiguration_LocalIPv4BindingPort;
 end;
 
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
 
-class function TConfiguration.IsHostNameAffinityMatch(HostName: String; HostNameAffinityMask: TStringList): Boolean;
+class function TConfiguration.IsLocalIPv6BindingEnabled: Boolean;
+begin
+  Result := TConfiguration_IsLocalIPv6BindingEnabled;
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class function TConfiguration.GetLocalIPv6BindingAddress: TIPv6Address;
+begin
+  Result := TConfiguration_LocalIPv6BindingAddress;
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class function TConfiguration.GetLocalIPv6BindingPort: Word;
+begin
+  Result := TConfiguration_LocalIPv6BindingPort;
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class function TConfiguration.IsDomainNameAffinityMatch(DomainName: String; DomainNameAffinityMask: TStringList): Boolean;
 var
   i: Integer; S: String;
 begin
-  Result := True; if (HostNameAffinityMask <> nil) and (HostNameAffinityMask.Count > 0) then begin
-    Result := False; for i := 0 to (HostNameAffinityMask.Count - 1) do begin
-      S := HostNameAffinityMask[i]; if (S <> '') then begin
+  Result := True; if (DomainNameAffinityMask <> nil) and (DomainNameAffinityMask.Count > 0) then begin
+    Result := False; for i := 0 to (DomainNameAffinityMask.Count - 1) do begin
+      S := DomainNameAffinityMask[i]; if (S <> '') then begin
         if (S[1] = '^') then begin
-          if TPatternMatching.Match(PChar(HostName), PChar(Copy(S, 2, Length(S) - 1))) then begin Result := False; Exit; end;
+          if TPatternMatching.Match(PChar(DomainName), PChar(Copy(S, 2, Length(S) - 1))) then begin Result := False; Exit; end;
         end else begin
-          if TPatternMatching.Match(PChar(HostName), PChar(S)) then begin Result := True; Exit; end;
+          if TPatternMatching.Match(PChar(DomainName), PChar(S)) then begin Result := True; Exit; end;
         end;
       end;
     end;
@@ -456,149 +521,86 @@ end;
 
 class procedure TConfiguration.LoadFromFile(FileName: String);
 var
-  IniFile: TIniFile; StringList: TStringList; i: Integer; S: String; W: Word;
+  IniFile: TIniFile; StringList: TStringList; DnsServerIndex: Integer; i: Integer; S: String; W: Word;
 begin
-  if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TConfiguration.LoadFromFile: Loading configuration file...');
+  // Trace the event if a tracer is enabled
+  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TConfiguration.LoadFromFile: Loading configuration file...');
 
   IniFile := nil; try
 
     IniFile := TIniFile.Create(FileName);
 
-    if TTracer.IsEnabled() then begin
-      StringList := TStringList.Create; IniFile.ReadSectionValues('GlobalSection'          , StringList); for i := 0 to (StringList.Count - 1) do TTracer.Trace(TracePriorityInfo, 'TConfiguration.LoadFromFile: [GlobalSection] '           + StringList[i]); StringList.Free;
+    // Trace the configuration if a tracer is enabled
+    if TTracer.IsEnabled then begin
+      StringList := TStringList.Create; IniFile.ReadSectionValues('GlobalSection', StringList); for i := 0 to (StringList.Count - 1) do TTracer.Trace(TracePriorityInfo, 'TConfiguration.LoadFromFile: [GlobalSection] ' + StringList[i]); StringList.Free;
       StringList := TStringList.Create; IniFile.ReadSectionValues('AllowedAddressesSection', StringList); for i := 0 to (StringList.Count - 1) do TTracer.Trace(TracePriorityInfo, 'TConfiguration.LoadFromFile: [AllowedAddressesSection] ' + StringList[i]); StringList.Free;
-      StringList := TStringList.Create; IniFile.ReadSectionValues('CacheExceptionsSection' , StringList); for i := 0 to (StringList.Count - 1) do TTracer.Trace(TracePriorityInfo, 'TConfiguration.LoadFromFile: [CacheExceptionsSection] '  + StringList[i]); StringList.Free;
-      StringList := TStringList.Create; IniFile.ReadSectionValues('WhiteExceptionsSection' , StringList); for i := 0 to (StringList.Count - 1) do TTracer.Trace(TracePriorityInfo, 'TConfiguration.LoadFromFile: [WhiteExceptionsSection] '  + StringList[i]); StringList.Free;
+      StringList := TStringList.Create; IniFile.ReadSectionValues('CacheExceptionsSection', StringList); for i := 0 to (StringList.Count - 1) do TTracer.Trace(TracePriorityInfo, 'TConfiguration.LoadFromFile: [CacheExceptionsSection] ' + StringList[i]); StringList.Free;
+      StringList := TStringList.Create; IniFile.ReadSectionValues('WhiteExceptionsSection', StringList); for i := 0 to (StringList.Count - 1) do TTracer.Trace(TracePriorityInfo, 'TConfiguration.LoadFromFile: [WhiteExceptionsSection] ' + StringList[i]); StringList.Free;
     end;
 
-    S := IniFile.ReadString('GlobalSection', 'PrimaryServerHostNameAffinityMask', ''); if (S <> '') then begin
-      TConfiguration_ServerConfiguration[0].HostNameAffinityMask := TStringList.Create; TConfiguration_ServerConfiguration[0].HostNameAffinityMask.Delimiter := ';'; TConfiguration_ServerConfiguration[0].HostNameAffinityMask.DelimitedText := S;
+    for DnsServerIndex := 0 to (MAX_NUM_DNS_SERVERS - 1) do begin
+
+      TConfiguration_DnsServerConfiguration[DnsServerIndex].IsEnabled := False;
+
+      S := IniFile.ReadString('GlobalSection', DNS_SERVER_INDEX_DESCRIPTION[DnsServerIndex] + 'ServerAddress', '');
+
+      if (S = '') then Continue;
+
+      TConfiguration_DnsServerConfiguration[DnsServerIndex].Address := TDualIPAddressUtility.Parse(S);
+
+      S := IniFile.ReadString('GlobalSection', DNS_SERVER_INDEX_DESCRIPTION[DnsServerIndex] + 'ServerPort', '');
+
+      if (S = '') then Continue;
+
+      TConfiguration_DnsServerConfiguration[DnsServerIndex].Port := StrToIntDef(IniFile.ReadString('GlobalSection', DNS_SERVER_INDEX_DESCRIPTION[DnsServerIndex] + 'ServerPort', '53'), 53);
+
+      S := IniFile.ReadString('GlobalSection', DNS_SERVER_INDEX_DESCRIPTION[DnsServerIndex] + 'ServerProtocol', '');
+
+      if (S = '') then Continue;
+
+      TConfiguration_DnsServerConfiguration[DnsServerIndex].Protocol := TDnsProtocolUtility.ParseDnsProtocol(S);
+
+      S := IniFile.ReadString('GlobalSection', DNS_SERVER_INDEX_DESCRIPTION[DnsServerIndex] + 'ServerDomainNameAffinityMask', ''); if (S <> '') then begin
+        TConfiguration_DnsServerConfiguration[DnsServerIndex].DomainNameAffinityMask := TStringList.Create; TConfiguration_DnsServerConfiguration[DnsServerIndex].DomainNameAffinityMask.Delimiter := ';'; TConfiguration_DnsServerConfiguration[DnsServerIndex].DomainNameAffinityMask.DelimitedText := S;
+      end;
+
+      S := IniFile.ReadString('GlobalSection', DNS_SERVER_INDEX_DESCRIPTION[DnsServerIndex] + 'ServerQueryTypeAffinityMask', ''); if (S <> '') then begin
+        TConfiguration_DnsServerConfiguration[DnsServerIndex].QueryTypeAffinityMask := TList.Create; StringList := TStringList.Create; StringList.Delimiter := ';'; StringList.DelimitedText := S; for i := 0 to (StringList.Count - 1) do begin W := TDnsQueryTypeUtility.Parse(StringList[i]); if (W > 0) then TConfiguration_DnsServerConfiguration[DnsServerIndex].QueryTypeAffinityMask.Add(Pointer(W)); end; StringList.Free;
+      end;
+
+      TConfiguration_DnsServerConfiguration[DnsServerIndex].IgnoreNegativeResponsesFromServer := UpperCase(IniFile.ReadString('GlobalSection', 'IgnoreNegativeResponsesFrom' + DNS_SERVER_INDEX_DESCRIPTION[DnsServerIndex] + 'Server', '')) = 'YES';
+
+      TConfiguration_DnsServerConfiguration[DnsServerIndex].IsEnabled := True;
+
     end;
-
-    S := IniFile.ReadString('GlobalSection', 'PrimaryServerQueryTypeAffinityMask', ''); if (S <> '') then begin
-      TConfiguration_ServerConfiguration[0].QueryTypeAffinityMask := TList.Create; StringList := TStringList.Create; StringList.Delimiter := ';'; StringList.DelimitedText := S; for i := 0 to (StringList.Count - 1) do begin W := TQueryTypeUtils.Parse(StringList[i]); if (W > 0) then TConfiguration_ServerConfiguration[0].QueryTypeAffinityMask.Add(Pointer(W)); end; StringList.Free;
-    end;
-
-    TConfiguration_ServerConfiguration[0].Address := TIPAddress.Parse(IniFile.ReadString('GlobalSection', 'PrimaryServerAddress', ''));
-    TConfiguration_ServerConfiguration[0].Port := StrToIntDef(IniFile.ReadString('GlobalSection', 'PrimaryServerPort', '53'), 53);
-    TConfiguration_ServerConfiguration[0].IgnoreNegativeResponsesFromServer := UpperCase(IniFile.ReadString('GlobalSection', 'IgnoreNegativeResponsesFromPrimaryServer', '')) = 'YES';
-
-    S := IniFile.ReadString('GlobalSection', 'SecondaryServerHostNameAffinityMask', ''); if (S <> '') then begin
-      TConfiguration_ServerConfiguration[1].HostNameAffinityMask := TStringList.Create; TConfiguration_ServerConfiguration[1].HostNameAffinityMask.Delimiter := ';'; TConfiguration_ServerConfiguration[1].HostNameAffinityMask.DelimitedText := S;
-    end;
-
-    S := IniFile.ReadString('GlobalSection', 'SecondaryServerQueryTypeAffinityMask', ''); if (S <> '') then begin
-      TConfiguration_ServerConfiguration[1].QueryTypeAffinityMask := TList.Create; StringList := TStringList.Create; StringList.Delimiter := ';'; StringList.DelimitedText := S; for i := 0 to (StringList.Count - 1) do begin W := TQueryTypeUtils.Parse(StringList[i]); if (W > 0) then TConfiguration_ServerConfiguration[1].QueryTypeAffinityMask.Add(Pointer(W)); end; StringList.Free;
-    end;
-
-    TConfiguration_ServerConfiguration[1].Address := TIPAddress.Parse(IniFile.ReadString('GlobalSection', 'SecondaryServerAddress', ''));
-    TConfiguration_ServerConfiguration[1].Port := StrToIntDef(IniFile.ReadString('GlobalSection', 'SecondaryServerPort', '53'), 53);
-    TConfiguration_ServerConfiguration[1].IgnoreNegativeResponsesFromServer := UpperCase(IniFile.ReadString('GlobalSection', 'IgnoreNegativeResponsesFromSecondaryServer', '')) = 'YES';
-
-    S := IniFile.ReadString('GlobalSection', 'TertiaryServerHostNameAffinityMask', ''); if (S <> '') then begin
-      TConfiguration_ServerConfiguration[2].HostNameAffinityMask := TStringList.Create; TConfiguration_ServerConfiguration[2].HostNameAffinityMask.Delimiter := ';'; TConfiguration_ServerConfiguration[2].HostNameAffinityMask.DelimitedText := S;
-    end;
-
-    S := IniFile.ReadString('GlobalSection', 'TertiaryServerQueryTypeAffinityMask', ''); if (S <> '') then begin
-      TConfiguration_ServerConfiguration[2].QueryTypeAffinityMask := TList.Create; StringList := TStringList.Create; StringList.Delimiter := ';'; StringList.DelimitedText := S; for i := 0 to (StringList.Count - 1) do begin W := TQueryTypeUtils.Parse(StringList[i]); if (W > 0) then TConfiguration_ServerConfiguration[2].QueryTypeAffinityMask.Add(Pointer(W)); end; StringList.Free;
-    end;
-
-    TConfiguration_ServerConfiguration[2].Address := TIPAddress.Parse(IniFile.ReadString('GlobalSection', 'TertiaryServerAddress', ''));
-    TConfiguration_ServerConfiguration[2].Port := StrToIntDef(IniFile.ReadString('GlobalSection', 'TertiaryServerPort', '53'), 53);
-    TConfiguration_ServerConfiguration[2].IgnoreNegativeResponsesFromServer := UpperCase(IniFile.ReadString('GlobalSection', 'IgnoreNegativeResponsesFromTertiaryServer', '')) = 'YES';
-
-    S := IniFile.ReadString('GlobalSection', 'QuaternaryServerHostNameAffinityMask', ''); if (S <> '') then begin
-      TConfiguration_ServerConfiguration[3].HostNameAffinityMask := TStringList.Create; TConfiguration_ServerConfiguration[3].HostNameAffinityMask.Delimiter := ';'; TConfiguration_ServerConfiguration[3].HostNameAffinityMask.DelimitedText := S;
-    end;
-
-    S := IniFile.ReadString('GlobalSection', 'QuaternaryServerQueryTypeAffinityMask', ''); if (S <> '') then begin
-      TConfiguration_ServerConfiguration[3].QueryTypeAffinityMask := TList.Create; StringList := TStringList.Create; StringList.Delimiter := ';'; StringList.DelimitedText := S; for i := 0 to (StringList.Count - 1) do begin W := TQueryTypeUtils.Parse(StringList[i]); if (W > 0) then TConfiguration_ServerConfiguration[3].QueryTypeAffinityMask.Add(Pointer(W)); end; StringList.Free;
-    end;
-
-    TConfiguration_ServerConfiguration[3].Address := TIPAddress.Parse(IniFile.ReadString('GlobalSection', 'QuaternaryServerAddress', ''));
-    TConfiguration_ServerConfiguration[3].Port := StrToIntDef(IniFile.ReadString('GlobalSection', 'QuaternaryServerPort', '53'), 53);
-    TConfiguration_ServerConfiguration[3].IgnoreNegativeResponsesFromServer := UpperCase(IniFile.ReadString('GlobalSection', 'IgnoreNegativeResponsesFromQuaternaryServer', '')) = 'YES';
-
-    S := IniFile.ReadString('GlobalSection', 'QuinaryServerHostNameAffinityMask', ''); if (S <> '') then begin
-      TConfiguration_ServerConfiguration[4].HostNameAffinityMask := TStringList.Create; TConfiguration_ServerConfiguration[4].HostNameAffinityMask.Delimiter := ';'; TConfiguration_ServerConfiguration[4].HostNameAffinityMask.DelimitedText := S;
-    end;
-
-    S := IniFile.ReadString('GlobalSection', 'QuinaryServerQueryTypeAffinityMask', ''); if (S <> '') then begin
-      TConfiguration_ServerConfiguration[4].QueryTypeAffinityMask := TList.Create; StringList := TStringList.Create; StringList.Delimiter := ';'; StringList.DelimitedText := S; for i := 0 to (StringList.Count - 1) do begin W := TQueryTypeUtils.Parse(StringList[i]); if (W > 0) then TConfiguration_ServerConfiguration[4].QueryTypeAffinityMask.Add(Pointer(W)); end; StringList.Free;
-    end;
-
-    TConfiguration_ServerConfiguration[4].Address := TIPAddress.Parse(IniFile.ReadString('GlobalSection', 'QuinaryServerAddress', ''));
-    TConfiguration_ServerConfiguration[4].Port := StrToIntDef(IniFile.ReadString('GlobalSection', 'QuinaryServerPort', '53'), 53);
-    TConfiguration_ServerConfiguration[4].IgnoreNegativeResponsesFromServer := UpperCase(IniFile.ReadString('GlobalSection', 'IgnoreNegativeResponsesFromQuinaryServer', '')) = 'YES';
-
-    S := IniFile.ReadString('GlobalSection', 'SenaryServerHostNameAffinityMask', ''); if (S <> '') then begin
-      TConfiguration_ServerConfiguration[5].HostNameAffinityMask := TStringList.Create; TConfiguration_ServerConfiguration[5].HostNameAffinityMask.Delimiter := ';'; TConfiguration_ServerConfiguration[5].HostNameAffinityMask.DelimitedText := S;
-    end;
-
-    S := IniFile.ReadString('GlobalSection', 'SenaryServerQueryTypeAffinityMask', ''); if (S <> '') then begin
-      TConfiguration_ServerConfiguration[5].QueryTypeAffinityMask := TList.Create; StringList := TStringList.Create; StringList.Delimiter := ';'; StringList.DelimitedText := S; for i := 0 to (StringList.Count - 1) do begin W := TQueryTypeUtils.Parse(StringList[i]); if (W > 0) then TConfiguration_ServerConfiguration[5].QueryTypeAffinityMask.Add(Pointer(W)); end; StringList.Free;
-    end;
-
-    TConfiguration_ServerConfiguration[5].Address := TIPAddress.Parse(IniFile.ReadString('GlobalSection', 'SenaryServerAddress', ''));
-    TConfiguration_ServerConfiguration[5].Port := StrToIntDef(IniFile.ReadString('GlobalSection', 'SenaryServerPort', '53'), 53);
-    TConfiguration_ServerConfiguration[5].IgnoreNegativeResponsesFromServer := UpperCase(IniFile.ReadString('GlobalSection', 'IgnoreNegativeResponsesFromSenaryServer', '')) = 'YES';
-
-    S := IniFile.ReadString('GlobalSection', 'SeptenaryServerHostNameAffinityMask', ''); if (S <> '') then begin
-      TConfiguration_ServerConfiguration[6].HostNameAffinityMask := TStringList.Create; TConfiguration_ServerConfiguration[6].HostNameAffinityMask.Delimiter := ';'; TConfiguration_ServerConfiguration[6].HostNameAffinityMask.DelimitedText := S;
-    end;
-
-    S := IniFile.ReadString('GlobalSection', 'SeptenaryServerQueryTypeAffinityMask', ''); if (S <> '') then begin
-      TConfiguration_ServerConfiguration[6].QueryTypeAffinityMask := TList.Create; StringList := TStringList.Create; StringList.Delimiter := ';'; StringList.DelimitedText := S; for i := 0 to (StringList.Count - 1) do begin W := TQueryTypeUtils.Parse(StringList[i]); if (W > 0) then TConfiguration_ServerConfiguration[6].QueryTypeAffinityMask.Add(Pointer(W)); end; StringList.Free;
-    end;
-
-    TConfiguration_ServerConfiguration[6].Address := TIPAddress.Parse(IniFile.ReadString('GlobalSection', 'SeptenaryServerAddress', ''));
-    TConfiguration_ServerConfiguration[6].Port := StrToIntDef(IniFile.ReadString('GlobalSection', 'SeptenaryServerPort', '53'), 53);
-    TConfiguration_ServerConfiguration[6].IgnoreNegativeResponsesFromServer := UpperCase(IniFile.ReadString('GlobalSection', 'IgnoreNegativeResponsesFromSeptenaryServer', '')) = 'YES';
-
-    S := IniFile.ReadString('GlobalSection', 'OctonaryServerHostNameAffinityMask', ''); if (S <> '') then begin
-      TConfiguration_ServerConfiguration[7].HostNameAffinityMask := TStringList.Create; TConfiguration_ServerConfiguration[7].HostNameAffinityMask.Delimiter := ';'; TConfiguration_ServerConfiguration[7].HostNameAffinityMask.DelimitedText := S;
-    end;
-
-    S := IniFile.ReadString('GlobalSection', 'OctonaryServerQueryTypeAffinityMask', ''); if (S <> '') then begin
-      TConfiguration_ServerConfiguration[7].QueryTypeAffinityMask := TList.Create; StringList := TStringList.Create; StringList.Delimiter := ';'; StringList.DelimitedText := S; for i := 0 to (StringList.Count - 1) do begin W := TQueryTypeUtils.Parse(StringList[i]); if (W > 0) then TConfiguration_ServerConfiguration[7].QueryTypeAffinityMask.Add(Pointer(W)); end; StringList.Free;
-    end;
-
-    TConfiguration_ServerConfiguration[7].Address := TIPAddress.Parse(IniFile.ReadString('GlobalSection', 'OctonaryServerAddress', ''));
-    TConfiguration_ServerConfiguration[7].Port := StrToIntDef(IniFile.ReadString('GlobalSection', 'OctonaryServerPort', '53'), 53);
-    TConfiguration_ServerConfiguration[7].IgnoreNegativeResponsesFromServer := UpperCase(IniFile.ReadString('GlobalSection', 'IgnoreNegativeResponsesFromOctonaryServer', '')) = 'YES';
-
-    S := IniFile.ReadString('GlobalSection', 'NonaryServerHostNameAffinityMask', ''); if (S <> '') then begin
-      TConfiguration_ServerConfiguration[8].HostNameAffinityMask := TStringList.Create; TConfiguration_ServerConfiguration[8].HostNameAffinityMask.Delimiter := ';'; TConfiguration_ServerConfiguration[8].HostNameAffinityMask.DelimitedText := S;
-    end;
-
-    S := IniFile.ReadString('GlobalSection', 'NonaryServerQueryTypeAffinityMask', ''); if (S <> '') then begin
-      TConfiguration_ServerConfiguration[8].QueryTypeAffinityMask := TList.Create; StringList := TStringList.Create; StringList.Delimiter := ';'; StringList.DelimitedText := S; for i := 0 to (StringList.Count - 1) do begin W := TQueryTypeUtils.Parse(StringList[i]); if (W > 0) then TConfiguration_ServerConfiguration[8].QueryTypeAffinityMask.Add(Pointer(W)); end; StringList.Free;
-    end;
-
-    TConfiguration_ServerConfiguration[8].Address := TIPAddress.Parse(IniFile.ReadString('GlobalSection', 'NonaryServerAddress', ''));
-    TConfiguration_ServerConfiguration[8].Port := StrToIntDef(IniFile.ReadString('GlobalSection', 'NonaryServerPort', '53'), 53);
-    TConfiguration_ServerConfiguration[8].IgnoreNegativeResponsesFromServer := UpperCase(IniFile.ReadString('GlobalSection', 'IgnoreNegativeResponsesFromNonaryServer', '')) = 'YES';
-
-    S := IniFile.ReadString('GlobalSection', 'DenaryServerHostNameAffinityMask', ''); if (S <> '') then begin
-      TConfiguration_ServerConfiguration[9].HostNameAffinityMask := TStringList.Create; TConfiguration_ServerConfiguration[9].HostNameAffinityMask.Delimiter := ';'; TConfiguration_ServerConfiguration[9].HostNameAffinityMask.DelimitedText := S;
-    end;
-
-    S := IniFile.ReadString('GlobalSection', 'DenaryServerQueryTypeAffinityMask', ''); if (S <> '') then begin
-      TConfiguration_ServerConfiguration[9].QueryTypeAffinityMask := TList.Create; StringList := TStringList.Create; StringList.Delimiter := ';'; StringList.DelimitedText := S; for i := 0 to (StringList.Count - 1) do begin W := TQueryTypeUtils.Parse(StringList[i]); if (W > 0) then TConfiguration_ServerConfiguration[9].QueryTypeAffinityMask.Add(Pointer(W)); end; StringList.Free;
-    end;
-
-    TConfiguration_ServerConfiguration[9].Address := TIPAddress.Parse(IniFile.ReadString('GlobalSection', 'DenaryServerAddress', ''));
-    TConfiguration_ServerConfiguration[9].Port := StrToIntDef(IniFile.ReadString('GlobalSection', 'DenaryServerPort', '53'), 53);
-    TConfiguration_ServerConfiguration[9].IgnoreNegativeResponsesFromServer := UpperCase(IniFile.ReadString('GlobalSection', 'IgnoreNegativeResponsesFromDenaryServer', '')) = 'YES';
 
     TConfiguration_AddressCacheDisabled := UpperCase(IniFile.ReadString('GlobalSection', 'AddressCacheDisabled', '')) = 'YES';
+
     TConfiguration_AddressCacheNegativeTime := IniFile.ReadInteger('GlobalSection', 'AddressCacheNegativeTime', TConfiguration_AddressCacheNegativeTime);
     TConfiguration_AddressCacheScavengingTime := IniFile.ReadInteger('GlobalSection', 'AddressCacheScavengingTime', TConfiguration_AddressCacheScavengingTime);
     TConfiguration_AddressCacheSilentUpdateTime := IniFile.ReadInteger('GlobalSection', 'AddressCacheSilentUpdateTime', TConfiguration_AddressCacheSilentUpdateTime);
-    TConfiguration_AddressCacheDisableCompression := UpperCase(IniFile.ReadString('GlobalSection', 'AddressCacheDisableCompression', '')) = 'YES';
 
-    TConfiguration_LocalBindingAddress := TIPAddress.Parse(IniFile.ReadString('GlobalSection', 'LocalBindingAddress', '0.0.0.0'));
-    TConfiguration_LocalBindingPort := StrToIntDef(IniFile.ReadString('GlobalSection', 'LocalBindingPort', IntToStr(TConfiguration_LocalBindingPort)), TConfiguration_LocalBindingPort);
+    S := IniFile.ReadString('GlobalSection', 'LocalIPv4BindingAddress', '');
+
+    if (S <> '') then begin
+
+      TConfiguration_IsLocalIPv4BindingEnabled := True;
+
+      TConfiguration_LocalIPv4BindingAddress := TIPv4AddressUtility.Parse(S);
+      TConfiguration_LocalIPv4BindingPort := StrToIntDef(IniFile.ReadString('GlobalSection', 'LocalIPv4BindingPort', IntToStr(TConfiguration_LocalIPv4BindingPort)), TConfiguration_LocalIPv4BindingPort);
+
+    end;
+
+    S := IniFile.ReadString('GlobalSection', 'LocalIPv6BindingAddress', '');
+
+    if (S <> '') then begin
+
+      TConfiguration_IsLocalIPv6BindingEnabled := True;
+
+      TConfiguration_LocalIPv6BindingAddress := TIPv6AddressUtility.Parse(S);
+      TConfiguration_LocalIPv6BindingPort := StrToIntDef(IniFile.ReadString('GlobalSection', 'LocalIPv6BindingPort', IntToStr(TConfiguration_LocalIPv6BindingPort)), TConfiguration_LocalIPv6BindingPort);
+
+    end;
 
     TConfiguration_HitLogFileName := IniFile.ReadString('GlobalSection', 'HitLogFileName', ''); if (TConfiguration_HitLogFileName <> '') then TConfiguration_HitLogFileName := Self.MakeAbsolutePath(TConfiguration_HitLogFileName);
     TConfiguration_HitLogFileWhat := IniFile.ReadString('GlobalSection', 'HitLogFileWhat', '');
@@ -624,14 +626,15 @@ begin
 
   end;
 
-  if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'TConfiguration.LoadFromFile: Configuration file loaded successfully.');
+  // Trace the event if a tracer is enabled
+  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TConfiguration.LoadFromFile: Configuration file loaded successfully.');
 end;
 
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
 
-class procedure TConfiguration.Finalize();
+class procedure TConfiguration.Finalize;
 var
   i: Integer;
 begin
@@ -640,8 +643,8 @@ begin
   if (TConfiguration_AllowedAddresses <> nil) then TConfiguration_AllowedAddresses.Free;
 
   for i := 0 to (MAX_NUM_DNS_SERVERS - 1) do begin
-    if (TConfiguration_ServerConfiguration[i].QueryTypeAffinityMask <> nil) then TConfiguration_ServerConfiguration[i].QueryTypeAffinityMask.Free;
-    if (TConfiguration_ServerConfiguration[i].HostNameAffinityMask <> nil) then TConfiguration_ServerConfiguration[i].HostNameAffinityMask.Free;
+    if (TConfiguration_DnsServerConfiguration[i].QueryTypeAffinityMask <> nil) then TConfiguration_DnsServerConfiguration[i].QueryTypeAffinityMask.Free;
+    if (TConfiguration_DnsServerConfiguration[i].DomainNameAffinityMask <> nil) then TConfiguration_DnsServerConfiguration[i].DomainNameAffinityMask.Free;
   end;
 end;
 

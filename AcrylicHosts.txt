@@ -1,29 +1,30 @@
 #############################################################################
 #                                                                           #
-# IF YOU MAKE ANY CHANGES TO THIS FILE YOU HAVE TO RESTART THE ACRYLIC DNS  #
+# IF YOU MAKE ANY CHANGES TO THIS FILE YOU HAVE TO RESTART THE ACRYLIC  DNS #
 # PROXY SERVICE IN ORDER TO SEE THEIR EFFECTS.                              #
 #                                                                           #
 # This is the AcrylicHosts.txt file.                                        #
 #                                                                           #
-# It contains predefined mappings between HOSTNAMES and addresses exactly   #
-# the same way the native Windows HOSTS file does but with a few upgrades.  #
+# It contains predefined mappings between domain names  and  addresses  the #
+# same way the native Windows HOSTS file does but with a few upgrades.      #
 #                                                                           #
-# The format is: IPADDRESS HOSTNAME1 [HOSTNAME2] [HOSTNAME3] ...            #
+# The format is: IPADDRESS DOMAINNAME1 [DOMAINNAME2] [DOMAINNAME3] ...      #
 #                                                                           #
-# Where IPADDRESS is in quad-dotted notation and HOSTNAMES are strings.     #
+# Where IPADDRESS is in dotted-quad notation for IPv4 or in colon-separated #
+# groups for IPv6 and DOMAINNAME1, DOMAINNAME2 and DOMAINNAME3 are strings. #
 #                                                                           #
-# HOSTNAMES can contain wildcard characters '*' (matches zero or more       #
+# Domain names can contain wildcard characters '*' (matches  zero  or  more #
 # characters) and '?' (matches exactly one character):                      #
 #                                                                           #
 # 127.0.0.1 ad.* ads.*                                                      #
 #                                                                           #
-# HOSTNAMES can be regular expressions if starting with a '/' character:    #
+# Domain names can be regular expressions if starting with a '/' character: #
 #                                                                           #
 # 127.0.0.1 /^ads?\..*$                                                     #
 #                                                                           #
-# A '>' character at the beginning of a HOSTNAME is a convenient shortcut   #
-# for representing all HOSTNAMES ending with what follows after that        #
-# character. For example an entry like this one:                            #
+# A '>' character at the  beginning  of  a  domain  name  is  a  convenient #
+# shortcut for representing all domain names ending with what follows after #
+# that character. For example an entry like this one:                       #
 #                                                                           #
 # 127.0.0.1 >google.com                                                     #
 #                                                                           #
@@ -31,18 +32,18 @@
 #                                                                           #
 # 127.0.0.1 google.com *.google.com                                         #
 #                                                                           #
-# When using wildcard characters or regular expressions you can specify     #
-# exceptions like these for example to filter out all ads.* like HOSTNAMES  #
-# except for the ads.test1 and the ads.test2:                               #
+# When using wildcard characters or regular  expressions  you  can  specify #
+# exceptions like these for example to filter out  all  ads.*  like  domain #
+# names except for the ads.test1 and the ads.test2:                         #
 #                                                                           #
 # 127.0.0.1 ads.* -ads.test1 -ads.test2                                     #
 #                                                                           #
-# A line starting with the '#' character (and everything after it if it's   #
+# A line starting with the '#' character (and everything after it  if  it's #
 # found within a line) is considered a comment and therefore ignored.       #
 #                                                                           #
-# Note: If all HOSTNAMES are provided in ascending order Acrylic will be    #
-# able to load them faster.                                                 #
+# Note: If all domain names are provided in ascending order Acrylic will be #
+# able to load them much faster.                                            #
 #                                                                           #
 #############################################################################
 
-127.0.0.1 localhost
+127.0.0.1 localhost localhost.localdomain

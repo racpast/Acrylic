@@ -40,7 +40,7 @@
 }
 unit RegExpr;
 interface
-{$IFDEF VER80} Sorry, TRegExpr is for 32-bits Delphi only. Delphi 1 is not supported (and whos really care today?!). {$ENDIF}
+{$IFDEF VER80} Sorry, TRegExpr is for 32-bits Delphi only. Delphi 1 is not supported. {$ENDIF}
 {$IFDEF VER90} {$DEFINE D2} {$ENDIF}
 {$IFDEF VER93} {$DEFINE D2} {$ENDIF}
 {$IFDEF VER100} {$DEFINE D3} {$DEFINE D2} {$ENDIF}
@@ -179,8 +179,7 @@ function IsProgrammOk : boolean;
 function GetExpression : RegExprString;
 procedure SetExpression (const s : RegExprString);
 function GetModifierStr : RegExprString;
-class function ParseModifiersStr (const AModifiers : RegExprString;
-var AModifiersInt : integer) : boolean;
+class function ParseModifiersStr (const AModifiers : RegExprString; var AModifiersInt : integer) : boolean;
 procedure SetModifierStr (const AModifiers : RegExprString);
 function GetModifier (AIndex : integer) : boolean;
 procedure SetModifier (AIndex : integer; ASet : boolean);
@@ -242,17 +241,9 @@ function ExecPos (AOffset: integer {$IFDEF DefParam}= 1{$ENDIF}) : boolean;
 property InputString : RegExprString read GetInputString write SetInputString;
 function Substitute (const ATemplate : RegExprString) : RegExprString;
 procedure Split (AInputStr : RegExprString; APieces : TStrings);
-function Replace (AInputStr : RegExprString;
-const AReplaceStr : RegExprString;
-AUseSubstitution : boolean{$IFDEF DefParam}= False{$ENDIF})
-: RegExprString; {$IFDEF OverMeth} overload;
-function Replace (AInputStr : RegExprString;
-AReplaceFunc : TRegExprReplaceFunction)
-: RegExprString; overload;
-{$ENDIF}
-function ReplaceEx (AInputStr : RegExprString;
-AReplaceFunc : TRegExprReplaceFunction)
-: RegExprString;
+function Replace (AInputStr : RegExprString; const AReplaceStr : RegExprString; AUseSubstitution : boolean{$IFDEF DefParam}= False{$ENDIF}): RegExprString; {$IFDEF OverMeth} overload;
+function Replace (AInputStr : RegExprString; AReplaceFunc : TRegExprReplaceFunction) : RegExprString; overload;{$ENDIF}
+function ReplaceEx (AInputStr : RegExprString; AReplaceFunc : TRegExprReplaceFunction) : RegExprString;
 property SubExprMatchCount : integer read GetSubExprMatchCount;
 property MatchPos [Idx : integer] : integer read GetMatchPos;
 property MatchLen [Idx : integer] : integer read GetMatchLen;
@@ -283,8 +274,7 @@ procedure SplitRegExpr (const ARegExpr, AInputStr : RegExprString; APieces : TSt
 function ReplaceRegExpr (const ARegExpr, AInputStr, AReplaceStr : RegExprString;
 AUseSubstitution : boolean{$IFDEF DefParam}= False{$ENDIF}) : RegExprString;
 function QuoteRegExprMetaChars (const AStr : RegExprString) : RegExprString;
-function RegExprSubExpressions (const ARegExpr : string;
-ASubExprs : TStrings; AExtendedSyntax : boolean{$IFDEF DefParam}= False{$ENDIF}) : integer;
+function RegExprSubExpressions (const ARegExpr : string; ASubExprs : TStrings; AExtendedSyntax : boolean{$IFDEF DefParam}= False{$ENDIF}) : integer;
 implementation
 uses
 Windows;
@@ -388,7 +378,7 @@ end;
 end;
 function QuoteRegExprMetaChars (const AStr : RegExprString) : RegExprString;
 const
-RegExprMetaSet : RegExprString = '^$.[()|?+*'+EscChar+'{' + ']}';
+RegExprMetaSet : RegExprString = '^$.[|?+*'+EscChar+'{' + ']}';
 var
 i, i0, Len : integer;
 begin
@@ -587,9 +577,9 @@ case AErrorID of
 reeOk: Result := 'No errors';
 reeCompNullArgument: Result := 'TRegExpr(comp): Null Argument';
 reeCompRegexpTooBig: Result := 'TRegExpr(comp): Regexp Too Big';
-reeCompParseRegTooManyBrackets: Result := 'TRegExpr(comp): ParseReg Too Many ()';
-reeCompParseRegUnmatchedBrackets: Result := 'TRegExpr(comp): ParseReg Unmatched ()';
-reeCompParseRegUnmatchedBrackets2: Result := 'TRegExpr(comp): ParseReg Unmatched ()';
+reeCompParseRegTooManyBrackets: Result := 'TRegExpr(comp): ParseReg Too Many ';
+reeCompParseRegUnmatchedBrackets: Result := 'TRegExpr(comp): ParseReg Unmatched ';
+reeCompParseRegUnmatchedBrackets2: Result := 'TRegExpr(comp): ParseReg Unmatched ';
 reeCompParseRegJunkOnEnd: Result := 'TRegExpr(comp): ParseReg Junk On End';
 reePlusStarOperandCouldBeEmpty: Result := 'TRegExpr(comp): *+ Operand Could Be Empty';
 reeNestedSQP: Result := 'TRegExpr(comp): Nested *?+';

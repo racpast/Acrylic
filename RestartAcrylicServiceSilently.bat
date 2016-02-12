@@ -1,0 +1,2 @@
+@Echo Off
+AcrylicController.exe StartAcrylicServiceSilently

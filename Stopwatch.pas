@@ -3,7 +3,7 @@
 // --------------------------------------------------------------------------
 
 unit
-  IPAddress;
+  Stopwatch;
 
 // --------------------------------------------------------------------------
 //
@@ -16,11 +16,13 @@ interface
 // --------------------------------------------------------------------------
 
 type
-  TIPAddress = class
+  TStopwatch = class
     public
-      class function Parse(Text: String): Integer;
-      class function QueryByName(Name: String): Boolean;
-      class function ToString(Value: Integer): String;
+      class function  GetInstantValue: Double;
+      class function  GetElapsedTime: Double;
+    public
+      class procedure Start;
+      class procedure Stop;
   end;
 
 // --------------------------------------------------------------------------
@@ -34,39 +36,57 @@ implementation
 // --------------------------------------------------------------------------
 
 uses
-  WinSock;
+  Windows;
 
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
 
-class function TIPAddress.Parse(Text: String): Integer;
-begin
-  Result := WinSock.inet_addr(PAnsiChar(Text));
-end;
-
-// --------------------------------------------------------------------------
-//
-// --------------------------------------------------------------------------
-
-class function TIPAddress.QueryByName(Name: String): Boolean;
-begin
-  Result := (WinSock.gethostbyname(PAnsiChar(Name)) <> nil);
-end;
-
-// --------------------------------------------------------------------------
-//
-// --------------------------------------------------------------------------
-
-class function TIPAddress.ToString(Value: Integer): String;
 var
-  WinSockAddr: in_addr;
+  TStopwatch_Buffer: Double;
+  TStopwatch_Counter: Int64;
+  TStopwatch_Frequency: Int64;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class procedure TStopwatch.Start;
 begin
-  WinSockAddr.S_addr := Value; Result := WinSock.inet_ntoa(WinSockAddr);
+  TStopwatch_Buffer := GetInstantValue;
 end;
 
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
 
+class procedure TStopwatch.Stop;
+begin
+  TStopwatch_Buffer := GetInstantValue - TStopwatch_Buffer;
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class function TStopwatch.GetElapsedTime: Double;
+begin
+  Result := TStopwatch_Buffer;
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class function TStopwatch.GetInstantValue: Double;
+begin
+  QueryPerformanceCounter(TStopwatch_Counter); Result := TStopwatch_Counter / TStopwatch_Frequency;
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+initialization
+  QueryPerformanceFrequency(TStopwatch_Frequency);
 end.

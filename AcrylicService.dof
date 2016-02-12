@@ -106,9 +106,9 @@ Launcher=
 UseLauncher=0
 DebugCWD=
 [Version Info]
-IncludeVerInfo=0
+IncludeVerInfo=1
 AutoIncBuild=0
-MajorVer=1
+MajorVer=0
 MinorVer=0
 Release=0
 Build=0
@@ -117,18 +117,18 @@ PreRelease=0
 Special=0
 Private=0
 DLL=0
-Locale=1040
+Locale=1033
 CodePage=1252
 [Version Info Keys]
 CompanyName=
-FileDescription=
-FileVersion=1.0.0.0
+FileDescription=A local DNS proxy which improves the performance of your computer by actively caching the responses coming from your DNS servers
+FileVersion=0.0.0.0
 InternalName=
 LegalCopyright=
 LegalTrademarks=
 OriginalFilename=
-ProductName=
-ProductVersion=1.0.0.0
+ProductName=Acrylic DNS Proxy
+ProductVersion=0.0.0.0
 Comments=
 [HistoryLists\hlConditionals]
 Count=1

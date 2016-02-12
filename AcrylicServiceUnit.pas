@@ -85,14 +85,20 @@ var
   R: TRegistry;
 begin
   R := TRegistry.Create(KEY_READ or KEY_WRITE);
+
   try
+
     R.RootKey := HKEY_LOCAL_MACHINE;
+
     if R.OpenKey('\System\CurrentControlSet\Services\' + Self.Name, false) then begin
-      R.WriteString('Description', 'A local DNS proxy for Windows which improves the performance of your computer by caching the responses coming from your DNS servers.');
-      R.CloseKey();
+      R.WriteString('Description', 'A local DNS proxy which improves the performance of your computer.');
+      R.CloseKey;
     end;
+
   finally
+
     R.Free;
+
   end;
 end;
 
@@ -108,19 +114,28 @@ begin
     DecimalSeparator := '.';
 
     // Start the config and eventually set the debug file
-    TConfiguration.Initialize(); TTracer.Initialize(); if FileExists(TConfiguration.GetDebugLogFileName()) then TTracer.SetTracerAgent(TFileTracerAgent.Create(TConfiguration.GetDebugLogFileName()));
+    TConfiguration.Initialize; TTracer.Initialize; if FileExists(TConfiguration.GetDebugLogFileName) then TTracer.SetTracerAgent(TFileTracerAgent.Create(TConfiguration.GetDebugLogFileName));
 
     // Trace Acrylic version info if a tracer is enabled
-    if TTracer.IsEnabled() then TTracer.Trace(TracePriorityInfo, 'Acrylic version is ' + AcrylicVersionInfo.Number + ' released on ' + AcrylicVersionInfo.ReleaseDate + '.');
+    if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'Acrylic version is ' + AcrylicVersionNumber + ' released on ' + AcrylicReleaseDate + '.');
 
     // Start the system using the Bootstrapper
-    TBootstrapper.StartSystem();
+    TBootstrapper.StartSystem;
 
     // Report to the Service Controller
     Started := True;
 
-  except
-    Started := False;
+  except // In case of an exception
+
+    on E: Exception do begin
+
+      // Log a message into the Windows Application Log
+      Self.LogMessage('TAcrylicServiceController.ServiceStart: ' + E.Message, EVENTLOG_ERROR_TYPE);
+
+      // Report to the Service Controller
+      Started := False;
+
+    end;
   end;
 end;
 
@@ -133,16 +148,25 @@ begin
   try
 
     // Stop the system
-    TBootstrapper.StopSystem();
+    TBootstrapper.StopSystem;
 
     // Stop everything else
-    TTracer.Finalize(); TConfiguration.Finalize();
+    TTracer.Finalize; TConfiguration.Finalize;
 
     // Report to the Service Controller
     Stopped := True;
 
   except
-    Stopped := False;
+
+    on E: Exception do begin
+
+      // Log a message into the Windows Application Log
+      Self.LogMessage('TAcrylicServiceController.ServiceStop: ' + E.Message, EVENTLOG_ERROR_TYPE);
+
+      // Report to the Service Controller
+      Stopped := False;
+
+    end;
   end;
 end;
 
@@ -155,13 +179,20 @@ begin
   try
 
     // Stop the system
-    TBootstrapper.StopSystem();
+    TBootstrapper.StopSystem;
 
     // Stop everything else
-    TTracer.Finalize(); TConfiguration.Finalize();
+    TTracer.Finalize; TConfiguration.Finalize;
 
   except
-    // Suppress any exception
+
+    on E: Exception do begin
+
+      // Log a message into the Windows Application Log
+      Self.LogMessage('TAcrylicServiceController.ServiceShutdown: ' + E.Message, EVENTLOG_ERROR_TYPE);
+
+    end;
+
   end;
 end;
 

@@ -23,11 +23,15 @@ Echo.
 
 "%DCC%" AcrylicConsole.dpr
 
+If ErrorLevel 1 Echo FAILED! & Pause & Exit /b 0
+
 Echo.
 Echo Compiling Acrylic service...
 Echo.
 
 "%DCC%" AcrylicService.dpr
+
+If ErrorLevel 1 Echo FAILED! & Pause & Exit /b 0
 
 Echo.
 Echo Compiling Acrylic controller...
@@ -35,11 +39,15 @@ Echo.
 
 "%DCC%" AcrylicController.dpr
 
+If ErrorLevel 1 Echo FAILED! & Pause & Exit /b 0
+
 Echo.
 Echo Building Acrylic portable package...
 Echo.
 
-C:\Wintools\Console\7za.exe a -tzip Acrylic-Portable.zip AcrylicHosts.txt AcrylicConfiguration.ini InstallAcrylicService.bat UninstallAcrylicService.bat AcrylicController.exe.manifest AcrylicController.exe AcrylicService.exe AcrylicConsole.exe License.txt Readme.txt
+7za.exe a -tzip -mx9 Acrylic-Portable.zip AcrylicHosts.txt AcrylicConfiguration.ini InstallAcrylicService.bat UninstallAcrylicService.bat StartAcrylicService.bat StartAcrylicServiceSilently.bat StopAcrylicService.bat StopAcrylicServiceSilently.bat RestartAcrylicService.bat RestartAcrylicServiceSilently.bat PurgeAcrylicCacheData.bat PurgeAcrylicCacheDataSilently.bat ActivateAcrylicDebugLog.bat ActivateAcrylicDebugLogSilently.bat DeactivateAcrylicDebugLog.bat DeactivateAcrylicDebugLogSilently.bat AcrylicController.exe.manifest AcrylicController.exe AcrylicService.exe AcrylicConsole.exe License.txt Readme.txt
+
+If ErrorLevel 1 Echo FAILED! & Pause & Exit /b 0
 
 Echo.
 Echo Moving Acrylic portable package to "%DST%"...
@@ -50,11 +58,15 @@ If Exist "%DST%\Acrylic-Portable.zip" Del "%DST%\Acrylic-Portable.zip" >NUL 2>NU
 
 Move /y Acrylic-Portable.zip "%DST%"
 
+If ErrorLevel 1 Echo FAILED! & Pause & Exit /b 0
+
 Echo.
 Echo Building Acrylic setup package...
 Echo.
 
-"C:\Wintools\NSIS\makensis.exe" AcrylicSetup.nsi
+"C:\Wintools\NSIS\App\NSIS\makensis.exe" AcrylicSetup.nsi
+
+If ErrorLevel 1 Echo FAILED! & Pause & Exit /b 0
 
 Echo.
 Echo Moving Acrylic setup package to "%DST%"...
@@ -64,6 +76,8 @@ If Not Exist "%DST%" MkDir "%DST%" >NUL 2>NUL
 If Exist "%DST%\Acrylic.exe" Del "%DST%\Acrylic.exe" >NUL 2>NUL
 
 Move /y Acrylic.exe "%DST%"
+
+If ErrorLevel 1 Echo FAILED! & Pause & Exit /b 0
 
 Echo.
 Echo Cleaning...
@@ -75,7 +89,9 @@ Echo.
 Echo Building Acrylic source archive...
 Echo.
 
-C:\Wintools\Console\7za.exe a Acrylic-Sources.zip -xr!.git -x!.gitignore *
+7za.exe a Acrylic-Sources.zip -xr!.git -x!.gitignore *
+
+If ErrorLevel 1 Echo FAILED! & Pause & Exit /b 0
 
 Echo.
 Echo Moving Acrylic source archive to "%DST%"...
@@ -86,7 +102,9 @@ If Exist "%DST%\Acrylic-Sources.zip" Del "%DST%\Acrylic-Sources.zip" >NUL 2>NUL
 
 Move /y Acrylic-Sources.zip "%DST%"
 
+If ErrorLevel 1 Echo FAILED! & Pause & Exit /b 0
+
 Echo.
-Echo Done.
+Echo Done successfully.
 
 Pause

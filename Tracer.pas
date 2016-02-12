@@ -25,7 +25,7 @@ type
 type
   ITracerAgent = interface(IInterface)
     procedure RenderTrace(Time: Double; Priority: TracePriority; Message: String);
-    procedure CloseTrace();
+    procedure CloseTrace;
   end;
 
 // --------------------------------------------------------------------------
@@ -35,10 +35,10 @@ type
 type
   TTracer = class
     public
-      class procedure Initialize();
-      class procedure Finalize();
+      class procedure Initialize;
+      class procedure Finalize;
     public
-      class function  IsEnabled(): Boolean;
+      class function  IsEnabled: Boolean;
       class procedure SetTracerAgent(TracerAgent: ITracerAgent);
       class procedure SetMinimumTracingPriority(Priority: TracePriority);
     public
@@ -76,7 +76,7 @@ var
 //
 // --------------------------------------------------------------------------
 
-class procedure TTracer.Initialize();
+class procedure TTracer.Initialize;
 begin
   TTracer_TracerAgent := nil; TTracer_MinimumTracingPriority := TracePriorityInfo;
 end;
@@ -85,7 +85,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class function TTracer.IsEnabled(): Boolean;
+class function TTracer.IsEnabled: Boolean;
 begin
   Result := (TTracer_TracerAgent <> nil);
 end;
@@ -96,7 +96,7 @@ end;
 
 class procedure TTracer.SetTracerAgent(TracerAgent: ITracerAgent);
 begin
-  if (TTracer_TracerAgent <> nil) then TTracer_TracerAgent.CloseTrace(); TTracer_TracerAgent := TracerAgent;
+  if (TTracer_TracerAgent <> nil) then TTracer_TracerAgent.CloseTrace; TTracer_TracerAgent := TracerAgent;
 end;
 
 // --------------------------------------------------------------------------
@@ -117,7 +117,7 @@ begin
   if (TTracer_TracerAgent <> nil) then begin // If the tracer agent has been set...
 
     // If the priority is not less than the minimum for tracing then forward the trace to the tracer agent
-    if (Priority >= TTracer_MinimumTracingPriority) then TTracer_TracerAgent.RenderTrace(Now(), Priority, Message);
+    if (Priority >= TTracer_MinimumTracingPriority) then TTracer_TracerAgent.RenderTrace(Now, Priority, Message);
 
   end else begin // The tracer agent has not been set
 
@@ -130,9 +130,9 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class procedure TTracer.Finalize();
+class procedure TTracer.Finalize;
 begin
-  if (TTracer_TracerAgent <> nil) then TTracer_TracerAgent.CloseTrace(); TTracer_TracerAgent := nil;
+  if (TTracer_TracerAgent <> nil) then TTracer_TracerAgent.CloseTrace; TTracer_TracerAgent := nil;
 end;
 
 // --------------------------------------------------------------------------

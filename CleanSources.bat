@@ -17,7 +17,11 @@ Del /q *.~dfm >NUL 2>NUL
 Del /q *.~dpr >NUL 2>NUL
 Del /q *.~pas >NUL 2>NUL
 
+Del AcrylicCache.dat >NUL 2>NUL
 Del AcrylicDebug.txt >NUL 2>NUL
 Del AcrylicStats.txt >NUL 2>NUL
 
-C:\Wintools\Console\CsRun.exe SelectFiles *.bat;*.dpr;*.ini;*.nsi;*.pas False | Call C:\Wintools\Console\AdjustGenericWindowsCodeStdIn.bat
+Del /q *.tmp >NUL 2>NUL
+
+CsRun.exe SelectFiles *.dpr False | Call CleanupCodeWindowsNewLinesTab2SpacesStdIn.bat
+CsRun.exe SelectFiles *.pas False | Call CleanupCodeWindowsNewLinesTab2SpacesStdIn.bat

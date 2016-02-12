@@ -18,18 +18,18 @@ interface
 type
   TStatistics = class
     public
-      class function  IsEnabled(): Boolean;
+      class function  IsEnabled: Boolean;
     public
-      class procedure IncTotalPacketsDiscarded();
-      class procedure IncTotalRequestsReceived();
-      class procedure IncTotalRequestsForwarded();
-      class procedure IncTotalRequestsResolvedThroughCache();
-      class procedure IncTotalRequestsResolvedThroughHostsFile();
-      class procedure IncTotalRequestsResolvedThroughOtherWays();
+      class procedure IncTotalPacketsDiscarded;
+      class procedure IncTotalRequestsReceived;
+      class procedure IncTotalRequestsForwarded;
+      class procedure IncTotalRequestsResolvedThroughCache;
+      class procedure IncTotalRequestsResolvedThroughHostsFile;
+      class procedure IncTotalRequestsResolvedThroughOtherWays;
     public
       class procedure IncTotalResponsesAndMeasureFlyTime(Arrival: Double; Response: Boolean; DnsIndex: Integer; SessionId: Word);
     public
-      class procedure FlushStatisticsToDisk();
+      class procedure FlushStatisticsToDisk;
   end;
 
 // --------------------------------------------------------------------------
@@ -92,16 +92,16 @@ var
 //
 // --------------------------------------------------------------------------
 
-class function TStatistics.IsEnabled(): Boolean;
+class function TStatistics.IsEnabled: Boolean;
 begin
-  Result := TConfiguration.GetStatsLogFileName() <> '';
+  Result := TConfiguration.GetStatsLogFileName <> '';
 end;
 
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
 
-class procedure TStatistics.IncTotalPacketsDiscarded();
+class procedure TStatistics.IncTotalPacketsDiscarded;
 begin
   Inc(TStatistics_TotalPacketsDiscarded); TStatistics_Changed := True;
 end;
@@ -110,7 +110,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class procedure TStatistics.IncTotalRequestsReceived();
+class procedure TStatistics.IncTotalRequestsReceived;
 begin
   Inc(TStatistics_TotalRequestsReceived); TStatistics_Changed := True;
 end;
@@ -119,7 +119,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class procedure TStatistics.IncTotalRequestsForwarded();
+class procedure TStatistics.IncTotalRequestsForwarded;
 begin
   Inc(TStatistics_TotalRequestsForwarded); TStatistics_Changed := True;
 end;
@@ -128,7 +128,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class procedure TStatistics.IncTotalRequestsResolvedThroughCache();
+class procedure TStatistics.IncTotalRequestsResolvedThroughCache;
 begin
   Inc(TStatistics_TotalRequestsResolvedThroughCache); TStatistics_Changed := True;
 end;
@@ -137,7 +137,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class procedure TStatistics.IncTotalRequestsResolvedThroughHostsFile();
+class procedure TStatistics.IncTotalRequestsResolvedThroughHostsFile;
 begin
   Inc(TStatistics_TotalRequestsResolvedThroughHostsFile); TStatistics_Changed := True;
 end;
@@ -146,7 +146,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class procedure TStatistics.IncTotalRequestsResolvedThroughOtherWays();
+class procedure TStatistics.IncTotalRequestsResolvedThroughOtherWays;
 begin
   Inc(TStatistics_TotalRequestsResolvedThroughOtherWays); TStatistics_Changed := True;
 end;
@@ -184,7 +184,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class procedure TStatistics.FlushStatisticsToDisk();
+class procedure TStatistics.FlushStatisticsToDisk;
 var
   Handle: THandle; Data: String; Written: Cardinal; DnsIndex: Integer;
 begin
@@ -210,7 +210,7 @@ begin
       if (TStatistics_TotalResponsesReceivedFromDns[DnsIndex] > 0) then Data := Data + 'TotalResponsesReceivedFromDns' + Format('%.2d', [DnsIndex + 1]) + '       : ' + IntToStr(TStatistics_TotalResponsesReceivedFromDns[DnsIndex]) + #13#10 + 'MeanResponseTimeOfDns' + Format('%.2d', [DnsIndex + 1]) + '               : ' + FormatCurr('0.0', 1000.0 * (TStatistics_TotalFlyTimesMeasuredFromDns[DnsIndex] / TStatistics_TotalResponsesReceivedFromDns[DnsIndex])) + ' ms' + #13#10 else Data := Data + 'TotalResponsesReceivedFromDns' + Format('%.2d', [DnsIndex + 1]) + '       : ' + IntToStr(TStatistics_TotalResponsesReceivedFromDns[DnsIndex]) + #13#10 + 'MeanResponseTimeOfDns' + Format('%.2d', [DnsIndex + 1]) + '               : ?' + #13#10;
     end;
 
-    Handle := CreateFile(PChar(TConfiguration.GetStatsLogFileName()), GENERIC_WRITE, FILE_SHARE_READ, nil, CREATE_ALWAYS, FILE_ATTRIBUTE_ARCHIVE, 0); if (Handle <> INVALID_HANDLE_VALUE) then begin
+    Handle := CreateFile(PChar(TConfiguration.GetStatsLogFileName), GENERIC_WRITE, FILE_SHARE_READ, nil, CREATE_ALWAYS, FILE_ATTRIBUTE_ARCHIVE, 0); if (Handle <> INVALID_HANDLE_VALUE) then begin
       WriteFile(Handle, Data[1], Length(Data), Written, nil); CloseHandle(Handle);
     end;
 

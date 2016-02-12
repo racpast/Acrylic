@@ -1,7 +1,7 @@
 object AcrylicServiceController: TAcrylicServiceController
   OldCreateOrder = False
   AllowPause = False
-  DisplayName = 'Acrylic DNS Proxy Service'
+  DisplayName = 'Acrylic DNS Proxy'
   AfterInstall = ServiceAfterInstall
   OnShutdown = ServiceShutdown
   OnStart = ServiceStart

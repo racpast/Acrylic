@@ -16,6 +16,7 @@ interface
 // --------------------------------------------------------------------------
 
 uses
+  SyncObjs,
   Tracer;
 
 // --------------------------------------------------------------------------
@@ -24,10 +25,12 @@ uses
 
 type
   TConsoleTracerAgent = class(TInterfacedObject, ITracerAgent)
+    private
+      Lock: TCriticalSection;
     public
-      constructor Create();
-        procedure RenderTrace(Time: Double; Priority: TracePriority; Message: String);
-        procedure CloseTrace();
+      constructor Create;
+      procedure   RenderTrace(Time: Double; Priority: TracePriority; Message: String);
+      procedure   CloseTrace;
   end;
 
 // --------------------------------------------------------------------------
@@ -47,9 +50,11 @@ uses
 //
 // --------------------------------------------------------------------------
 
-constructor TConsoleTracerAgent.Create();
+constructor TConsoleTracerAgent.Create;
 begin
-  inherited Create();
+  inherited Create;
+
+  Self.Lock := TCriticalSection.Create;
 end;
 
 // --------------------------------------------------------------------------
@@ -57,17 +62,23 @@ end;
 // --------------------------------------------------------------------------
 
 procedure TConsoleTracerAgent.RenderTrace(Time: Double; Priority: TracePriority; Message: String);
+var
+  Line: String;
 begin
-  WriteLn(FormatDateTime('yyyy-MM-dd HH":"mm":"ss.zzz', Time) + ' ' + Message);
+  // Prepare the message in advance
+  Line := FormatDateTime('yyyy-MM-dd HH":"mm":"ss.zzz', Time) + ' ' + Message;
+
+  // Tracing is wrapped around a critical section for thread-safety
+  Self.Lock.Acquire; try WriteLn(Line); finally Self.Lock.Release; end;
 end;
 
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
 
-procedure TConsoleTracerAgent.CloseTrace();
+procedure TConsoleTracerAgent.CloseTrace;
 begin
-  // Nothing to do
+  if (Self.Lock <> nil) then Self.Lock.Free;
 end;
 
 // --------------------------------------------------------------------------

@@ -9,7 +9,7 @@
 ;--------------------------------
 
 ; Name
-Name "Acrylic DNS Proxy (0.9.28)"
+Name "Acrylic DNS Proxy (0.9.29)"
 
 ; Output
 OutFile "Acrylic.exe"
@@ -70,6 +70,19 @@ Section "Acrylic" SecMain
   File "AcrylicConsole.exe"
   File "License.txt"
   File "Readme.txt"
+
+  File "StartAcrylicService.bat"
+  File "StartAcrylicServiceSilently.bat"
+  File "StopAcrylicService.bat"
+  File "StopAcrylicServiceSilently.bat"
+  File "RestartAcrylicService.bat"
+  File "RestartAcrylicServiceSilently.bat"
+  File "PurgeAcrylicCacheData.bat"
+  File "PurgeAcrylicCacheDataSilently.bat"
+  File "ActivateAcrylicDebugLog.bat"
+  File "ActivateAcrylicDebugLogSilently.bat"
+  File "DeactivateAcrylicDebugLog.bat"
+  File "DeactivateAcrylicDebugLogSilently.bat"
 
   WriteUninstaller "$INSTDIR\Uninstall.exe"
 
@@ -135,6 +148,19 @@ Section "Uninstall"
   Delete "$INSTDIR\AcrylicCache.dat"
   Delete "$INSTDIR\AcrylicDebug.txt"
   Delete "$INSTDIR\AcrylicStats.txt"
+
+  Delete "$INSTDIR\StartAcrylicService.bat"
+  Delete "$INSTDIR\StartAcrylicServiceSilently.bat"
+  Delete "$INSTDIR\StopAcrylicService.bat"
+  Delete "$INSTDIR\StopAcrylicServiceSilently.bat"
+  Delete "$INSTDIR\RestartAcrylicService.bat"
+  Delete "$INSTDIR\RestartAcrylicServiceSilently.bat"
+  Delete "$INSTDIR\PurgeAcrylicCacheData.bat"
+  Delete "$INSTDIR\PurgeAcrylicCacheDataSilently.bat"
+  Delete "$INSTDIR\ActivateAcrylicDebugLog.bat"
+  Delete "$INSTDIR\ActivateAcrylicDebugLogSilently.bat"
+  Delete "$INSTDIR\DeactivateAcrylicDebugLog.bat"
+  Delete "$INSTDIR\DeactivateAcrylicDebugLogSilently.bat"
 
   Delete "$INSTDIR\Readme.txt"
   Delete "$INSTDIR\License.txt"

@@ -3,7 +3,7 @@
 // --------------------------------------------------------------------------
 
 unit
-  WinSock2;
+  MemoryManager;
 
 // --------------------------------------------------------------------------
 //
@@ -15,29 +15,44 @@ interface
 //
 // --------------------------------------------------------------------------
 
+uses
+  Classes,
+  SysUtils;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
 type
-  PHostEnt = ^THostEnt;
-  THostEnt = packed record
-    h_name: PChar;
-    h_aliases: ^PChar;
-    h_addrtype: Smallint;
-    h_length: Smallint;
-    case Byte of
-      0: (h_addr_list: ^PChar);
-      1: (h_addr: ^PChar);
+  TMemoryManager = class
+    public
+      class procedure GetMemory(var Address: Pointer; Size: Integer);
+      class procedure FreeMemory(Address: Pointer; Size: Integer);
   end;
 
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
 
-function gethostbyname(name: PChar): PHostEnt; external 'WinSock2.dll';
+implementation
 
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
 
-implementation
+class procedure TMemoryManager.GetMemory(var Address: Pointer; Size: Integer);
+begin
+  GetMem(Address, Size);
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class procedure TMemoryManager.FreeMemory(Address: Pointer; Size: Integer);
+begin
+  FreeMem(Address, Size);
+end;
 
 // --------------------------------------------------------------------------
 //

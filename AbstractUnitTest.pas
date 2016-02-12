@@ -43,7 +43,7 @@ type
 type
   TAbstractUnitTest = class
     public
-      procedure ExecuteTest(); virtual;
+      procedure ExecuteTest; virtual;
     public
       class procedure ControlTestExecution(RealUnitTest: TAbstractUnitTest);
   end;
@@ -83,7 +83,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-procedure TAbstractUnitTest.ExecuteTest();
+procedure TAbstractUnitTest.ExecuteTest;
 begin
   raise UndefinedUnitTestException.Create('');
 end;
@@ -102,7 +102,7 @@ begin
     TTracer.Trace(TracePriorityInfo, ClassName + ': Started...');
 
     // Execute the real test
-    try RealUnitTest.ExecuteTest() finally RealUnitTest.Free() end;
+    try RealUnitTest.ExecuteTest finally RealUnitTest.Free end;
 
     // Trace the test result
     TTracer.Trace(TracePriorityInfo, ClassName + ': Succeeded.');
