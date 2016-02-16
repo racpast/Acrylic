@@ -50,7 +50,7 @@ implementation
 // --------------------------------------------------------------------------
 
 uses
-  Registry, SysUtils, Windows, AcrylicVersionInfo, Bootstrapper, Configuration, FileTracerAgent, Tracer;
+  Registry, SysUtils, Windows, AcrylicVersionInfo, Bootstrapper, Configuration, Environment, FileTracerAgent, Tracer;
 
 // --------------------------------------------------------------------------
 //
@@ -113,7 +113,7 @@ begin
     // Init...
     DecimalSeparator := '.';
 
-    // Start the config and eventually set the debug file
+    // Init classes and eventually set the debug file
     TConfiguration.Initialize; TTracer.Initialize; if FileExists(TConfiguration.GetDebugLogFileName) then TTracer.SetTracerAgent(TFileTracerAgent.Create(TConfiguration.GetDebugLogFileName));
 
     // Trace Acrylic version info if a tracer is enabled
@@ -150,7 +150,7 @@ begin
     // Stop the system
     TBootstrapper.StopSystem;
 
-    // Stop everything else
+    // Finalize classes
     TTracer.Finalize; TConfiguration.Finalize;
 
     // Report to the Service Controller

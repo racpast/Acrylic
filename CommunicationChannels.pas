@@ -268,12 +268,12 @@ type
 // --------------------------------------------------------------------------
 
 const
-  AF_INET  = 2;
+  AF_INET = 2;
   AF_INET6 = 23;
 
 const
   SOCK_STREAM = 1;
-  SOCK_DGRAM  = 2;
+  SOCK_DGRAM = 2;
 
 const
   IPPROTO_TCP = 6;
@@ -312,13 +312,64 @@ function WSAGetLastError: Integer; stdcall; external WINDOWS_SOCKETS_DLL name 'W
 function InetADDR(Text: PAnsiChar): Integer; stdcall; external WINDOWS_SOCKETS_DLL name 'inet_addr';
 function InetNTOA(Address: Integer): PAnsiChar; stdcall; external WINDOWS_SOCKETS_DLL name 'inet_ntoa';
 
-function InetPTON(AF: Integer; Text: PAnsiChar; var Address: TIPv6Address): Integer; stdcall; external WINDOWS_SOCKETS_DLL name 'inet_pton';
-function InetNTOP(AF: Integer; var Address: TIPv6Address; Text: PAnsiChar; TextLen: Integer): PAnsiChar; stdcall; external WINDOWS_SOCKETS_DLL name 'inet_ntop';
-
-function HTONL(Value: Integer): Integer; stdcall; external WINDOWS_SOCKETS_DLL name 'htonl';
-function HTONS(Value: Word): Word; stdcall; external WINDOWS_SOCKETS_DLL name 'htons';
-
 function WSACleanup: Integer; stdcall; external WINDOWS_SOCKETS_DLL name 'WSACleanup';
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+function HTONS(Value: Word): Word;
+begin
+  Result := (Value shr $08) + ((Value and $ff) shl $08);
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+procedure LowLevelIPv6AddressParse(Text: String; var Address: TIPv6Address);
+var
+  Index, ColonAt, GapAt: Integer; Part: String; GroupValue: Word; ConversionResult: Integer;
+begin
+  FillChar(Address, SizeOf(TIPv6Address), 0);
+
+  if (Text = '::') then Exit else if (Text = '::1') then begin Address[15] := 1; Exit; end else begin
+
+    Index := 0; GapAt := -1; while (Text <> '') and (Index < 16) do begin
+
+      ColonAt := Pos(':', Text); if (ColonAt > 0) then begin Part := Copy(Text, 1, ColonAt - 1); Delete(Text, 1, ColonAt); end else begin Part := Text; Text := ''; end; if (Part <> '') then begin
+
+        Val('$' + Part, GroupValue, ConversionResult);
+
+        Address[Index] := GroupValue shr $08; Inc(Index);
+        Address[Index] := GroupValue and $ff; Inc(Index);
+
+      end else begin
+
+        if (GapAt = -1) then GapAt := Index;
+
+      end;
+
+    end;
+
+    if (GapAt > -1) and (GapAt < 14) then begin
+
+      Move(Address[GapAt], Address[16 + GapAt - Index], Index - GapAt);
+      FillChar(Address[GapAt], 16 - Index, 0);
+
+    end;
+
+  end;
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+function LowLevelIPv6AddressToString(var Address: TIPv6Address): String;
+begin
+  Result := IntToHex((Address[0] shl 8) + Address[1], 1) + ':' + IntToHex((Address[2] shl 8) + Address[3], 1) + ':' + IntToHex((Address[4] shl 8) + Address[5], 1) + ':' + IntToHex((Address[6] shl 8) + Address[7], 1) + ':' + IntToHex((Address[8] shl 8) + Address[9], 1) + ':' + IntToHex((Address[10] shl 8) + Address[11], 1) + ':' + IntToHex((Address[12] shl 8) + Address[13], 1) + ':' + IntToHex((Address[14] shl 8) + Address[15], 1);
+end;
 
 // --------------------------------------------------------------------------
 //
@@ -357,7 +408,7 @@ class function TIPv6AddressUtility.Parse(Text: String): TIPv6Address;
 var
   IPv6Address: TIPv6Address;
 begin
-  FillChar(IPv6Address, SizeOf(TIPv6Address), 0); InetPTON(AF_INET6, PAnsiChar(Text), IPv6Address); Result := IPv6Address;
+  LowLevelIPv6AddressParse(Text, IPv6Address); Result := IPv6Address;
 end;
 
 // --------------------------------------------------------------------------
@@ -365,10 +416,8 @@ end;
 // --------------------------------------------------------------------------
 
 class function TIPv6AddressUtility.ToString(Address: TIPv6Address): String;
-var
-  Text: String; TextLen: Integer;
 begin
-  TextLen := 48; SetLength(Text, TextLen); InetNTOP(AF_INET6, Address, PAnsiChar(Text), TextLen); Result := StrPas(PAnsiChar(Text));
+  Result := LowLevelIPv6AddressToString(Address);
 end;
 
 // --------------------------------------------------------------------------

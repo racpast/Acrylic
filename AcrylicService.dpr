@@ -22,6 +22,7 @@ uses
   DnsForwarder in 'DnsForwarder.pas',
   DnsProtocol in 'DnsProtocol.pas',
   DnsResolver in 'DnsResolver.pas',
+  Environment in 'Environment.pas',
   FileStreamLineEx in 'FileStreamLineEx.pas',
   FileTracerAgent in 'FileTracerAgent.pas',
   HitLogger in 'HitLogger.pas',

@@ -103,6 +103,7 @@ implementation
 uses
   IniFiles,
   SysUtils,
+  Environment,
   PatternMatching,
   Tracer;
 
@@ -150,6 +151,7 @@ var
 // --------------------------------------------------------------------------
 
 var
+  TConfiguration_IsLocalIPv6BindingEnabledOnWindowsVersionsPriorToWindowsVistaOrWindowsServer2008: Boolean;
   TConfiguration_IsLocalIPv6BindingEnabled: Boolean;
 
 // --------------------------------------------------------------------------
@@ -224,6 +226,7 @@ begin
   TConfiguration_LocalIPv4BindingAddress := ANY_IPV4_ADDRESS;
   TConfiguration_LocalIPv4BindingPort := 53;
 
+  TConfiguration_IsLocalIPv6BindingEnabledOnWindowsVersionsPriorToWindowsVistaOrWindowsServer2008 := False;
   TConfiguration_IsLocalIPv6BindingEnabled := False;
 
   TConfiguration_LocalIPv6BindingAddress := ANY_IPV6_ADDRESS;
@@ -595,10 +598,16 @@ begin
 
     if (S <> '') then begin
 
-      TConfiguration_IsLocalIPv6BindingEnabled := True;
+      TConfiguration_IsLocalIPv6BindingEnabledOnWindowsVersionsPriorToWindowsVistaOrWindowsServer2008 := UpperCase(IniFile.ReadString('GlobalSection', 'LocalIPv6BindingEnabledOnWindowsVersionsPriorToWindowsVistaOrWindowsServer2008', '')) = 'YES';
 
-      TConfiguration_LocalIPv6BindingAddress := TIPv6AddressUtility.Parse(S);
-      TConfiguration_LocalIPv6BindingPort := StrToIntDef(IniFile.ReadString('GlobalSection', 'LocalIPv6BindingPort', IntToStr(TConfiguration_LocalIPv6BindingPort)), TConfiguration_LocalIPv6BindingPort);
+      if TEnvironment.IsWindowsVistaOrWindowsServer2008OrHigher or TConfiguration_IsLocalIPv6BindingEnabledOnWindowsVersionsPriorToWindowsVistaOrWindowsServer2008 then begin
+
+        TConfiguration_IsLocalIPv6BindingEnabled := True;
+
+        TConfiguration_LocalIPv6BindingAddress := TIPv6AddressUtility.Parse(S);
+        TConfiguration_LocalIPv6BindingPort := StrToIntDef(IniFile.ReadString('GlobalSection', 'LocalIPv6BindingPort', IntToStr(TConfiguration_LocalIPv6BindingPort)), TConfiguration_LocalIPv6BindingPort);
+
+      end;
 
     end;
 

@@ -7,8 +7,8 @@ var currentQueryDirectoryName = Path.GetDirectoryName(Util.CurrentQueryPath);
 var oldVersion     = "0.9.29";
 var oldReleaseDate = "February 11, 2016";
 
-var newVersion     = "0.9.29";
-var newReleaseDate = "February 12, 2016";
+var newVersion     = "0.9.30";
+var newReleaseDate = "February 15, 2016";
 
 // Readme.txt
 FileUtility.TransformAllText(Path.Combine(currentQueryDirectoryName, "Readme.txt"), text => text.Replace(oldVersion + " released on " + oldReleaseDate, newVersion + " released on " + newReleaseDate));

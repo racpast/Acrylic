@@ -30,6 +30,7 @@ uses
   DnsForwarder in 'DnsForwarder.pas',
   DnsProtocol in 'DnsProtocol.pas',
   DnsResolver in 'DnsResolver.pas',
+  Environment in 'Environment.pas',
   FileStreamLineEx in 'FileStreamLineEx.pas',
   FileTracerAgent in 'FileTracerAgent.pas',
   HitLogger in 'HitLogger.pas',
@@ -47,9 +48,11 @@ uses
 //
 // --------------------------------------------------------------------------
 
-{$i SessionCacheUnitTest.pas }
-{$i AddressCacheUnitTest.pas }
-{$i HostsCacheUnitTest.pas   }
+{$i CommunicationChannelsUnitTest.pas }
+{$i SessionCacheUnitTest.pas          }
+{$i AddressCacheUnitTest.pas          }
+{$i HostsCacheUnitTest.pas            }
+{$i RegExprUnitTest.pas               }
 
 // --------------------------------------------------------------------------
 //
@@ -62,19 +65,21 @@ begin
   WriteLn('Acrylic DNS Proxy Test Application');
   WriteLn('==============================================================================');
 
-  // Initialize the configuration, the tracer and set the console tracer agent
-  TConfiguration.Initialize; TTracer.Initialize; TTracer.SetTracerAgent(TConsoleTracerAgent.Create);
+  // Initialize all the classes, the tracer and set the console tracer agent
+  TEnvironment.Initialize; TConfiguration.Initialize; TTracer.Initialize; TTracer.SetTracerAgent(TConsoleTracerAgent.Create);
 
   // Trace Acrylic version info if a tracer is enabled
   if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'Acrylic version ' + AcrylicVersionNumber + ' released on ' + AcrylicReleaseDate + '.');
 
   // Perform all the unit tests sequentially
+  TAbstractUnitTest.ControlTestExecution(TCommunicationChannelsUnitTest.Create);
   TAbstractUnitTest.ControlTestExecution(TSessionCacheUnitTest.Create);
   TAbstractUnitTest.ControlTestExecution(TAddressCacheUnitTest.Create);
   TAbstractUnitTest.ControlTestExecution(THostsCacheUnitTest.Create);
+  TAbstractUnitTest.ControlTestExecution(TRegExprUnitTest.Create);
 
-  // Finalize everything
-  TTracer.Finalize; TConfiguration.Finalize;
+  // Finalize all the classes
+  TTracer.Finalize; TConfiguration.Finalize; TEnvironment.Finalize;
 
   WriteLn('Press ENTER To Quit.'); ReadLn;
 end.

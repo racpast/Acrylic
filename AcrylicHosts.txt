@@ -22,6 +22,8 @@
 #                                                                           #
 # 127.0.0.1 /^ads?\..*$                                                     #
 #                                                                           #
+# Also note that there's no final '/' at the end of a regular expression.   #
+#                                                                           #
 # A '>' character at the  beginning  of  a  domain  name  is  a  convenient #
 # shortcut for representing all domain names ending with what follows after #
 # that character. For example an entry like this one:                       #
@@ -47,3 +49,4 @@
 #############################################################################
 
 127.0.0.1 localhost localhost.localdomain
+::1 localhost localhost.localdomain

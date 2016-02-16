@@ -37,6 +37,7 @@ uses
   AddressCache,
   CommunicationChannels,
   Configuration,
+  Environment,
   HostsCache,
   DnsResolver,
   SessionCache,
@@ -52,6 +53,12 @@ begin
   TCommunicationChannel.Initialize; TSessionCache.Initialize; TAddressCache.Initialize; THostsCache.Initialize;
 
   try
+
+    // Trace the event if a tracer is enabled
+    if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StartSystem: Reading system info...');
+
+    // Gather informations about the system
+    TEnvironment.ReadSystem;
 
     // Trace the event if a tracer is enabled
     if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StartSystem: Loading configuration file...');
