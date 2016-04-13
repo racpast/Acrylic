@@ -65,8 +65,8 @@ begin
   WriteLn('Acrylic DNS Proxy Test Application');
   WriteLn('==============================================================================');
 
-  // Initialize all the classes, the tracer and set the console tracer agent
-  TEnvironment.Initialize; TConfiguration.Initialize; TTracer.Initialize; TTracer.SetTracerAgent(TConsoleTracerAgent.Create);
+  // Initialize the configuration and set the console tracer agent
+  TConfiguration.Initialize; TTracer.Initialize; TTracer.SetTracerAgent(TConsoleTracerAgent.Create);
 
   // Trace Acrylic version info if a tracer is enabled
   if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'Acrylic version ' + AcrylicVersionNumber + ' released on ' + AcrylicReleaseDate + '.');
@@ -78,8 +78,8 @@ begin
   TAbstractUnitTest.ControlTestExecution(THostsCacheUnitTest.Create);
   TAbstractUnitTest.ControlTestExecution(TRegExprUnitTest.Create);
 
-  // Finalize all the classes
-  TTracer.Finalize; TConfiguration.Finalize; TEnvironment.Finalize;
+  // Finalize everything
+  TTracer.Finalize; TConfiguration.Finalize;
 
   WriteLn('Press ENTER To Quit.'); ReadLn;
 end.

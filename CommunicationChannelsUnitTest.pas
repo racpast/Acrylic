@@ -33,11 +33,35 @@ begin
   IPv4Address := TIPv4AddressUtility.Parse('0.0.0.0');
   if not(TIPv4AddressUtility.ToString(IPv4Address) = '0.0.0.0') then raise FailedUnitTestException.Create;
 
+  IPv4Address := TIPv4AddressUtility.Parse('0.0.0.1');
+  if not(TIPv4AddressUtility.ToString(IPv4Address) = '0.0.0.1') then raise FailedUnitTestException.Create;
+
+  IPv4Address := TIPv4AddressUtility.Parse('1.0.0.0');
+  if not(TIPv4AddressUtility.ToString(IPv4Address) = '1.0.0.0') then raise FailedUnitTestException.Create;
+
+  IPv4Address := TIPv4AddressUtility.Parse('1.0.0.1');
+  if not(TIPv4AddressUtility.ToString(IPv4Address) = '1.0.0.1') then raise FailedUnitTestException.Create;
+
+  IPv4Address := TIPv4AddressUtility.Parse('0.1.0.0');
+  if not(TIPv4AddressUtility.ToString(IPv4Address) = '0.1.0.0') then raise FailedUnitTestException.Create;
+
+  IPv4Address := TIPv4AddressUtility.Parse('0.0.1.0');
+  if not(TIPv4AddressUtility.ToString(IPv4Address) = '0.0.1.0') then raise FailedUnitTestException.Create;
+
+  IPv4Address := TIPv4AddressUtility.Parse('0.1.0.1');
+  if not(TIPv4AddressUtility.ToString(IPv4Address) = '0.1.0.1') then raise FailedUnitTestException.Create;
+
+  IPv4Address := TIPv4AddressUtility.Parse('1.2.3.4');
+  if not(TIPv4AddressUtility.ToString(IPv4Address) = '1.2.3.4') then raise FailedUnitTestException.Create;
+
   IPv4Address := TIPv4AddressUtility.Parse('127.0.0.1');
   if not(TIPv4AddressUtility.ToString(IPv4Address) = '127.0.0.1') then raise FailedUnitTestException.Create;
 
   IPv4Address := TIPv4AddressUtility.Parse('127.255.127.255');
   if not(TIPv4AddressUtility.ToString(IPv4Address) = '127.255.127.255') then raise FailedUnitTestException.Create;
+
+  IPv4Address := TIPv4AddressUtility.Parse('113.249.111.247');
+  if not(TIPv4AddressUtility.ToString(IPv4Address) = '113.249.111.247') then raise FailedUnitTestException.Create;
 
   IPv6Address := TIPv6AddressUtility.Parse('::');
   if not(TIPv6AddressUtility.ToString(IPv6Address) = '0:0:0:0:0:0:0:0') then raise FailedUnitTestException.Create;
@@ -50,6 +74,18 @@ begin
 
   IPv6Address := TIPv6AddressUtility.Parse('1::1');
   if not(TIPv6AddressUtility.ToString(IPv6Address) = '1:0:0:0:0:0:0:1') then raise FailedUnitTestException.Create;
+
+  IPv6Address := TIPv6AddressUtility.Parse('::2:1');
+  if not(TIPv6AddressUtility.ToString(IPv6Address) = '0:0:0:0:0:0:2:1') then raise FailedUnitTestException.Create;
+
+  IPv6Address := TIPv6AddressUtility.Parse('1:2::');
+  if not(TIPv6AddressUtility.ToString(IPv6Address) = '1:2:0:0:0:0:0:0') then raise FailedUnitTestException.Create;
+
+  IPv6Address := TIPv6AddressUtility.Parse('::f00f:1');
+  if not(TIPv6AddressUtility.ToString(IPv6Address) = '0:0:0:0:0:0:F00F:1') then raise FailedUnitTestException.Create;
+
+  IPv6Address := TIPv6AddressUtility.Parse('1:f00f::');
+  if not(TIPv6AddressUtility.ToString(IPv6Address) = '1:F00F:0:0:0:0:0:0') then raise FailedUnitTestException.Create;
 
   IPv6Address := TIPv6AddressUtility.Parse('1:2:3:4:5:6::8');
   if not(TIPv6AddressUtility.ToString(IPv6Address) = '1:2:3:4:5:6:0:8') then raise FailedUnitTestException.Create;
@@ -80,6 +116,9 @@ begin
 
   IPv6Address := TIPv6AddressUtility.Parse('2001:db8:85a3::8a2e:370:7334');
   if not(TIPv6AddressUtility.ToString(IPv6Address) = '2001:DB8:85A3:0:0:8A2E:370:7334') then raise FailedUnitTestException.Create;
+
+  IPv6Address := TIPv6AddressUtility.Parse('2001:db8:85a3:aaa:bbb:8a2e:370:7334');
+  if not(TIPv6AddressUtility.ToString(IPv6Address) = '2001:DB8:85A3:AAA:BBB:8A2E:370:7334') then raise FailedUnitTestException.Create;
 
   // Finalize class
   TCommunicationChannel.Finalize;

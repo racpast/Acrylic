@@ -5,9 +5,9 @@
 
 void Main()
 {
-    var newVersion = "0.9.29";
+    var newVersion = "0.9.30";
     var rootDirectoryPath = @"D:\MyBackupSystem\Local\Development\AcrylicDNSProxy";
-
+	
     var newVersionDirectoryPath = Path.Combine(rootDirectoryPath, newVersion);
 
     Console.WriteLine("## " + newVersion + " ##");

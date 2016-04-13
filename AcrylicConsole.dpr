@@ -80,7 +80,7 @@ begin
 
   end;
 
-  // Initialize all the static classes and set the console tracer agent
+  // Initialize the configuration and set the console tracer agent
   TConfiguration.Initialize; TTracer.Initialize; if not(NoLog) then TTracer.SetTracerAgent(TConsoleTracerAgent.Create);
 
   // Trace Acrylic version info if a tracer is enabled
@@ -95,6 +95,6 @@ begin
   // Stop the system
   TBootstrapper.StopSystem;
 
-  // Finalize all the static classes
+  // Finalize everything
   TTracer.Finalize; TConfiguration.Finalize;
 end.

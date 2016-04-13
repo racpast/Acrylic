@@ -309,9 +309,6 @@ function CloseSocket(S: Integer): Integer; stdcall; external WINDOWS_SOCKETS_DLL
 
 function WSAGetLastError: Integer; stdcall; external WINDOWS_SOCKETS_DLL name 'WSAGetLastError';
 
-function InetADDR(Text: PAnsiChar): Integer; stdcall; external WINDOWS_SOCKETS_DLL name 'inet_addr';
-function InetNTOA(Address: Integer): PAnsiChar; stdcall; external WINDOWS_SOCKETS_DLL name 'inet_ntoa';
-
 function WSACleanup: Integer; stdcall; external WINDOWS_SOCKETS_DLL name 'WSACleanup';
 
 // --------------------------------------------------------------------------
@@ -327,26 +324,62 @@ end;
 //
 // --------------------------------------------------------------------------
 
+procedure LowLevelIPv4AddressParse(Text: String; var Address: TIPv4Address);
+var
+  PartIndex, SepAt: Integer; PartText: String; PartValue: Word; ValResult: Integer;
+begin
+  Address := 0;
+
+  if (Text = '0.0.0.0') then Exit else if (Text = '127.0.0.1') then begin Address := LOCALHOST_IPV4_ADDRESS; Exit; end else begin
+
+    PartIndex := 0; while (Text <> '') and (PartIndex < 4) do begin
+
+      SepAt := Pos('.', Text); if (SepAt > 0) then begin PartText := Copy(Text, 1, SepAt - 1); Delete(Text, 1, SepAt); end else begin PartText := Text; Text := ''; end; if (PartText <> '') then begin
+
+        Val(PartText, PartValue, ValResult);
+
+        Inc(Address, PartValue shl (8 * PartIndex));
+
+      end; Inc(PartIndex);
+
+    end;
+
+  end;
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+function LowLevelIPv4AddressToString(var Address: TIPv4Address): String;
+begin
+  Result := IntToStr(Address and $ff) + '.' + IntToStr((Address shr 8) and $ff) + '.' + IntToStr((Address shr 16) and $ff) + '.' + IntToStr(Address shr 24);
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
 procedure LowLevelIPv6AddressParse(Text: String; var Address: TIPv6Address);
 var
-  Index, ColonAt, GapAt: Integer; Part: String; GroupValue: Word; ConversionResult: Integer;
+  PartIndex, SepAt, GapAt: Integer; PartText: String; PartValue: Word; ValResult: Integer;
 begin
   FillChar(Address, SizeOf(TIPv6Address), 0);
 
   if (Text = '::') then Exit else if (Text = '::1') then begin Address[15] := 1; Exit; end else begin
 
-    Index := 0; GapAt := -1; while (Text <> '') and (Index < 16) do begin
+    PartIndex := 0; GapAt := -1; while (Text <> '') and (PartIndex < 16) do begin
 
-      ColonAt := Pos(':', Text); if (ColonAt > 0) then begin Part := Copy(Text, 1, ColonAt - 1); Delete(Text, 1, ColonAt); end else begin Part := Text; Text := ''; end; if (Part <> '') then begin
+      SepAt := Pos(':', Text); if (SepAt > 0) then begin PartText := Copy(Text, 1, SepAt - 1); Delete(Text, 1, SepAt); end else begin PartText := Text; Text := ''; end; if (PartText <> '') then begin
 
-        Val('$' + Part, GroupValue, ConversionResult);
+        Val('$' + PartText, PartValue, ValResult);
 
-        Address[Index] := GroupValue shr $08; Inc(Index);
-        Address[Index] := GroupValue and $ff; Inc(Index);
+        Address[PartIndex] := PartValue shr $08; Inc(PartIndex);
+        Address[PartIndex] := PartValue and $ff; Inc(PartIndex);
 
       end else begin
 
-        if (GapAt = -1) then GapAt := Index;
+        if (GapAt = -1) then GapAt := PartIndex;
 
       end;
 
@@ -354,8 +387,8 @@ begin
 
     if (GapAt > -1) and (GapAt < 14) then begin
 
-      Move(Address[GapAt], Address[16 + GapAt - Index], Index - GapAt);
-      FillChar(Address[GapAt], 16 - Index, 0);
+      Move(Address[GapAt], Address[16 + GapAt - PartIndex], PartIndex - GapAt);
+      FillChar(Address[GapAt], 16 - PartIndex, 0);
 
     end;
 
@@ -379,7 +412,7 @@ class function TIPv4AddressUtility.Parse(Text: String): TIPv4Address;
 var
   IPv4Address: TIPv4Address;
 begin
-  IPv4Address := InetADDR(PAnsiChar(Text)); Result := IPv4Address;
+  LowLevelIPv4AddressParse(Text, IPv4Address); Result := IPv4Address;
 end;
 
 // --------------------------------------------------------------------------
@@ -388,7 +421,7 @@ end;
 
 class function TIPv4AddressUtility.ToString(Address: TIPv4Address): String;
 begin
-  Result := InetNTOA(Address);
+  Result := LowLevelIPv4AddressToString(Address);
 end;
 
 // --------------------------------------------------------------------------

@@ -184,20 +184,61 @@ begin
           // Trace the event into the hit log if enabled
           if THitLogger.IsEnabled and (Pos('B', TConfiguration.GetHitLogFileWhat) > 0) then begin if (TConfiguration.GetHitLogFileMode = 'Legacy') then THitLogger.AddHit(ArrivalTime, 'B', Address, TDnsProtocolUtility.PrintRequestPacketDescriptionAsLegacyStringFromPacket(Buffer, BufferLen, False)) else THitLogger.AddHit(ArrivalTime, 'B', Address, TDnsProtocolUtility.PrintRequestPacketDescriptionAsNormalStringFromPacket(Buffer, BufferLen, False)); end;
 
-        end else if THostsCache.Find(DomainName, QueryType, HostsEntry) then begin // If the domain name exists in the hosts cache
+        end else if (QueryType = DNS_QUERY_TYPE_A) and THostsCache.Find(DomainName, DNS_QUERY_TYPE_A, HostsEntry) then begin // If the domain name exists in the hosts cache (1)
 
-          case QueryType of // Build a positive response
+          // Build a positive IPv4 response
+          TDnsProtocolUtility.BuildPositiveIPv4ResponsePacket(DomainName, QueryType, HostsEntry.Address.IPv4Address, Output, OutputLen);
 
-            DNS_QUERY_TYPE_A:
-              TDnsProtocolUtility.BuildPositiveIPv4ResponsePacket(DomainName, QueryType, HostsEntry.Address.IPv4Address, Output, OutputLen);
+          // Send the response to the client
+          TDnsProtocolUtility.SetIdIntoPacket(SessionId, Output); Self.CommunicationChannel.SendTo(Output, OutputLen, Address, Port);
 
-            DNS_QUERY_TYPE_AAAA:
-              TDnsProtocolUtility.BuildPositiveIPv6ResponsePacket(DomainName, QueryType, HostsEntry.Address.IPv6Address, Output, OutputLen);
+          // Update performance stats if enabled
+          if TStatistics.IsEnabled then TStatistics.IncTotalRequestsResolvedThroughHostsFile;
 
-            else
-              TDnsProtocolUtility.BuildPositiveResponsePacket(DomainName, QueryType, Output, OutputLen);
+          // Trace the event if a tracer is enabled
+          if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' sent to client ' + TDualIPAddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' directly from hosts cache.');
 
-          end;
+          // Trace the event into the hit log if enabled
+          if THitLogger.IsEnabled and (Pos('H', TConfiguration.GetHitLogFileWhat) > 0) then begin if (TConfiguration.GetHitLogFileMode = 'Legacy') then THitLogger.AddHit(ArrivalTime, 'H', Address, TDnsProtocolUtility.PrintRequestPacketDescriptionAsLegacyStringFromPacket(Buffer, BufferLen, False)) else THitLogger.AddHit(ArrivalTime, 'H', Address, TDnsProtocolUtility.PrintRequestPacketDescriptionAsNormalStringFromPacket(Buffer, BufferLen, False)); end;
+
+        end else if (QueryType = DNS_QUERY_TYPE_A) and THostsCache.Find(DomainName, DNS_QUERY_TYPE_AAAA, HostsEntry) then begin // If the domain name exists in the hosts cache (2)
+
+          // Build a positive null response
+          TDnsProtocolUtility.BuildPositiveResponsePacket(DomainName, QueryType, Output, OutputLen);
+
+          // Send the response to the client
+          TDnsProtocolUtility.SetIdIntoPacket(SessionId, Output); Self.CommunicationChannel.SendTo(Output, OutputLen, Address, Port);
+
+          // Update performance stats if enabled
+          if TStatistics.IsEnabled then TStatistics.IncTotalRequestsResolvedThroughHostsFile;
+
+          // Trace the event if a tracer is enabled
+          if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' sent to client ' + TDualIPAddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' directly from hosts cache.');
+
+          // Trace the event into the hit log if enabled
+          if THitLogger.IsEnabled and (Pos('H', TConfiguration.GetHitLogFileWhat) > 0) then begin if (TConfiguration.GetHitLogFileMode = 'Legacy') then THitLogger.AddHit(ArrivalTime, 'H', Address, TDnsProtocolUtility.PrintRequestPacketDescriptionAsLegacyStringFromPacket(Buffer, BufferLen, False)) else THitLogger.AddHit(ArrivalTime, 'H', Address, TDnsProtocolUtility.PrintRequestPacketDescriptionAsNormalStringFromPacket(Buffer, BufferLen, False)); end;
+
+        end else if (QueryType = DNS_QUERY_TYPE_AAAA) and THostsCache.Find(DomainName, DNS_QUERY_TYPE_AAAA, HostsEntry) then begin // If the domain name exists in the hosts cache (3)
+
+          // Build a positive IPv6 response
+          TDnsProtocolUtility.BuildPositiveIPv6ResponsePacket(DomainName, QueryType, HostsEntry.Address.IPv6Address, Output, OutputLen);
+
+          // Send the response to the client
+          TDnsProtocolUtility.SetIdIntoPacket(SessionId, Output); Self.CommunicationChannel.SendTo(Output, OutputLen, Address, Port);
+
+          // Update performance stats if enabled
+          if TStatistics.IsEnabled then TStatistics.IncTotalRequestsResolvedThroughHostsFile;
+
+          // Trace the event if a tracer is enabled
+          if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' sent to client ' + TDualIPAddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' directly from hosts cache.');
+
+          // Trace the event into the hit log if enabled
+          if THitLogger.IsEnabled and (Pos('H', TConfiguration.GetHitLogFileWhat) > 0) then begin if (TConfiguration.GetHitLogFileMode = 'Legacy') then THitLogger.AddHit(ArrivalTime, 'H', Address, TDnsProtocolUtility.PrintRequestPacketDescriptionAsLegacyStringFromPacket(Buffer, BufferLen, False)) else THitLogger.AddHit(ArrivalTime, 'H', Address, TDnsProtocolUtility.PrintRequestPacketDescriptionAsNormalStringFromPacket(Buffer, BufferLen, False)); end;
+
+        end else if (QueryType = DNS_QUERY_TYPE_AAAA) and THostsCache.Find(DomainName, DNS_QUERY_TYPE_A, HostsEntry) then begin // If the domain name exists in the hosts cache (4)
+
+          // Build a positive null response
+          TDnsProtocolUtility.BuildPositiveResponsePacket(DomainName, QueryType, Output, OutputLen);
 
           // Send the response to the client
           TDnsProtocolUtility.SetIdIntoPacket(SessionId, Output); Self.CommunicationChannel.SendTo(Output, OutputLen, Address, Port);
@@ -725,40 +766,59 @@ begin
 
     try
 
-      // Open and bind the socket
-      Self.CommunicationChannel := TDualUdpCommunicationChannel.Create; Self.CommunicationChannel.Bind(TConfiguration.IsLocalIPv4BindingEnabled, TConfiguration.GetLocalIPv4BindingAddress, TConfiguration.GetLocalIPv4BindingPort, TConfiguration.IsLocalIPv6BindingEnabled, TConfiguration.GetLocalIPv6BindingAddress, TConfiguration.GetLocalIPv6BindingPort);
+      // Open the socket
+      Self.CommunicationChannel := TDualUdpCommunicationChannel.Create;
 
       try
 
-        TMemoryManager.GetMemory(Buffer, MAX_DNS_BUFFER_LEN);
-        TMemoryManager.GetMemory(Output, MAX_DNS_BUFFER_LEN);
+        // Bind the socket
+        Self.CommunicationChannel.Bind(TConfiguration.IsLocalIPv4BindingEnabled, TConfiguration.GetLocalIPv4BindingAddress, TConfiguration.GetLocalIPv4BindingPort, TConfiguration.IsLocalIPv6BindingEnabled, TConfiguration.GetLocalIPv6BindingAddress, TConfiguration.GetLocalIPv6BindingPort);
 
         try
 
-          repeat // Working cycle
+          TMemoryManager.GetMemory(Buffer, MAX_DNS_BUFFER_LEN);
 
-            // If there is a packet available
-            if Self.CommunicationChannel.ReceiveFrom(DNS_RESOLVER_MAX_BLOCK_TIME, MAX_DNS_BUFFER_LEN, Buffer, BufferLen, Address, Port) then begin
+          try
 
-              // Try to handle it as a DNS request
-              Self.HandleDnsRequest(Buffer, BufferLen, Output, OutputLen, Address, Port);
+            TMemoryManager.GetMemory(Output, MAX_DNS_BUFFER_LEN);
 
-            end else begin
+            try
 
-              // Good place for low priority operations here
-              Self.HandleLowPriorityOperations;
+              repeat // Working cycle
+
+                // If there is a packet available
+                if Self.CommunicationChannel.ReceiveFrom(DNS_RESOLVER_MAX_BLOCK_TIME, MAX_DNS_BUFFER_LEN, Buffer, BufferLen, Address, Port) then begin
+
+                  // Try to handle it as a DNS request
+                  Self.HandleDnsRequest(Buffer, BufferLen, Output, OutputLen, Address, Port);
+
+                end else begin
+
+                  // Good place for low priority operations here
+                  Self.HandleLowPriorityOperations;
+
+                end;
+
+              until Terminated;
+
+              // We handle all final operations here
+              Self.HandleTerminatedOperations;
+
+            finally
+
+              TMemoryManager.FreeMemory(Output, MAX_DNS_BUFFER_LEN);
 
             end;
 
-          until Terminated;
+          finally
 
-          // We handle all final operations here
-          Self.HandleTerminatedOperations;
+            TMemoryManager.FreeMemory(Buffer, MAX_DNS_BUFFER_LEN);
+
+          end;
 
         finally
 
-          TMemoryManager.FreeMemory(Output, MAX_DNS_BUFFER_LEN);
-          TMemoryManager.FreeMemory(Buffer, MAX_DNS_BUFFER_LEN);
+          // Nothing do to
 
         end;
 

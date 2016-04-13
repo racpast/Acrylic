@@ -32,4 +32,4 @@ the "Start Menu", or go directly to:
 http://mayakron.altervista.org/acrylic.php
 
 Installed version is:
-0.9.30 released on February 15, 2016.
+0.9.31 released on April 13, 2016.

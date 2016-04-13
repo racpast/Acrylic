@@ -113,7 +113,7 @@ begin
     // Init...
     DecimalSeparator := '.';
 
-    // Init classes and eventually set the debug file
+    // Init configuration and eventually set the file tracer agent
     TConfiguration.Initialize; TTracer.Initialize; if FileExists(TConfiguration.GetDebugLogFileName) then TTracer.SetTracerAgent(TFileTracerAgent.Create(TConfiguration.GetDebugLogFileName));
 
     // Trace Acrylic version info if a tracer is enabled
@@ -150,7 +150,7 @@ begin
     // Stop the system
     TBootstrapper.StopSystem;
 
-    // Finalize classes
+    // Finalize everything
     TTracer.Finalize; TConfiguration.Finalize;
 
     // Report to the Service Controller

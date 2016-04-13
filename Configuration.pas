@@ -524,14 +524,14 @@ end;
 
 class procedure TConfiguration.LoadFromFile(FileName: String);
 var
-  IniFile: TIniFile; StringList: TStringList; DnsServerIndex: Integer; i: Integer; S: String; W: Word;
+  IniFile: TMemIniFile; StringList: TStringList; DnsServerIndex: Integer; i: Integer; S: String; W: Word;
 begin
   // Trace the event if a tracer is enabled
   if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TConfiguration.LoadFromFile: Loading configuration file...');
 
   IniFile := nil; try
 
-    IniFile := TIniFile.Create(FileName);
+    IniFile := TMemIniFile.Create(FileName);
 
     // Trace the configuration if a tracer is enabled
     if TTracer.IsEnabled then begin
