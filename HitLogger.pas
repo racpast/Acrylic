@@ -92,10 +92,8 @@ begin
 
     Handle := CreateFile(PChar(StringReplace(TConfiguration.GetHitLogFileName, '%DATE%', FormatDateTime('yyyymmdd', Now), [rfReplaceAll])), GENERIC_WRITE, FILE_SHARE_READ, nil, OPEN_ALWAYS, FILE_ATTRIBUTE_ARCHIVE, 0); if (Handle <> INVALID_HANDLE_VALUE) then begin
 
-      // Append all the pending hits into the hit log
       SetFilePointer(Handle, 0, nil, FILE_END); for Index := 0 to (THitLogger_BufferList.Count - 1) do begin Line := THitLogger_BufferList[Index] + #13#10; WriteFile(Handle, Line[1], Length(Line), Written, nil); end;
 
-      // Clean all the pending hits
       THitLogger_BufferList.Clear;
 
       CloseHandle(Handle);

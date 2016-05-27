@@ -78,7 +78,7 @@ end;
 
 procedure TConsoleTracerAgent.CloseTrace;
 begin
-  if (Self.Lock <> nil) then Self.Lock.Free;
+  Self.Lock.Free;
 end;
 
 // --------------------------------------------------------------------------

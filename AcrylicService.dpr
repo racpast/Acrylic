@@ -27,6 +27,7 @@ uses
   FileTracerAgent in 'FileTracerAgent.pas',
   HitLogger in 'HitLogger.pas',
   HostsCache in 'HostsCache.pas',
+  HttpServer in 'HttpServer.pas',
   MemoryManager in 'MemoryManager.pas',
   MemoryStore in 'MemoryStore.pas',
   PatternMatching in 'PatternMatching.pas',

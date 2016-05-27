@@ -39,6 +39,8 @@ type
     Address: TDualIPAddress;
     Port: Word;
     Protocol: TDnsProtocol;
+    ProxyAddress: TDualIPAddress;
+    ProxyPort: Word;
     IgnoreNegativeResponsesFromServer: Boolean;
   end;
 
@@ -47,8 +49,19 @@ type
 // --------------------------------------------------------------------------
 
 type
+  THttpServerConfiguration = record
+    IsEnabled: Boolean;
+    BindingAddress: TIPv4Address;
+    BindingPort: Word;
+  end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+type
   TConfiguration = class
-    private
+    public
       class function  MakeAbsolutePath(Path: String): String;
     public
       class function  GetHitLogFileName: String;
@@ -77,6 +90,8 @@ type
     public
       class function  GetLocalIPv6BindingAddress: TIPv6Address;
       class function  GetLocalIPv6BindingPort: Word;
+    public
+      class function  GetHttpServerConfiguration: THttpServerConfiguration;
     public
       class function  IsDomainNameAffinityMatch(DomainName: String; DomainNameAffinityMask: TStringList): Boolean;
       class function  IsQueryTypeAffinityMatch(QueryType: Word; QueryTypeAffinityMask: TList): Boolean;
@@ -167,6 +182,13 @@ var
 // --------------------------------------------------------------------------
 
 var
+  TConfiguration_HttpServerConfiguration: THttpServerConfiguration;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+var
   TConfiguration_CacheExceptions: TStringList;
 
 // --------------------------------------------------------------------------
@@ -209,10 +231,13 @@ begin
     TConfiguration_DnsServerConfiguration[i].IsEnabled := False;
     TConfiguration_DnsServerConfiguration[i].DomainNameAffinityMask := nil;
     TConfiguration_DnsServerConfiguration[i].QueryTypeAffinityMask := nil;
-    TConfiguration_DnsServerConfiguration[i].Address.IPv6Address := LOCALHOST_IPV6_ADDRESS;
-    TConfiguration_DnsServerConfiguration[i].Address.IsIPv6Address := True;
-    TConfiguration_DnsServerConfiguration[i].Port := 0;
+    TConfiguration_DnsServerConfiguration[i].Address.IPv4Address := LOCALHOST_IPV4_ADDRESS;
+    TConfiguration_DnsServerConfiguration[i].Address.IsIPv6Address := False;
+    TConfiguration_DnsServerConfiguration[i].Port := 8053;
     TConfiguration_DnsServerConfiguration[i].Protocol := UdpProtocol;
+    TConfiguration_DnsServerConfiguration[i].ProxyAddress.IPv4Address := LOCALHOST_IPV4_ADDRESS;
+    TConfiguration_DnsServerConfiguration[i].ProxyAddress.IsIPv6Address := False;
+    TConfiguration_DnsServerConfiguration[i].ProxyPort := 9150;
     TConfiguration_DnsServerConfiguration[i].IgnoreNegativeResponsesFromServer := False;
   end;
 
@@ -226,8 +251,8 @@ begin
   TConfiguration_LocalIPv4BindingAddress := ANY_IPV4_ADDRESS;
   TConfiguration_LocalIPv4BindingPort := 53;
 
-  TConfiguration_IsLocalIPv6BindingEnabledOnWindowsVersionsPriorToWindowsVistaOrWindowsServer2008 := False;
   TConfiguration_IsLocalIPv6BindingEnabled := False;
+  TConfiguration_IsLocalIPv6BindingEnabledOnWindowsVersionsPriorToWindowsVistaOrWindowsServer2008 := False;
 
   TConfiguration_LocalIPv6BindingAddress := ANY_IPV6_ADDRESS;
   TConfiguration_LocalIPv6BindingPort := 53;
@@ -236,6 +261,12 @@ begin
   TConfiguration_HitLogFileWhat := '';
   TConfiguration_HitLogFileMode := '';
   TConfiguration_StatsLogFileName := '';
+
+  TConfiguration_HttpServerConfiguration.IsEnabled := False;
+
+  TConfiguration_HttpServerConfiguration.BindingAddress := ANY_IPV4_ADDRESS;
+  TConfiguration_HttpServerConfiguration.BindingPort := 80;
+
   TConfiguration_DebugLogFileName := Self.MakeAbsolutePath('AcrylicDebug.txt');
   TConfiguration_ConfigurationFileName := Self.MakeAbsolutePath('AcrylicConfiguration.ini');
   TConfiguration_AddressCacheFileName := Self.MakeAbsolutePath('AcrylicCache.dat');
@@ -445,6 +476,15 @@ end;
 //
 // --------------------------------------------------------------------------
 
+class function TConfiguration.GetHttpServerConfiguration: THttpServerConfiguration;
+begin
+  Result := TConfiguration_HttpServerConfiguration;
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
 class function TConfiguration.IsDomainNameAffinityMatch(DomainName: String; DomainNameAffinityMask: TStringList): Boolean;
 var
   i: Integer; S: String;
@@ -526,14 +566,12 @@ class procedure TConfiguration.LoadFromFile(FileName: String);
 var
   IniFile: TMemIniFile; StringList: TStringList; DnsServerIndex: Integer; i: Integer; S: String; W: Word;
 begin
-  // Trace the event if a tracer is enabled
   if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TConfiguration.LoadFromFile: Loading configuration file...');
 
   IniFile := nil; try
 
     IniFile := TMemIniFile.Create(FileName);
 
-    // Trace the configuration if a tracer is enabled
     if TTracer.IsEnabled then begin
       StringList := TStringList.Create; IniFile.ReadSectionValues('GlobalSection', StringList); for i := 0 to (StringList.Count - 1) do TTracer.Trace(TracePriorityInfo, 'TConfiguration.LoadFromFile: [GlobalSection] ' + StringList[i]); StringList.Free;
       StringList := TStringList.Create; IniFile.ReadSectionValues('AllowedAddressesSection', StringList); for i := 0 to (StringList.Count - 1) do TTracer.Trace(TracePriorityInfo, 'TConfiguration.LoadFromFile: [AllowedAddressesSection] ' + StringList[i]); StringList.Free;
@@ -545,35 +583,47 @@ begin
 
       TConfiguration_DnsServerConfiguration[DnsServerIndex].IsEnabled := False;
 
-      S := IniFile.ReadString('GlobalSection', DNS_SERVER_INDEX_DESCRIPTION[DnsServerIndex] + 'ServerAddress', '');
+      S := IniFile.ReadString('GlobalSection', DNS_SERVER_INDEX_DESCRIPTION[DnsServerIndex] + 'ServerAddress', ''); if (S <> '') then begin
 
-      if (S = '') then Continue;
+        TConfiguration_DnsServerConfiguration[DnsServerIndex].Address := TDualIPAddressUtility.Parse(S);
 
-      TConfiguration_DnsServerConfiguration[DnsServerIndex].Address := TDualIPAddressUtility.Parse(S);
+        S := IniFile.ReadString('GlobalSection', DNS_SERVER_INDEX_DESCRIPTION[DnsServerIndex] + 'ServerPort', ''); if (S <> '') then begin
 
-      S := IniFile.ReadString('GlobalSection', DNS_SERVER_INDEX_DESCRIPTION[DnsServerIndex] + 'ServerPort', '');
+          TConfiguration_DnsServerConfiguration[DnsServerIndex].Port := StrToInt(S);
 
-      if (S = '') then Continue;
+          S := IniFile.ReadString('GlobalSection', DNS_SERVER_INDEX_DESCRIPTION[DnsServerIndex] + 'ServerProtocol', ''); if (S <> '') then begin
 
-      TConfiguration_DnsServerConfiguration[DnsServerIndex].Port := StrToIntDef(IniFile.ReadString('GlobalSection', DNS_SERVER_INDEX_DESCRIPTION[DnsServerIndex] + 'ServerPort', '53'), 53);
+            TConfiguration_DnsServerConfiguration[DnsServerIndex].Protocol := TDnsProtocolUtility.ParseDnsProtocol(S);
 
-      S := IniFile.ReadString('GlobalSection', DNS_SERVER_INDEX_DESCRIPTION[DnsServerIndex] + 'ServerProtocol', '');
+            TConfiguration_DnsServerConfiguration[DnsServerIndex].IsEnabled := True;
 
-      if (S = '') then Continue;
+            S := IniFile.ReadString('GlobalSection', DNS_SERVER_INDEX_DESCRIPTION[DnsServerIndex] + 'ServerProxyAddress', ''); if (S <> '') then begin
 
-      TConfiguration_DnsServerConfiguration[DnsServerIndex].Protocol := TDnsProtocolUtility.ParseDnsProtocol(S);
+              TConfiguration_DnsServerConfiguration[DnsServerIndex].ProxyAddress := TDualIPAddressUtility.Parse(S);
 
-      S := IniFile.ReadString('GlobalSection', DNS_SERVER_INDEX_DESCRIPTION[DnsServerIndex] + 'ServerDomainNameAffinityMask', ''); if (S <> '') then begin
-        TConfiguration_DnsServerConfiguration[DnsServerIndex].DomainNameAffinityMask := TStringList.Create; TConfiguration_DnsServerConfiguration[DnsServerIndex].DomainNameAffinityMask.Delimiter := ';'; TConfiguration_DnsServerConfiguration[DnsServerIndex].DomainNameAffinityMask.DelimitedText := S;
+              S := IniFile.ReadString('GlobalSection', DNS_SERVER_INDEX_DESCRIPTION[DnsServerIndex] + 'ServerProxyPort', ''); if (S <> '') then begin
+
+                TConfiguration_DnsServerConfiguration[DnsServerIndex].ProxyPort := StrToInt(S);
+
+              end;
+
+            end;
+
+            S := IniFile.ReadString('GlobalSection', DNS_SERVER_INDEX_DESCRIPTION[DnsServerIndex] + 'ServerDomainNameAffinityMask', ''); if (S <> '') then begin
+              TConfiguration_DnsServerConfiguration[DnsServerIndex].DomainNameAffinityMask := TStringList.Create; TConfiguration_DnsServerConfiguration[DnsServerIndex].DomainNameAffinityMask.Delimiter := ';'; TConfiguration_DnsServerConfiguration[DnsServerIndex].DomainNameAffinityMask.DelimitedText := S;
+            end;
+
+            S := IniFile.ReadString('GlobalSection', DNS_SERVER_INDEX_DESCRIPTION[DnsServerIndex] + 'ServerQueryTypeAffinityMask', ''); if (S <> '') then begin
+              TConfiguration_DnsServerConfiguration[DnsServerIndex].QueryTypeAffinityMask := TList.Create; StringList := TStringList.Create; StringList.Delimiter := ';'; StringList.DelimitedText := S; for i := 0 to (StringList.Count - 1) do begin W := TDnsQueryTypeUtility.Parse(StringList[i]); if (W > 0) then TConfiguration_DnsServerConfiguration[DnsServerIndex].QueryTypeAffinityMask.Add(Pointer(W)); end; StringList.Free;
+            end;
+
+            TConfiguration_DnsServerConfiguration[DnsServerIndex].IgnoreNegativeResponsesFromServer := UpperCase(IniFile.ReadString('GlobalSection', 'IgnoreNegativeResponsesFrom' + DNS_SERVER_INDEX_DESCRIPTION[DnsServerIndex] + 'Server', '')) = 'YES';
+
+          end;
+
+        end;
+
       end;
-
-      S := IniFile.ReadString('GlobalSection', DNS_SERVER_INDEX_DESCRIPTION[DnsServerIndex] + 'ServerQueryTypeAffinityMask', ''); if (S <> '') then begin
-        TConfiguration_DnsServerConfiguration[DnsServerIndex].QueryTypeAffinityMask := TList.Create; StringList := TStringList.Create; StringList.Delimiter := ';'; StringList.DelimitedText := S; for i := 0 to (StringList.Count - 1) do begin W := TDnsQueryTypeUtility.Parse(StringList[i]); if (W > 0) then TConfiguration_DnsServerConfiguration[DnsServerIndex].QueryTypeAffinityMask.Add(Pointer(W)); end; StringList.Free;
-      end;
-
-      TConfiguration_DnsServerConfiguration[DnsServerIndex].IgnoreNegativeResponsesFromServer := UpperCase(IniFile.ReadString('GlobalSection', 'IgnoreNegativeResponsesFrom' + DNS_SERVER_INDEX_DESCRIPTION[DnsServerIndex] + 'Server', '')) = 'YES';
-
-      TConfiguration_DnsServerConfiguration[DnsServerIndex].IsEnabled := True;
 
     end;
 
@@ -583,9 +633,7 @@ begin
     TConfiguration_AddressCacheScavengingTime := IniFile.ReadInteger('GlobalSection', 'AddressCacheScavengingTime', TConfiguration_AddressCacheScavengingTime);
     TConfiguration_AddressCacheSilentUpdateTime := IniFile.ReadInteger('GlobalSection', 'AddressCacheSilentUpdateTime', TConfiguration_AddressCacheSilentUpdateTime);
 
-    S := IniFile.ReadString('GlobalSection', 'LocalIPv4BindingAddress', '');
-
-    if (S <> '') then begin
+    S := IniFile.ReadString('GlobalSection', 'LocalIPv4BindingAddress', ''); if (S <> '') then begin
 
       TConfiguration_IsLocalIPv4BindingEnabled := True;
 
@@ -594,9 +642,7 @@ begin
 
     end;
 
-    S := IniFile.ReadString('GlobalSection', 'LocalIPv6BindingAddress', '');
-
-    if (S <> '') then begin
+    S := IniFile.ReadString('GlobalSection', 'LocalIPv6BindingAddress', ''); if (S <> '') then begin
 
       TConfiguration_IsLocalIPv6BindingEnabledOnWindowsVersionsPriorToWindowsVistaOrWindowsServer2008 := UpperCase(IniFile.ReadString('GlobalSection', 'LocalIPv6BindingEnabledOnWindowsVersionsPriorToWindowsVistaOrWindowsServer2008', '')) = 'YES';
 
@@ -617,6 +663,17 @@ begin
 
     TConfiguration_StatsLogFileName := IniFile.ReadString('GlobalSection', 'StatsLogFileName', ''); if (TConfiguration_StatsLogFileName <> '') then TConfiguration_StatsLogFileName := Self.MakeAbsolutePath(TConfiguration_StatsLogFileName);
 
+    TConfiguration_HttpServerConfiguration.IsEnabled := UpperCase(IniFile.ReadString('GlobalSection', 'HttpServerEnabled', '')) = 'YES';
+
+    S := IniFile.ReadString('GlobalSection', 'HttpServerBindingAddress', ''); if (S <> '') then begin
+
+      TConfiguration_HttpServerConfiguration.IsEnabled := True;
+
+      TConfiguration_HttpServerConfiguration.BindingAddress := TIPv4AddressUtility.Parse(S);
+      TConfiguration_HttpServerConfiguration.BindingPort := StrToIntDef(IniFile.ReadString('GlobalSection', 'HttpServerBindingPort', IntToStr(TConfiguration_HttpServerConfiguration.BindingPort)), TConfiguration_HttpServerConfiguration.BindingPort);
+
+    end;
+
     StringList := TStringList.Create; IniFile.ReadSection('AllowedAddressesSection', StringList); if (StringList.Count > 0) then begin
       TConfiguration_AllowedAddresses := TStringList.Create; for i := 0 to (StringList.Count - 1) do TConfiguration_AllowedAddresses.Add(Trim(IniFile.ReadString('AllowedAddressesSection', StringList.Strings[i], '')));
     end; StringList.Free;
@@ -635,7 +692,6 @@ begin
 
   end;
 
-  // Trace the event if a tracer is enabled
   if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TConfiguration.LoadFromFile: Configuration file loaded successfully.');
 end;
 

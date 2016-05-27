@@ -29,7 +29,8 @@ type
       MemoryBlockList: TList;
       PositionInCurrentMemoryBlock: Integer;
     public
-      constructor Create(MemoryBlockSize: Integer);
+      constructor Create(); overload;
+      constructor Create(MemoryBlockSize: Integer); overload;
       destructor Destroy; override;
     public
       function GetMemory(Size: Integer): Pointer;
@@ -47,6 +48,23 @@ implementation
 
 uses
   MemoryManager;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+const
+  MEMORY_STORE_DEFAULT_BLOCK_SIZE = 65536;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+constructor TMemoryStore.Create();
+begin
+  Self.MemoryBlockSize := MEMORY_STORE_DEFAULT_BLOCK_SIZE;
+  Self.MemoryBlockList := TList.Create;
+end;
 
 // --------------------------------------------------------------------------
 //
@@ -81,15 +99,12 @@ function TMemoryStore.GetMemory(Size: Integer): Pointer;
 var
   MemoryBlockPointer: Pointer;
 begin
-  // If there is not enough space inside an already existing memory block...
-  if (Self.MemoryBlockList.Count = 0) or (Size > Self.MemoryBlockSize - Self.PositionInCurrentMemoryBlock) then begin
+  if (Self.MemoryBlockList.Count = 0) or (Size > (Self.MemoryBlockSize - Self.PositionInCurrentMemoryBlock)) then begin
 
-    // We have to allocate a new one
     TMemoryManager.GetMemory(MemoryBlockPointer, Self.MemoryBlockSize); Self.MemoryBlockList.Add(MemoryBlockPointer); Self.PositionInCurrentMemoryBlock := 0;
 
   end;
 
-  // A pointer inside the memory block is returned and the position is advanced
   Result := Pointer(Integer(Self.MemoryBlockList.Last) + Self.PositionInCurrentMemoryBlock); Inc(Self.PositionInCurrentMemoryBlock, Size);
 end;
 

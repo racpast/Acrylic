@@ -110,29 +110,22 @@ procedure TAcrylicServiceController.ServiceStart(Sender: TService; var Started: 
 begin
   try
 
-    // Init...
     DecimalSeparator := '.';
 
-    // Init configuration and eventually set the file tracer agent
     TConfiguration.Initialize; TTracer.Initialize; if FileExists(TConfiguration.GetDebugLogFileName) then TTracer.SetTracerAgent(TFileTracerAgent.Create(TConfiguration.GetDebugLogFileName));
 
-    // Trace Acrylic version info if a tracer is enabled
     if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'Acrylic version is ' + AcrylicVersionNumber + ' released on ' + AcrylicReleaseDate + '.');
 
-    // Start the system using the Bootstrapper
     TBootstrapper.StartSystem;
 
-    // Report to the Service Controller
     Started := True;
 
-  except // In case of an exception
+  except
 
     on E: Exception do begin
 
-      // Log a message into the Windows Application Log
       Self.LogMessage('TAcrylicServiceController.ServiceStart: ' + E.Message, EVENTLOG_ERROR_TYPE);
 
-      // Report to the Service Controller
       Started := False;
 
     end;
@@ -147,23 +140,18 @@ procedure TAcrylicServiceController.ServiceStop(Sender: TService; var Stopped: B
 begin
   try
 
-    // Stop the system
     TBootstrapper.StopSystem;
 
-    // Finalize everything
     TTracer.Finalize; TConfiguration.Finalize;
 
-    // Report to the Service Controller
     Stopped := True;
 
   except
 
     on E: Exception do begin
 
-      // Log a message into the Windows Application Log
       Self.LogMessage('TAcrylicServiceController.ServiceStop: ' + E.Message, EVENTLOG_ERROR_TYPE);
 
-      // Report to the Service Controller
       Stopped := False;
 
     end;
@@ -178,17 +166,14 @@ procedure TAcrylicServiceController.ServiceShutdown(Sender: TService);
 begin
   try
 
-    // Stop the system
     TBootstrapper.StopSystem;
 
-    // Stop everything else
     TTracer.Finalize; TConfiguration.Finalize;
 
   except
 
     on E: Exception do begin
 
-      // Log a message into the Windows Application Log
       Self.LogMessage('TAcrylicServiceController.ServiceShutdown: ' + E.Message, EVENTLOG_ERROR_TYPE);
 
     end;

@@ -36,6 +36,8 @@ type
 type
   TEnvironment = class
     private
+      class function  ExecuteCommandAndCaptureStandardOutputUsingTempFile(const CommandLine: string; var CommandOutput: string): Boolean;
+    private
       class procedure ReadOSVersion;
     public
       class procedure ReadSystem;
@@ -57,6 +59,100 @@ uses
   SysUtils,
   Windows,
   Tracer;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+const
+  SAFE_MAX_PATH = 272;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+const
+  EXECUTE_COMMAND_MAX_WAIT_TIME = 5000;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class function TEnvironment.ExecuteCommandAndCaptureStandardOutputUsingTempFile(const CommandLine: string; var CommandOutput: string): Boolean;
+var
+  TempDirectoryPath: String; TempFilePath: String; TempFileHandle: Cardinal; TempFile: TextFile; TempLine: String; SecurityAttributes: TSecurityAttributes; StartupInfo: TStartUpInfo; ProcessInfo: TProcessInformation;
+begin
+  Result := False;
+
+  SetLength(TempDirectoryPath, SAFE_MAX_PATH); GetTempPath(SAFE_MAX_PATH, PChar(TempDirectoryPath)); TempDirectoryPath := Trim(TempDirectoryPath);
+  SetLength(TempFilePath, SAFE_MAX_PATH); GetTempFileName(PChar(TempDirectoryPath), 'Cmd', 0, PChar(TempFilePath)); TempFilePath := Trim(TempFilePath);
+
+  try
+
+    TempFileHandle := CreateFile(PChar(TempFilePath), GENERIC_WRITE, FILE_SHARE_READ, nil, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, 0);
+
+    try
+
+      SetHandleInformation(TempFileHandle, HANDLE_FLAG_INHERIT, 1);
+
+      FillChar(SecurityAttributes, SizeOf(TSecurityAttributes), #0);
+      SecurityAttributes.nLength := SizeOf(TSecurityAttributes);
+      SecurityAttributes.bInheritHandle := True;
+      SecurityAttributes.lpSecurityDescriptor := nil;
+
+      FillChar(StartupInfo, SizeOf(TStartupInfo), #0);
+      StartupInfo.cb          := SizeOf(TStartupInfo);
+      StartupInfo.wShowWindow := SW_HIDE;
+      StartupInfo.dwFlags     := STARTF_USESHOWWINDOW or STARTF_USESTDHANDLES;
+      StartupInfo.hStdError   := TempFileHandle;
+      StartupInfo.hStdOutput  := TempFileHandle;
+
+      FillChar(ProcessInfo, SizeOf(TProcessInformation), #0);
+
+      if not CreateProcess(nil, PChar(CommandLine), @SecurityAttributes, @SecurityAttributes, True, NORMAL_PRIORITY_CLASS, nil, nil, StartupInfo, ProcessInfo) then begin
+        Exit;
+      end;
+
+      try
+
+        if (WaitForSingleObject(ProcessInfo.hProcess, EXECUTE_COMMAND_MAX_WAIT_TIME) <> WAIT_OBJECT_0) then begin
+          Exit;
+        end;
+
+      finally
+
+        CloseHandle(ProcessInfo.hProcess);
+        CloseHandle(ProcessInfo.hThread);
+
+      end;
+
+    finally
+
+      CloseHandle(TempFileHandle);
+
+    end;
+
+    AssignFile(TempFile, TempFilePath);
+    Reset(TempFile);
+
+    while not(Eof(TempFile)) do begin
+
+      ReadLn(TempFile, TempLine);
+
+      if (CommandOutput <> '') then CommandOutput := CommandOutput + #13#10 + TempLine else CommandOutput := TempLine;
+
+    end;
+
+    CloseFile(TempFile);
+
+  finally
+
+    DeleteFile(PChar(TempFilePath));
+
+  end;
+
+  Result := True;
+end;
 
 // --------------------------------------------------------------------------
 //
@@ -151,17 +247,29 @@ end;
 // --------------------------------------------------------------------------
 
 class procedure TEnvironment.ReadSystem;
+var
+  CommandOutput: String;
 begin
-  // Trace the event if a tracer is enabled
   if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TEnvironment.ReadSystem: Reading system info...');
 
-  // Read the operating system version
-  ReadOSVersion;
+  Self.ReadOSVersion;
 
-  // Trace the event if a tracer is enabled
   if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TEnvironment.ReadSystem: Operating system version is: ' + TEnvironment_OSVersion.VersionDescription + '.');
 
-  // Trace the event if a tracer is enabled
+  if TTracer.IsEnabled then begin
+
+    TTracer.Trace(TracePriorityInfo, 'TEnvironment.ReadSystem: Reading IP configuration...');
+
+    try
+
+      if Self.ExecuteCommandAndCaptureStandardOutputUsingTempFile('IpConfig.exe /all', CommandOutput) then TTracer.Trace(TracePriorityInfo, CommandOutput);
+
+    except
+
+    end;
+
+  end;
+
   if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TEnvironment.ReadSystem: Operation completed successfully.');
 end;
 

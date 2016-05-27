@@ -39,6 +39,7 @@ uses
   Configuration,
   Environment,
   HostsCache,
+  HttpServer,
   DnsResolver,
   SessionCache,
   Tracer;
@@ -49,52 +50,59 @@ uses
 
 class procedure TBootstrapper.StartSystem;
 begin
-  // Initializations
+  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StartSystem: Initialization...');
+
   TCommunicationChannel.Initialize; TSessionCache.Initialize; TAddressCache.Initialize; THostsCache.Initialize;
 
-  try
+  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StartSystem: Done.');
 
-    // Trace the event if a tracer is enabled
-    if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StartSystem: Reading system info...');
+  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StartSystem: Reading system info...');
 
-    // Gather informations about the system
-    TEnvironment.ReadSystem;
+  TEnvironment.ReadSystem;
 
-    // Trace the event if a tracer is enabled
-    if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StartSystem: Loading configuration file...');
+  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StartSystem: Done.');
 
-    // Load the configuration from file
-    TConfiguration.LoadFromFile(TConfiguration.GetConfigurationFileName);
+  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StartSystem: Loading configuration file...');
 
-    if FileExists(TConfiguration.GetAddressCacheFileName) then begin // If the address cache file exists...
+  TConfiguration.LoadFromFile(TConfiguration.GetConfigurationFileName);
 
-      // Trace the event if a tracer is enabled
-      if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StartSystem: Loading address cache items...');
+  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StartSystem: Done.');
 
-      // Load the address cache from file
-      TAddressCache.LoadFromFile(TConfiguration.GetAddressCacheFileName);
+  if TConfiguration.GetHttpServerConfiguration.IsEnabled then begin
 
-    end;
+    if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StartSystem: Starting HTTP server...');
 
-    if FileExists(TConfiguration.GetHostsCacheFileName) then begin // If the hosts cache file exists...
+    THttpServer.StartInstance;
 
-      // Trace the event if a tracer is enabled
-      if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StartSystem: Loading hosts cache items...');
+    if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StartSystem: Done.');
 
-      // Load the hosts cache from file
-      THostsCache.LoadFromFile(TConfiguration.GetHostsCacheFileName);
-
-    end;
-
-  except
-    on E: Exception do if TTracer.IsEnabled then TTracer.Trace(TracePriorityError, 'TBootstrapper.StartSystem: ' + E.Message);
   end;
 
-  // Trace the event if a tracer is enabled
-  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StartSystem: Starting resolver...');
+  if FileExists(TConfiguration.GetAddressCacheFileName) then begin
 
-  // Start the resolver thread
+    if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StartSystem: Loading address cache items...');
+
+    TAddressCache.LoadFromFile(TConfiguration.GetAddressCacheFileName);
+
+    if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StartSystem: Done.');
+
+  end;
+
+  if FileExists(TConfiguration.GetHostsCacheFileName) then begin
+
+    if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StartSystem: Loading hosts cache items...');
+
+    THostsCache.LoadFromFile(TConfiguration.GetHostsCacheFileName);
+
+    if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StartSystem: Done.');
+
+  end;
+
+  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StartSystem: Starting DNS resolver...');
+
   TDnsResolver.StartInstance;
+
+  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StartSystem: Done.');
 end;
 
 // --------------------------------------------------------------------------
@@ -103,29 +111,33 @@ end;
 
 class procedure TBootstrapper.StopSystem;
 begin
-  // Trace the event if a tracer is enabled
-  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StopSystem: Stopping resolver...');
+  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StopSystem: Stopping DNS resolver...');
 
-  // Stop the resolver thread
   TDnsResolver.StopInstance;
 
-  try
+  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StopSystem: Done.');
 
-    // Trace the event if a tracer is enabled
-    if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StopSystem: Saving address cache items...');
+  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StopSystem: Saving address cache items...');
 
-    // Scavenge the address cache to file
-    TAddressCache.ScavengeToFile(TConfiguration.GetAddressCacheFileName);
+  TAddressCache.ScavengeToFile(TConfiguration.GetAddressCacheFileName);
 
-  except
-    on E: Exception do if TTracer.IsEnabled then TTracer.Trace(TracePriorityError, 'TBootstrapper.StopSystem: ' + E.Message);
+  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StopSystem: Done.');
+
+  if TConfiguration.GetHttpServerConfiguration.IsEnabled then begin
+
+    if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StopSystem: Stopping HTTP server...');
+
+    THttpServer.StopInstance;
+
+    if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StopSystem: Done.');
+
   end;
 
-  // Trace the event if a tracer is enabled
   if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StopSystem: Finalization...');
 
-  // Finalizations
   THostsCache.Finalize; TAddressCache.Finalize; TSessionCache.Finalize; TCommunicationChannel.Finalize;
+
+  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StopSystem: Done.');
 end;
 
 // --------------------------------------------------------------------------

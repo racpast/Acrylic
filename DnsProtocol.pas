@@ -123,7 +123,7 @@ const
 // --------------------------------------------------------------------------
 
 type
-  TDnsProtocol = (UdpProtocol, TcpProtocol);
+  TDnsProtocol = (UdpProtocol, TcpProtocol, Socks5Protocol);
 
 // --------------------------------------------------------------------------
 //
@@ -391,7 +391,7 @@ class function TDnsProtocolUtility.ParseDnsProtocol(Text: String): TDnsProtocol;
 var
   InvariantText: String;
 begin
-  InvariantText := UpperCase(Text); if (InvariantText = 'TCP') then Result := TcpProtocol else Result := UdpProtocol;
+  InvariantText := UpperCase(Text); if (InvariantText = 'SOCKS5') then Result := Socks5Protocol else if (InvariantText = 'TCP') then Result := TcpProtocol else Result := UdpProtocol;
 end;
 
 // --------------------------------------------------------------------------
@@ -455,10 +455,8 @@ begin
 
         if ((OffsetLX + 1) < BufferLen) then begin
 
-          // Update the offsets (first and other levels)
           if (Level = 1) then Inc(OffsetL1, 2); OffsetLX := ((PByteArray(Buffer)^[OffsetLX] and $1F) shl 8) + PByteArray(Buffer)^[OffsetLX + 1];
 
-          // Call the function recursively
           Value := TDnsProtocolUtility.GetStringFromPacket(Value, Buffer, OffsetL1, OffsetLX, Level + 1, BufferLen);
 
         end else begin
@@ -467,22 +465,17 @@ begin
 
       end else if ((OffsetLX + PByteArray(Buffer)^[OffsetLX] + 1) < BufferLen) then begin
 
-        // Add the domain separator (a dot)
         if (Value <> '') then Value := Value + '.';
 
-        // Add the domain one character at a time
         for Index := 1 to PByteArray(Buffer)^[OffsetLX] do Value := Value + Char(PByteArray(Buffer)^[OffsetLX + Index]);
 
-        // Update the offsets (first and other levels)
         if (Level = 1) then Inc(OffsetL1, PByteArray(Buffer)^[OffsetLX] + 1); Inc(OffsetLX, PByteArray(Buffer)^[OffsetLX] + 1);
 
-        // Call the function recursively
         Value := TDnsProtocolUtility.GetStringFromPacket(Value, Buffer, OffsetL1, OffsetLX, Level, BufferLen);
 
       end;
     end else begin
 
-      // Update the offsets (first and other levels)
       if (Level = 1) then Inc(OffsetL1); Inc(OffsetLX);
 
     end;
@@ -519,7 +512,7 @@ var
 begin
   PIndex := 0;
 
-  for CIndex := 1 to Length(Value) do begin // Write the string into the packet
+  for CIndex := 1 to Length(Value) do begin
 
     if (Value[CIndex] <> '.') then begin
       PByteArray(Buffer)^[Offset + PIndex + 1] := Byte(Value[CIndex]); Inc(PIndex);
@@ -529,10 +522,8 @@ begin
 
   end;
 
-  // Update the part length into the packet
   PByteArray(Buffer)^[Offset] := PIndex; Inc(Offset, PIndex + 1);
 
-  // Last character must be zero
   PByteArray(Buffer)^[Offset] := $00;
 
   Inc(Offset);
@@ -782,7 +773,6 @@ class function TDnsProtocolUtility.PrintRequestPacketDescriptionAsNormalStringFr
 var
   DomainName: String; QueryType: Word;
 begin
-  // Get the domain name and query type from the request
   TDnsProtocolUtility.GetDomainNameAndQueryTypeFromRequestPacket(Buffer, BufferLen, DomainName, QueryType);
 
   if (IncludePacketBytesAlways) then Result := 'Q[1]=' + DomainName + ';T[1]=' + TDnsQueryTypeUtility.ToString(QueryType) + ';' + TDnsProtocolUtility.PrintGenericPacketBytesAsStringFromPacket(Buffer, BufferLen) else Result := 'Q[1]=' + DomainName + ';T[1]=' + TDnsQueryTypeUtility.ToString(QueryType);
@@ -805,7 +795,6 @@ begin
 
   if (RCode = 0) and (QdCnt = 1) and (AnCnt > 0) then begin // We are only able to understand this
 
-    // Read the first question
     OffsetL1 := $0C; AValue := TDnsProtocolUtility.GetStringFromPacket(Buffer, OffsetL1, BufferLen); Inc(OffsetL1, 4);
 
     FValue := FValue + ';' + 'Q[1]=' + AValue;
@@ -949,13 +938,10 @@ begin
 
   if (RCode = 0) and (QdCnt = 1) and (AnCnt > 0) then begin // We are only able to understand this
 
-    // Initialize
     SetLength(FValue, 0);
 
-    // Read the first question
     OffsetL1 := $0C; AValue := TDnsProtocolUtility.GetStringFromPacket(Buffer, OffsetL1, BufferLen); Inc(OffsetL1, 4);
 
-    // Update the packet description
     FValue := 'Q=' + AValue;
 
     for Index := 1 to AnCnt do begin
@@ -977,10 +963,8 @@ begin
 
                 if (AnDta = 4) then begin
 
-                  // Read the answer contents
                   BValue := TIPv4AddressUtility.ToString(TDnsProtocolUtility.GetIPv4AddressFromPacket(Buffer, OffsetL1, BufferLen));
 
-                  // Update the packet description
                   FValue := FValue + ';A=' + AValue + '>' + BValue;
 
                 end else begin

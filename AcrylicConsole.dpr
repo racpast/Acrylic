@@ -32,6 +32,7 @@ uses
   FileTracerAgent in 'FileTracerAgent.pas',
   HitLogger in 'HitLogger.pas',
   HostsCache in 'HostsCache.pas',
+  HttpServer in 'HttpServer.pas',
   MemoryManager in 'MemoryManager.pas',
   MemoryStore in 'MemoryStore.pas',
   PatternMatching in 'PatternMatching.pas',
@@ -65,10 +66,8 @@ var
 // --------------------------------------------------------------------------
 
 begin
-  // Init stuff
   DecimalSeparator := '.';
 
-  // Parse command line params
   NoLog := GetBooleanCommandLineParamValue('NoLog');
   NoBanner := GetBooleanCommandLineParamValue('NoBanner');
 
@@ -80,21 +79,15 @@ begin
 
   end;
 
-  // Initialize the configuration and set the console tracer agent
   TConfiguration.Initialize; TTracer.Initialize; if not(NoLog) then TTracer.SetTracerAgent(TConsoleTracerAgent.Create);
 
-  // Trace Acrylic version info if a tracer is enabled
   if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'Acrylic version is ' + AcrylicVersionNumber + ' released on ' + AcrylicReleaseDate + '.');
 
-  // Start the system using a bootstrapper
   TBootstrapper.StartSystem;
 
-  // Wait until the ENTER key is pressed
-  ReadLn;
+  ReadLn; // Wait until the ENTER key is pressed
 
-  // Stop the system
   TBootstrapper.StopSystem;
 
-  // Finalize everything
   TTracer.Finalize; TConfiguration.Finalize;
 end.

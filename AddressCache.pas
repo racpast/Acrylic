@@ -126,7 +126,7 @@ var
 
 class procedure TAddressCache.Initialize;
 begin
-  TAddressCache_MemoryStore := TMemoryStore.Create(65536);
+  TAddressCache_MemoryStore := TMemoryStore.Create();
 
   TAddressCache_Root := nil;
 end;
@@ -260,16 +260,13 @@ class procedure TAddressCache.Add(ArrivalTime: TDateTime; RequestHash: Int64; Re
 var
   AddressCacheItem: PAddressCacheItem;
 begin
-  // Allocate memory for the item
   AddressCacheItem := TAddressCache_MemoryStore.GetMemory(SizeOf(TAddressCacheItem));
 
   AddressCacheItem^.Time := ShortTime(ArrivalTime);
   AddressCacheItem^.IsNegativeResponse := IsNegativeResponse;
 
-  // Allocate memory for the item's response and copy the source data
   AddressCacheItem^.Response := TAddressCache_MemoryStore.GetMemory(ResponseLen); Move(Response^, AddressCacheItem^.Response^, ResponseLen); AddressCacheItem^.ResponseLen := ResponseLen;
 
-  // Add the newly created item to the address cache structure
   Self.InternalAdd(RequestHash, AddressCacheItem);
 end;
 
@@ -283,7 +280,6 @@ var
 begin
   Result := NotFound; if (TAddressCache_Root <> nil) then begin
 
-    // Search the request hash into the address cache, if it's found...
     AddressCacheItem := nil; Self.InternalFind(RequestHash, Pointer(AddressCacheItem), TAddressCache_Root); if (AddressCacheItem <> nil) then begin
 
       ElapsedTime := ShortTime(ArrivalTime) - AddressCacheItem^.Time;
@@ -291,7 +287,6 @@ begin
       // If the item is not older than the scavenging or negative time (which one depends by its type)...
       if (not AddressCacheItem^.IsNegativeResponse and (ElapsedTime <= Cardinal(TConfiguration.GetAddressCacheScavengingTime))) or (AddressCacheItem^.IsNegativeResponse and (ElapsedTime <= Cardinal(TConfiguration.GetAddressCacheNegativeTime))) then begin
 
-        // Get the item's response
         ResponseLen := AddressCacheItem^.ResponseLen; Move(AddressCacheItem^.Response^, Response^, ResponseLen);
 
         // Return whether the request needs a silent update or not
@@ -334,19 +329,14 @@ begin
   // If the item is not older than the scavenging or negative time (which one depends by its type)...
   if (not PAddressCacheItem(Part)^.IsNegativeResponse and (ElapsedTime <= Cardinal(TConfiguration.GetAddressCacheScavengingTime))) or (PAddressCacheItem(Part)^.IsNegativeResponse and (ElapsedTime <= Cardinal(TConfiguration.GetAddressCacheNegativeTime))) then begin
 
-    // Save the hash value
     if (FileStream.Write(Hash, SizeOf(Int64)) <> SizeOf(Int64)) then raise Exception.Create('TAddressCache.ScavengeToFile: Saving of the Hash field failed.');
 
-    // Save the item's Time field
     if (FileStream.Write(PAddressCacheItem(Part)^.Time, SizeOf(Cardinal)) <> SizeOf(Cardinal)) then raise Exception.Create('TAddressCache.ScavengeToFile: Saving of the Time field failed.');
 
-    // Save the item's ResponseLen field
     if (FileStream.Write(PAddressCacheItem(Part)^.ResponseLen, SizeOf(Integer)) <> SizeOf(Integer)) then raise Exception.Create('TAddressCache.ScavengeToFile: Saving of the ResponseLen field failed.');
 
-    // Save the item's Response field
     if (FileStream.Write(PAddressCacheItem(Part)^.Response^, PAddressCacheItem(Part)^.ResponseLen) <> PAddressCacheItem(Part)^.ResponseLen) then raise Exception.Create('TAddressCache.ScavengeToFile: Saving of the Response field failed.');
 
-    // Save the item's IsNegativeResponse field
     if (FileStream.Write(PAddressCacheItem(Part)^.IsNegativeResponse, SizeOf(Boolean)) <> SizeOf(Boolean)) then raise Exception.Create('TAddressCache.ScavengeToFile: Saving of the IsNegativeResponse field failed.');
 
   end;
@@ -360,14 +350,12 @@ class procedure TAddressCache.ScavengeToFile(FileName: String);
 var
   FileStream: TFileStream;
 begin
-  // Trace the event if a tracer is enabled
   if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TAddressCache.ScavengeToFile: Saving address cache items...');
 
   FileStream := TFileStream.Create(FileName, fmCreate, fmShareDenyWrite);
 
   try
 
-    // Traverse the structure writing items to disk and scavenging old ones
     if (TAddressCache_Root <> nil) then Self.InternalScavengeItemToFile(FileStream, ShortTime(Now), TAddressCache_Root);
 
   finally
@@ -376,7 +364,6 @@ begin
 
   end;
 
-  // Trace the event if a tracer is enabled
   if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TAddressCache.ScavengeToFile: Address cache items saved successfully.');
 end;
 
@@ -396,28 +383,20 @@ begin
 
       try
 
-        // Allocate memory for the item
         AddressCacheItem := TAddressCache_MemoryStore.GetMemory(SizeOf(TAddressCacheItem)); AddressCacheItem^.Response := nil;
 
-        // Load the hash value
         if (SizeOf(Int64) <> FileStream.Read(Hash, SizeOf(Int64))) then raise Exception.Create('TAddressCache.LoadFromFile: Loading of the Hash field failed.');
 
-        // Load the item's Time field
         if (SizeOf(Cardinal) <> FileStream.Read(AddressCacheItem^.Time, SizeOf(Cardinal))) then raise Exception.Create('TAddressCache.LoadFromFile: Loading of the Time field failed.');
 
-        // Load the item's ResponseLen field
         if (SizeOf(Integer) <> FileStream.Read(AddressCacheItem^.ResponseLen, SizeOf(Integer))) then raise Exception.Create('TAddressCache.LoadFromFile: Loading of the ResponseLen field failed.');
 
-        // Allocate memory for the item's response
         AddressCacheItem^.Response := TAddressCache_MemoryStore.GetMemory(AddressCacheItem^.ResponseLen);
 
-        // Load the item's Response field
         if (AddressCacheItem^.ResponseLen <> FileStream.Read(AddressCacheItem^.Response^, AddressCacheItem^.ResponseLen)) then raise Exception.Create('TAddressCache.LoadFromFile: Loading of the Response field failed.');
 
-        // Load the item's IsNegativeResponse field
         if (SizeOf(Boolean) <> FileStream.Read(AddressCacheItem^.IsNegativeResponse, SizeOf(Boolean))) then raise Exception.Create('TAddressCache.LoadFromFile: Loading of the IsNegativeResponse field failed.');
 
-        // Add the item into the address cache structure
         Self.InternalAdd(Hash, Pointer(AddressCacheItem));
 
         Inc(NumberOfItemsLoaded);

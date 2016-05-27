@@ -75,13 +75,10 @@ var
 begin
   Position := Pos(LINE_TERMINATOR, CurrentLine); while not(Position > 0) do begin
 
-    // Read a chunk of data into the buffer
     SetLength(Buffer, LINE_READ_CHUNK); Bytes := Stream.Read(Buffer[1], LINE_READ_CHUNK); if (Bytes > 0) then begin // If there is data...
 
-      // Append the chunk of data to the current line
-      CurrentLine := CurrentLine + Copy(Buffer, 1, Bytes);
+      Self.CurrentLine := Self.CurrentLine + Copy(Buffer, 1, Bytes);
 
-      // Find line terminator in the current line
       Position := Pos(LINE_TERMINATOR, CurrentLine);
 
     end else begin // There is no data
@@ -90,18 +87,14 @@ begin
 
   end; if (Position > 0) then begin // If a line terminator has been found...
 
-    // Transfer part of the current line into the output line
-    OutputLine := Copy(CurrentLine, 1, Position - 1); Delete(CurrentLine, 1, Position + Length(LINE_TERMINATOR) - 1);
+    OutputLine := Copy(Self.CurrentLine, 1, Position - 1); Delete(Self.CurrentLine, 1, Position + Length(LINE_TERMINATOR) - 1);
 
-    // There should be more lines
     Result := True;
 
   end else begin // A line terminator has not been found
 
-    // Transfer all of the current line into the output line
-    OutputLine := CurrentLine; SetLength(CurrentLine, 0);
+    OutputLine := Self.CurrentLine; SetLength(Self.CurrentLine, 0);
 
-    // There should be no more lines
     Result := False;
 
   end;

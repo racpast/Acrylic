@@ -40,11 +40,20 @@
 #                                                                           #
 # 127.0.0.1 ads.* -ads.test1 -ads.test2                                     #
 #                                                                           #
+# For easier maintenance of HOSTS files coming from multiple sources it  is #
+# also possible to "include"  external  HOSTS  files  using  the  following #
+# syntax (the line must start with a '@' character followed by a space  and #
+# then by a relative or an absolute file name):                             #
+#                                                                           #
+# @ AcrylicHostsGroup1.txt                                                  #
+# @ AcrylicHostsGroup2.txt                                                  #
+#                                                                           #
 # A line starting with the '#' character (and everything after it  if  it's #
 # found within a line) is considered a comment and therefore ignored.       #
 #                                                                           #
 # Note: If all domain names are provided in ascending order Acrylic will be #
-# able to load them much faster.                                            #
+# able to load them much faster (avoiding a costly sort at the end  of  the #
+# load and parse process).                                                  #
 #                                                                           #
 #############################################################################
 

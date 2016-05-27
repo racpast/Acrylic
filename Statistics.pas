@@ -163,17 +163,14 @@ begin
 
     if TStatistics_SingleFlyTimesMeasuredFromDnsFlg[DnsIndex, SessionId] then begin
 
-      // Calculate elapsed
       Elapsed := Arrival - TStatistics_SingleFlyTimesMeasuredFromDnsVal[DnsIndex, SessionId];
 
-      // Update the number of responses, fly times and flag
       Inc(TStatistics_TotalResponsesReceivedFromDns[DnsIndex]); TStatistics_TotalFlyTimesMeasuredFromDns[DnsIndex] := TStatistics_TotalFlyTimesMeasuredFromDns[DnsIndex] + Elapsed; TStatistics_Changed := True; TStatistics_SingleFlyTimesMeasuredFromDnsFlg[DnsIndex, SessionId] := False;
 
     end;
 
   end else begin
 
-    // Update the arrival value and flag
     TStatistics_SingleFlyTimesMeasuredFromDnsVal[DnsIndex, SessionId] := Arrival; TStatistics_SingleFlyTimesMeasuredFromDnsFlg[DnsIndex, SessionId] := True;
 
   end;
@@ -190,10 +187,8 @@ var
 begin
   if TStatistics_Changed then begin
 
-    // Init data
     SetLength(Data, 0);
 
-    // Get current time
     TStatistics_CurrentTime := Now;
 
     Data := Data + 'StartTime                             : ' + FormatDateTime('yyyy-mm-dd HH:nn:ss', TStatistics_StartTime) + #13#10;

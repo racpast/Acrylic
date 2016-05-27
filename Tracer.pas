@@ -114,12 +114,11 @@ end;
 
 class procedure TTracer.Trace(Priority: TracePriority; Message: String);
 begin
-  if (TTracer_TracerAgent <> nil) then begin // If the tracer agent has been set...
+  if (TTracer_TracerAgent <> nil) then begin
 
-    // If the priority is not less than the minimum for tracing then forward the trace to the tracer agent
     if (Priority >= TTracer_MinimumTracingPriority) then TTracer_TracerAgent.RenderTrace(Now, Priority, Message);
 
-  end else begin // The tracer agent has not been set
+  end else begin
 
     raise Exception.Create('TTracer.Trace: The tracer agent must be set before calling this method.');
 
