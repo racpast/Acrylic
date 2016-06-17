@@ -23,6 +23,7 @@ uses
   DnsProtocol in 'DnsProtocol.pas',
   DnsResolver in 'DnsResolver.pas',
   Environment in 'Environment.pas',
+  EnvironmentVariables in 'EnvironmentVariables.pas',
   FileStreamLineEx in 'FileStreamLineEx.pas',
   FileTracerAgent in 'FileTracerAgent.pas',
   HitLogger in 'HitLogger.pas',

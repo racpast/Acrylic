@@ -29,7 +29,7 @@ type
       MemoryBlockList: TList;
       PositionInCurrentMemoryBlock: Integer;
     public
-      constructor Create(); overload;
+      constructor Create; overload;
       constructor Create(MemoryBlockSize: Integer); overload;
       destructor Destroy; override;
     public
@@ -60,7 +60,7 @@ const
 //
 // --------------------------------------------------------------------------
 
-constructor TMemoryStore.Create();
+constructor TMemoryStore.Create;
 begin
   Self.MemoryBlockSize := MEMORY_STORE_DEFAULT_BLOCK_SIZE;
   Self.MemoryBlockList := TList.Create;

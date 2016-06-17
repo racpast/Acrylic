@@ -153,10 +153,10 @@ begin
           case QueryType of
 
             DNS_QUERY_TYPE_A:
-              TDnsProtocolUtility.BuildPositiveIPv4ResponsePacket(DomainName, QueryType, LOCALHOST_IPV4_ADDRESS, Output, OutputLen);
+              TDnsProtocolUtility.BuildPositiveIPv4ResponsePacket(DomainName, QueryType, LOCALHOST_IPV4_ADDRESS, TConfiguration.GetGeneratedDnsResponseTimeToLive, Output, OutputLen);
 
             DNS_QUERY_TYPE_AAAA:
-              TDnsProtocolUtility.BuildPositiveIPv6ResponsePacket(DomainName, QueryType, LOCALHOST_IPV6_ADDRESS, Output, OutputLen);
+              TDnsProtocolUtility.BuildPositiveIPv6ResponsePacket(DomainName, QueryType, LOCALHOST_IPV6_ADDRESS, TConfiguration.GetGeneratedDnsResponseTimeToLive, Output, OutputLen);
 
             else
               TDnsProtocolUtility.BuildPositiveResponsePacket(DomainName, QueryType, Output, OutputLen);
@@ -173,7 +173,7 @@ begin
 
         end else if (QueryType = DNS_QUERY_TYPE_A) and THostsCache.Find(DomainName, DNS_QUERY_TYPE_A, HostsEntry) then begin
 
-          TDnsProtocolUtility.BuildPositiveIPv4ResponsePacket(DomainName, QueryType, HostsEntry.Address.IPv4Address, Output, OutputLen);
+          TDnsProtocolUtility.BuildPositiveIPv4ResponsePacket(DomainName, QueryType, HostsEntry.Address.IPv4Address, TConfiguration.GetGeneratedDnsResponseTimeToLive, Output, OutputLen);
 
           TDnsProtocolUtility.SetIdIntoPacket(SessionId, Output); Self.CommunicationChannel.SendTo(Output, OutputLen, Address, Port);
 
@@ -197,7 +197,7 @@ begin
 
         end else if (QueryType = DNS_QUERY_TYPE_AAAA) and THostsCache.Find(DomainName, DNS_QUERY_TYPE_AAAA, HostsEntry) then begin
 
-          TDnsProtocolUtility.BuildPositiveIPv6ResponsePacket(DomainName, QueryType, HostsEntry.Address.IPv6Address, Output, OutputLen);
+          TDnsProtocolUtility.BuildPositiveIPv6ResponsePacket(DomainName, QueryType, HostsEntry.Address.IPv6Address, TConfiguration.GetGeneratedDnsResponseTimeToLive, Output, OutputLen);
 
           TDnsProtocolUtility.SetIdIntoPacket(SessionId, Output); Self.CommunicationChannel.SendTo(Output, OutputLen, Address, Port);
 

@@ -91,6 +91,8 @@ type
       class function  GetLocalIPv6BindingAddress: TIPv6Address;
       class function  GetLocalIPv6BindingPort: Word;
     public
+      class function  GetGeneratedDnsResponseTimeToLive: Integer;
+    public
       class function  GetHttpServerConfiguration: THttpServerConfiguration;
     public
       class function  IsDomainNameAffinityMatch(DomainName: String; DomainNameAffinityMask: TStringList): Boolean;
@@ -182,6 +184,13 @@ var
 // --------------------------------------------------------------------------
 
 var
+  TConfiguration_GeneratedDnsResponseTimeToLive: Integer;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+var
   TConfiguration_HttpServerConfiguration: THttpServerConfiguration;
 
 // --------------------------------------------------------------------------
@@ -256,6 +265,8 @@ begin
 
   TConfiguration_LocalIPv6BindingAddress := ANY_IPV6_ADDRESS;
   TConfiguration_LocalIPv6BindingPort := 53;
+
+  TConfiguration_GeneratedDnsResponseTimeToLive := 60;
 
   TConfiguration_HitLogFileName := '';
   TConfiguration_HitLogFileWhat := '';
@@ -467,6 +478,15 @@ end;
 //
 // --------------------------------------------------------------------------
 
+class function TConfiguration.GetGeneratedDnsResponseTimeToLive: Integer;
+begin
+  Result := TConfiguration_GeneratedDnsResponseTimeToLive;
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
 class function TConfiguration.GetLocalIPv6BindingPort: Word;
 begin
   Result := TConfiguration_LocalIPv6BindingPort;
@@ -656,6 +676,8 @@ begin
       end;
 
     end;
+
+    TConfiguration_GeneratedDnsResponseTimeToLive := IniFile.ReadInteger('GlobalSection', 'GeneratedResponseTimeToLive', TConfiguration_GeneratedDnsResponseTimeToLive);
 
     TConfiguration_HitLogFileName := IniFile.ReadString('GlobalSection', 'HitLogFileName', ''); if (TConfiguration_HitLogFileName <> '') then TConfiguration_HitLogFileName := Self.MakeAbsolutePath(TConfiguration_HitLogFileName);
     TConfiguration_HitLogFileWhat := IniFile.ReadString('GlobalSection', 'HitLogFileWhat', '');

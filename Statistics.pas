@@ -43,7 +43,10 @@ implementation
 // --------------------------------------------------------------------------
 
 uses
-  SysUtils, Windows, Configuration;
+  SysUtils,
+  Windows,
+  Configuration,
+  EnvironmentVariables;
 
 // --------------------------------------------------------------------------
 //
@@ -183,7 +186,7 @@ end;
 
 class procedure TStatistics.FlushStatisticsToDisk;
 var
-  Handle: THandle; Data: String; Written: Cardinal; DnsIndex: Integer;
+  Name: String; Handle: THandle; Data: String; Written: Cardinal; DnsIndex: Integer;
 begin
   if TStatistics_Changed then begin
 
@@ -205,7 +208,13 @@ begin
       if (TStatistics_TotalResponsesReceivedFromDns[DnsIndex] > 0) then Data := Data + 'TotalResponsesReceivedFromDns' + Format('%.2d', [DnsIndex + 1]) + '       : ' + IntToStr(TStatistics_TotalResponsesReceivedFromDns[DnsIndex]) + #13#10 + 'MeanResponseTimeOfDns' + Format('%.2d', [DnsIndex + 1]) + '               : ' + FormatCurr('0.0', 1000.0 * (TStatistics_TotalFlyTimesMeasuredFromDns[DnsIndex] / TStatistics_TotalResponsesReceivedFromDns[DnsIndex])) + ' ms' + #13#10 else Data := Data + 'TotalResponsesReceivedFromDns' + Format('%.2d', [DnsIndex + 1]) + '       : ' + IntToStr(TStatistics_TotalResponsesReceivedFromDns[DnsIndex]) + #13#10 + 'MeanResponseTimeOfDns' + Format('%.2d', [DnsIndex + 1]) + '               : ?' + #13#10;
     end;
 
-    Handle := CreateFile(PChar(TConfiguration.GetStatsLogFileName), GENERIC_WRITE, FILE_SHARE_READ, nil, CREATE_ALWAYS, FILE_ATTRIBUTE_ARCHIVE, 0); if (Handle <> INVALID_HANDLE_VALUE) then begin
+    Name := TConfiguration.GetStatsLogFileName;
+
+    if (Pos('%TEMP%', Name) > 0) then Name := StringReplace(Name, '%TEMP%', TEnvironmentVariables.Get('TEMP', '%TEMP%'), [rfReplaceAll]);
+    if (Pos('%APPDATA%', Name) > 0) then Name := StringReplace(Name, '%APPDATA%', TEnvironmentVariables.Get('APPDATA', '%APPDATA%'), [rfReplaceAll]);
+    if (Pos('%LOCALAPPDATA%', Name) > 0) then Name := StringReplace(Name, '%LOCALAPPDATA%', TEnvironmentVariables.Get('LOCALAPPDATA', '%LOCALAPPDATA%'), [rfReplaceAll]);
+
+    Handle := CreateFile(PChar(Name), GENERIC_WRITE, FILE_SHARE_READ, nil, CREATE_ALWAYS, FILE_ATTRIBUTE_ARCHIVE, 0); if (Handle <> INVALID_HANDLE_VALUE) then begin
       WriteFile(Handle, Data[1], Length(Data), Written, nil); CloseHandle(Handle);
     end;
 

@@ -36,7 +36,7 @@ type
 type
   TEnvironment = class
     private
-      class function  ExecuteCommandAndCaptureStandardOutputUsingTempFile(const CommandLine: string; var CommandOutput: string): Boolean;
+      class function  ExecuteCommandAndCaptureStandardOutputUsingTempFile(const CommandLine: String; var CommandOutput: String): Boolean;
     private
       class procedure ReadOSVersion;
     public
@@ -78,7 +78,7 @@ const
 //
 // --------------------------------------------------------------------------
 
-class function TEnvironment.ExecuteCommandAndCaptureStandardOutputUsingTempFile(const CommandLine: string; var CommandOutput: string): Boolean;
+class function TEnvironment.ExecuteCommandAndCaptureStandardOutputUsingTempFile(const CommandLine: String; var CommandOutput: String): Boolean;
 var
   TempDirectoryPath: String; TempFilePath: String; TempFileHandle: Cardinal; TempFile: TextFile; TempLine: String; SecurityAttributes: TSecurityAttributes; StartupInfo: TStartUpInfo; ProcessInfo: TProcessInformation;
 begin

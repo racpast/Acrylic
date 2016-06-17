@@ -3,7 +3,7 @@
 // --------------------------------------------------------------------------
 
 unit
-  AcrylicVersionInfo;
+  EnvironmentVariables;
 
 // --------------------------------------------------------------------------
 //
@@ -15,21 +15,54 @@ interface
 //
 // --------------------------------------------------------------------------
 
-const
-  AcrylicVersionNumber = '0.9.33';
+uses
+  Classes;
 
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
 
-const
-  AcrylicReleaseDate = 'June 17, 2016';
+type
+  TEnvironmentVariables = class
+    public
+      class function Get(Name: String; DefValue: String): String;
+  end;
 
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
 
 implementation
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+uses
+  SysUtils,
+  Windows;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class function TEnvironmentVariables.Get(Name: String; DefValue: String): String;
+var
+  Value: String; Length: Integer;
+begin
+  Length := GetEnvironmentVariable(PChar(Name), nil, 0);
+
+  if not(Length > 0) then begin
+
+    Result := DefValue; Exit;
+
+  end;
+
+  SetLength(Value, Length - 1);
+  GetEnvironmentVariable(PChar(Name), PChar(Value), Length);
+
+  Result := Value;
+end;
 
 // --------------------------------------------------------------------------
 //

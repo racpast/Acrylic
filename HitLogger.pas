@@ -46,7 +46,8 @@ uses
   SysUtils,
   Windows,
   Classes,
-  Configuration;
+  Configuration,
+  EnvironmentVariables;
 
 // --------------------------------------------------------------------------
 //
@@ -86,11 +87,19 @@ end;
 
 class procedure THitLogger.FlushAllPendingHitsToDisk;
 var
-  Handle: THandle; Written: Cardinal; Line: String; Index: Integer;
+  Name: String; Handle: THandle; Written: Cardinal; Line: String; Index: Integer;
 begin
   if (THitLogger_BufferList <> nil) and (THitLogger_BufferList.Count > 0) then begin
 
-    Handle := CreateFile(PChar(StringReplace(TConfiguration.GetHitLogFileName, '%DATE%', FormatDateTime('yyyymmdd', Now), [rfReplaceAll])), GENERIC_WRITE, FILE_SHARE_READ, nil, OPEN_ALWAYS, FILE_ATTRIBUTE_ARCHIVE, 0); if (Handle <> INVALID_HANDLE_VALUE) then begin
+    Name := TConfiguration.GetHitLogFileName;
+
+    if (Pos('%DATE%', Name) > 0) then Name := StringReplace(Name, '%DATE%', FormatDateTime('yyyymmdd', Now), [rfReplaceAll]);
+
+    if (Pos('%TEMP%', Name) > 0) then Name := StringReplace(Name, '%TEMP%', TEnvironmentVariables.Get('TEMP', '%TEMP%'), [rfReplaceAll]);
+    if (Pos('%APPDATA%', Name) > 0) then Name := StringReplace(Name, '%APPDATA%', TEnvironmentVariables.Get('APPDATA', '%APPDATA%'), [rfReplaceAll]);
+    if (Pos('%LOCALAPPDATA%', Name) > 0) then Name := StringReplace(Name, '%LOCALAPPDATA%', TEnvironmentVariables.Get('LOCALAPPDATA', '%LOCALAPPDATA%'), [rfReplaceAll]);
+
+    Handle := CreateFile(PChar(Name), GENERIC_WRITE, FILE_SHARE_READ, nil, OPEN_ALWAYS, FILE_ATTRIBUTE_ARCHIVE, 0); if (Handle <> INVALID_HANDLE_VALUE) then begin
 
       SetFilePointer(Handle, 0, nil, FILE_END); for Index := 0 to (THitLogger_BufferList.Count - 1) do begin Line := THitLogger_BufferList[Index] + #13#10; WriteFile(Handle, Line[1], Length(Line), Written, nil); end;
 

@@ -131,7 +131,7 @@ var
 
 class procedure THostsCache.Initialize;
 begin
-  THostsCache_MemoryStore := TMemoryStore.Create();
+  THostsCache_MemoryStore := TMemoryStore.Create;
 
   THostsCache_IPv4List := THashedStringList.Create; THostsCache_IPv4List.CaseSensitive := False; THostsCache_IPv4List.Duplicates := dupIgnore;
   THostsCache_IPv4Expressions := TRegExprList.Create;

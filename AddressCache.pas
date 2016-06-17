@@ -126,7 +126,7 @@ var
 
 class procedure TAddressCache.Initialize;
 begin
-  TAddressCache_MemoryStore := TMemoryStore.Create();
+  TAddressCache_MemoryStore := TMemoryStore.Create;
 
   TAddressCache_Root := nil;
 end;

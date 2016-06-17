@@ -159,10 +159,10 @@ type
     public
       class procedure BuildNegativeResponsePacket(DomainName: String; QueryType: Word; Buffer: Pointer; var BufferLen: Integer);
       class procedure BuildPositiveResponsePacket(DomainName: String; QueryType: Word; Buffer: Pointer; var BufferLen: Integer); overload;
-      class procedure BuildPositiveResponsePacket(DomainName: String; QueryType: Word; HostAddress: TDualIPAddress; Buffer: Pointer; var BufferLen: Integer); overload;
+      class procedure BuildPositiveResponsePacket(DomainName: String; QueryType: Word; HostAddress: TDualIPAddress; TimeToLive: Integer; Buffer: Pointer; var BufferLen: Integer); overload;
     public
-      class procedure BuildPositiveIPv4ResponsePacket(DomainName: String; QueryType: Word; HostAddress: TIPv4Address; Buffer: Pointer; var BufferLen: Integer);
-      class procedure BuildPositiveIPv6ResponsePacket(DomainName: String; QueryType: Word; HostAddress: TIPv6Address; Buffer: Pointer; var BufferLen: Integer);
+      class procedure BuildPositiveIPv4ResponsePacket(DomainName: String; QueryType: Word; HostAddress: TIPv4Address; TimeToLive: Integer; Buffer: Pointer; var BufferLen: Integer);
+      class procedure BuildPositiveIPv6ResponsePacket(DomainName: String; QueryType: Word; HostAddress: TIPv6Address; TimeToLive: Integer; Buffer: Pointer; var BufferLen: Integer);
     public
       class function  PrintGenericPacketBytesAsStringFromPacket(Buffer: Pointer; BufferLen: Integer): String;
       class function  PrintGenericPacketBytesAsStringFromPacketWithOffset(Buffer: Pointer; BufferLen: Integer; Offset: Integer; NumBytes: Integer): String;
@@ -618,7 +618,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class procedure TDnsProtocolUtility.BuildPositiveIPv4ResponsePacket(DomainName: String; QueryType: Word; HostAddress: TIPv4Address; Buffer: Pointer; var BufferLen: Integer);
+class procedure TDnsProtocolUtility.BuildPositiveIPv4ResponsePacket(DomainName: String; QueryType: Word; HostAddress: TIPv4Address; TimeToLive: Integer; Buffer: Pointer; var BufferLen: Integer);
 var
   Offset: Integer;
 begin
@@ -659,10 +659,10 @@ begin
   PByteArray(Buffer)^[Offset] := $01; Inc(Offset);               // QUERYCLASS (LSB)
 
   // Answer properties
-  PByteArray(Buffer)^[Offset] := $00; Inc(Offset); // TTL (MSB)
-  PByteArray(Buffer)^[Offset] := $00; Inc(Offset); // TTL
-  PByteArray(Buffer)^[Offset] := $00; Inc(Offset); // TTL
-  PByteArray(Buffer)^[Offset] := $20; Inc(Offset); // TTL (LSB)
+  PByteArray(Buffer)^[Offset] := TimeToLive shr $18;         Inc(Offset); // TTL (MSB)
+  PByteArray(Buffer)^[Offset] := TimeToLive shr $10 and $ff; Inc(Offset); // TTL
+  PByteArray(Buffer)^[Offset] := TimeToLive shr $08 and $ff; Inc(Offset); // TTL
+  PByteArray(Buffer)^[Offset] := TimeToLive and $ff;         Inc(Offset); // TTL (LSB)
 
   // Answer length
   PByteArray(Buffer)^[Offset] := $00; Inc(Offset); // MSB
@@ -678,7 +678,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class procedure TDnsProtocolUtility.BuildPositiveIPv6ResponsePacket(DomainName: String; QueryType: Word; HostAddress: TIPv6Address; Buffer: Pointer; var BufferLen: Integer);
+class procedure TDnsProtocolUtility.BuildPositiveIPv6ResponsePacket(DomainName: String; QueryType: Word; HostAddress: TIPv6Address; TimeToLive: Integer; Buffer: Pointer; var BufferLen: Integer);
 var
   Offset: Integer;
 begin
@@ -719,10 +719,10 @@ begin
   PByteArray(Buffer)^[Offset] := $01; Inc(Offset);               // QUERYCLASS (LSB)
 
   // Answer properties
-  PByteArray(Buffer)^[Offset] := $00; Inc(Offset); // TTL (MSB)
-  PByteArray(Buffer)^[Offset] := $00; Inc(Offset); // TTL
-  PByteArray(Buffer)^[Offset] := $00; Inc(Offset); // TTL
-  PByteArray(Buffer)^[Offset] := $20; Inc(Offset); // TTL (LSB)
+  PByteArray(Buffer)^[Offset] := TimeToLive shr $18;         Inc(Offset); // TTL (MSB)
+  PByteArray(Buffer)^[Offset] := TimeToLive shr $10 and $ff; Inc(Offset); // TTL
+  PByteArray(Buffer)^[Offset] := TimeToLive shr $08 and $ff; Inc(Offset); // TTL
+  PByteArray(Buffer)^[Offset] := TimeToLive and $ff;         Inc(Offset); // TTL (LSB)
 
   // Answer length
   PByteArray(Buffer)^[Offset] := $00; Inc(Offset); // MSB
@@ -738,9 +738,9 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class procedure TDnsProtocolUtility.BuildPositiveResponsePacket(DomainName: String; QueryType: Word; HostAddress: TDualIPAddress; Buffer: Pointer; var BufferLen: Integer);
+class procedure TDnsProtocolUtility.BuildPositiveResponsePacket(DomainName: String; QueryType: Word; HostAddress: TDualIPAddress; TimeToLive: Integer; Buffer: Pointer; var BufferLen: Integer);
 begin
-  if HostAddress.IsIPv6Address then TDnsProtocolUtility.BuildPositiveIPv6ResponsePacket(DomainName, QueryType, HostAddress.IPv6Address, Buffer, BufferLen) else TDnsProtocolUtility.BuildPositiveIPv4ResponsePacket(DomainName, QueryType, HostAddress.IPv4Address, Buffer, BufferLen);
+  if HostAddress.IsIPv6Address then TDnsProtocolUtility.BuildPositiveIPv6ResponsePacket(DomainName, QueryType, HostAddress.IPv6Address, TimeToLive, Buffer, BufferLen) else TDnsProtocolUtility.BuildPositiveIPv4ResponsePacket(DomainName, QueryType, HostAddress.IPv4Address, TimeToLive, Buffer, BufferLen);
 end;
 
 // --------------------------------------------------------------------------
