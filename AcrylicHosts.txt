@@ -22,7 +22,10 @@
 #                                                                           #
 # 127.0.0.1 /^ads?\..*$                                                     #
 #                                                                           #
-# Also note that there's no final '/' at the end of a regular expression.   #
+# Note that there's no final '/' at the end of a regular  expression.  More #
+# info about the regular expression engine and its syntax can be found  at: #
+#                                                                           #
+# http://www.pcre.org/                                                      #
 #                                                                           #
 # A '>' character at the  beginning  of  a  domain  name  is  a  convenient #
 # shortcut for representing all domain names ending with what follows after #

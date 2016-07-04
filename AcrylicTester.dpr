@@ -1,5 +1,5 @@
 // --------------------------------------------------------------------------
-// A console application container for unit and integration tests on Acrylic
+//
 // --------------------------------------------------------------------------
 
 {$APPTYPE CONSOLE}
@@ -9,7 +9,7 @@
 // --------------------------------------------------------------------------
 
 program
-  AcrylicTest;
+  AcrylicTester;
 
 // --------------------------------------------------------------------------
 //
@@ -38,7 +38,7 @@ uses
   MemoryManager in 'MemoryManager.pas',
   MemoryStore in 'MemoryStore.pas',
   PatternMatching in 'PatternMatching.pas',
-  RegExpr in 'RegExpr.pas',
+  PerlRegEx in 'PerlRegEx.pas',
   SessionCache in 'SessionCache.pas',
   Statistics in 'Statistics.pas',
   Stopwatch in 'Stopwatch.pas',
@@ -48,11 +48,19 @@ uses
 //
 // --------------------------------------------------------------------------
 
+const
+  TAddressCacheUnitTest_KCacheItems =  750;
+  THostsCacheUnitTest_KHostsItems   = 2000;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
 {$i CommunicationChannelsUnitTest.pas }
 {$i SessionCacheUnitTest.pas          }
 {$i AddressCacheUnitTest.pas          }
 {$i HostsCacheUnitTest.pas            }
-{$i RegExprUnitTest.pas               }
+{$i RegularExpressionUnitTest.pas     }
 
 // --------------------------------------------------------------------------
 //
@@ -62,23 +70,19 @@ begin
   DecimalSeparator := '.';
 
   WriteLn('==============================================================================');
-  WriteLn('Acrylic DNS Proxy Test Application');
+  WriteLn('Acrylic DNS Proxy Tester');
   WriteLn('==============================================================================');
 
-  // Initialize the configuration and set the console tracer agent
   TConfiguration.Initialize; TTracer.Initialize; TTracer.SetTracerAgent(TConsoleTracerAgent.Create);
 
-  // Trace Acrylic version info if a tracer is enabled
   if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'Acrylic version ' + AcrylicVersionNumber + ' released on ' + AcrylicReleaseDate + '.');
 
-  // Perform all the unit tests sequentially
   TAbstractUnitTest.ControlTestExecution(TCommunicationChannelsUnitTest.Create);
   TAbstractUnitTest.ControlTestExecution(TSessionCacheUnitTest.Create);
   TAbstractUnitTest.ControlTestExecution(TAddressCacheUnitTest.Create);
   TAbstractUnitTest.ControlTestExecution(THostsCacheUnitTest.Create);
-  TAbstractUnitTest.ControlTestExecution(TRegExprUnitTest.Create);
+  TAbstractUnitTest.ControlTestExecution(TRegularExpressionUnitTest.Create);
 
-  // Finalize everything
   TTracer.Finalize; TConfiguration.Finalize;
 
   WriteLn('Press ENTER To Quit.'); ReadLn;

@@ -98,13 +98,10 @@ var
 begin
   ClassName := RealUnitTest.ClassName; try
 
-    // Trace the beginning
     TTracer.Trace(TracePriorityInfo, ClassName + ': Started...');
 
-    // Execute the real test
     try RealUnitTest.ExecuteTest finally RealUnitTest.Free end;
 
-    // Trace the test result
     TTracer.Trace(TracePriorityInfo, ClassName + ': Succeeded.');
 
   except

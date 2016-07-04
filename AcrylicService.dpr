@@ -32,7 +32,7 @@ uses
   MemoryManager in 'MemoryManager.pas',
   MemoryStore in 'MemoryStore.pas',
   PatternMatching in 'PatternMatching.pas',
-  RegExpr in 'RegExpr.pas',
+  PerlRegEx in 'PerlRegEx.pas',
   SessionCache in 'SessionCache.pas',
   Tracer in 'Tracer.pas',
   Statistics in 'Statistics.pas',

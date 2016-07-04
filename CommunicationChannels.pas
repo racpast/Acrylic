@@ -580,7 +580,7 @@ class procedure TCommunicationChannel.Initialize;
 var
   WSAData: TWSAData;
 begin
-  if not(WSAStartup(WINDOWS_SOCKETS_VERSION, WSAData) = 0) then raise Exception.Create('TCommunicationChannel.Initialize: WSAStartup function failed.');
+  if not((WSAStartup(WINDOWS_SOCKETS_VERSION, WSAData) = 0)) then raise Exception.Create('TCommunicationChannel.Initialize: WSAStartup function failed.');
 end;
 
 // --------------------------------------------------------------------------
@@ -600,7 +600,7 @@ constructor TIPv4UdpCommunicationChannel.Create;
 begin
   Self.SocketHandle := Socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
-  if not IsValidSocketHandle(Self.SocketHandle) then raise Exception.Create('TIPv4UdpCommunicationChannel.Create: Socket allocation failed.');
+  if not(IsValidSocketHandle(Self.SocketHandle)) then raise Exception.Create('TIPv4UdpCommunicationChannel.Create: Socket allocation failed.');
 end;
 
 // --------------------------------------------------------------------------
@@ -615,7 +615,7 @@ begin
 
   IPv4SocketAddress.sin_family := AF_INET; IPv4SocketAddress.sin_addr := BindingAddress; IPv4SocketAddress.sin_port := HTONS(BindingPort);
 
-  if not IsValidSocketResult(IPv4Bind(Self.SocketHandle, IPv4SocketAddress, SizeOf(TIPv4SocketAddress))) then raise Exception.Create('TIPv4UdpCommunicationChannel.Bind: Binding to address ' + TIPv4AddressUtility.ToString(BindingAddress) + ' and port ' + IntToStr(BindingPort) + ' failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
+  if not(IsValidSocketResult(IPv4Bind(Self.SocketHandle, IPv4SocketAddress, SizeOf(TIPv4SocketAddress)))) then raise Exception.Create('TIPv4UdpCommunicationChannel.Bind: Binding to address ' + TIPv4AddressUtility.ToString(BindingAddress) + ' and port ' + IntToStr(BindingPort) + ' failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
 end;
 
 // --------------------------------------------------------------------------
@@ -653,7 +653,7 @@ begin
 
   IPv4SocketAddress.sin_family := AF_INET; IPv4SocketAddress.sin_addr := DestinationAddress; IPv4SocketAddress.sin_port := HTONS(DestinationPort);
 
-  if not IsValidSocketResult(IPv4SendTo(Self.SocketHandle, Buffer^, BufferLen, 0, IPv4SocketAddress, SizeOf(TIPv4SocketAddress))) then raise Exception.Create('TIPv4UdpCommunicationChannel.SendTo: Sending to address ' + TIPv4AddressUtility.ToString(DestinationAddress) + ' and port ' + IntToStr(DestinationPort) + ' failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
+  if not(IsValidSocketResult(IPv4SendTo(Self.SocketHandle, Buffer^, BufferLen, 0, IPv4SocketAddress, SizeOf(TIPv4SocketAddress)))) then raise Exception.Create('TIPv4UdpCommunicationChannel.SendTo: Sending to address ' + TIPv4AddressUtility.ToString(DestinationAddress) + ' and port ' + IntToStr(DestinationPort) + ' failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
 end;
 
 // --------------------------------------------------------------------------
@@ -703,7 +703,7 @@ constructor TIPv6UdpCommunicationChannel.Create;
 begin
   Self.SocketHandle := Socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
 
-  if not IsValidSocketHandle(Self.SocketHandle) then raise Exception.Create('TIPv6UdpCommunicationChannel.Create: Socket allocation failed.');
+  if not(IsValidSocketHandle(Self.SocketHandle)) then raise Exception.Create('TIPv6UdpCommunicationChannel.Create: Socket allocation failed.');
 end;
 
 // --------------------------------------------------------------------------
@@ -718,7 +718,7 @@ begin
 
   IPv6SocketAddress.sin_family := AF_INET6; IPv6SocketAddress.sin_addr := BindingAddress; IPv6SocketAddress.sin_port := HTONS(BindingPort);
 
-  if not IsValidSocketResult(IPv6Bind(Self.SocketHandle, IPv6SocketAddress, SizeOf(TIPv6SocketAddress))) then raise Exception.Create('TIPv6UdpCommunicationChannel.Bind: Binding to address ' + TIPv6AddressUtility.ToString(BindingAddress) + ' and port ' + IntToStr(BindingPort) + ' failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
+  if not(IsValidSocketResult(IPv6Bind(Self.SocketHandle, IPv6SocketAddress, SizeOf(TIPv6SocketAddress)))) then raise Exception.Create('TIPv6UdpCommunicationChannel.Bind: Binding to address ' + TIPv6AddressUtility.ToString(BindingAddress) + ' and port ' + IntToStr(BindingPort) + ' failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
 end;
 
 // --------------------------------------------------------------------------
@@ -756,7 +756,7 @@ begin
 
   IPv6SocketAddress.sin_family := AF_INET6; IPv6SocketAddress.sin_addr := DestinationAddress; IPv6SocketAddress.sin_port := HTONS(DestinationPort);
 
-  if not IsValidSocketResult(IPv6SendTo(Self.SocketHandle, Buffer^, BufferLen, 0, IPv6SocketAddress, SizeOf(TIPv6SocketAddress))) then raise Exception.Create('TIPv6UdpCommunicationChannel.SendTo: Sending to address ' + TIPv6AddressUtility.ToString(DestinationAddress) + ' and port ' + IntToStr(DestinationPort) + ' failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
+  if not(IsValidSocketResult(IPv6SendTo(Self.SocketHandle, Buffer^, BufferLen, 0, IPv6SocketAddress, SizeOf(TIPv6SocketAddress)))) then raise Exception.Create('TIPv6UdpCommunicationChannel.SendTo: Sending to address ' + TIPv6AddressUtility.ToString(DestinationAddress) + ' and port ' + IntToStr(DestinationPort) + ' failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
 end;
 
 // --------------------------------------------------------------------------
@@ -820,13 +820,13 @@ begin
 
     Self.IPv4SocketHandle := Socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
-    if not IsValidSocketHandle(Self.IPv4SocketHandle) then raise Exception.Create('TDualUdpCommunicationChannel.Bind: IPv4 socket allocation failed.');
+    if not(IsValidSocketHandle(Self.IPv4SocketHandle)) then raise Exception.Create('TDualUdpCommunicationChannel.Bind: IPv4 socket allocation failed.');
 
     FillChar(IPv4SocketAddress, SizeOf(TIPv4SocketAddress), 0);
 
     IPv4SocketAddress.sin_family := AF_INET; IPv4SocketAddress.sin_addr := IPv4BindingAddress; IPv4SocketAddress.sin_port := HTONS(IPv4BindingPort);
 
-    if not IsValidSocketResult(IPv4Bind(Self.IPv4SocketHandle, IPv4SocketAddress, SizeOf(TIPv4SocketAddress))) then raise Exception.Create('TDualUdpCommunicationChannel.Bind: Binding to IPv4 address ' + TIPv4AddressUtility.ToString(IPv4BindingAddress) + ' and port ' + IntToStr(IPv4BindingPort) + ' failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
+    if not(IsValidSocketResult(IPv4Bind(Self.IPv4SocketHandle, IPv4SocketAddress, SizeOf(TIPv4SocketAddress)))) then raise Exception.Create('TDualUdpCommunicationChannel.Bind: Binding to IPv4 address ' + TIPv4AddressUtility.ToString(IPv4BindingAddress) + ' and port ' + IntToStr(IPv4BindingPort) + ' failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
 
   end;
 
@@ -834,13 +834,13 @@ begin
 
     Self.IPv6SocketHandle := Socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
 
-    if not IsValidSocketHandle(Self.IPv6SocketHandle) then raise Exception.Create('TDualUdpCommunicationChannel.Bind: IPv6 socket allocation failed.');
+    if not(IsValidSocketHandle(Self.IPv6SocketHandle)) then raise Exception.Create('TDualUdpCommunicationChannel.Bind: IPv6 socket allocation failed.');
 
     FillChar(IPv6SocketAddress, SizeOf(TIPv6SocketAddress), 0);
 
     IPv6SocketAddress.sin_family := AF_INET6; IPv6SocketAddress.sin_addr := IPv6BindingAddress; IPv6SocketAddress.sin_port := HTONS(IPv6BindingPort);
 
-    if not IsValidSocketResult(IPv6Bind(Self.IPv6SocketHandle, IPv6SocketAddress, SizeOf(TIPv6SocketAddress))) then raise Exception.Create('TDualUdpCommunicationChannel.Bind: Binding to IPv6 address ' + TIPv6AddressUtility.ToString(IPv6BindingAddress) + ' and port ' + IntToStr(IPv6BindingPort) + ' failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
+    if not(IsValidSocketResult(IPv6Bind(Self.IPv6SocketHandle, IPv6SocketAddress, SizeOf(TIPv6SocketAddress)))) then raise Exception.Create('TDualUdpCommunicationChannel.Bind: Binding to IPv6 address ' + TIPv6AddressUtility.ToString(IPv6BindingAddress) + ' and port ' + IntToStr(IPv6BindingPort) + ' failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
 
   end;
 end;
@@ -861,7 +861,7 @@ begin
 
       IPv6SocketAddress.sin_family := AF_INET6; IPv6SocketAddress.sin_addr := DestinationAddress.IPv6Address; IPv6SocketAddress.sin_port := HTONS(DestinationPort);
 
-      if not IsValidSocketResult(IPv6SendTo(Self.IPv6SocketHandle, Buffer^, BufferLen, 0, IPv6SocketAddress, SizeOf(TIPv6SocketAddress))) then raise Exception.Create('TDualUdpCommunicationChannel.SendTo: Sending to IPv6 address ' + TIPv6AddressUtility.ToString(DestinationAddress.IPv6Address) + ' and port ' + IntToStr(DestinationPort) + ' failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
+      if not(IsValidSocketResult(IPv6SendTo(Self.IPv6SocketHandle, Buffer^, BufferLen, 0, IPv6SocketAddress, SizeOf(TIPv6SocketAddress)))) then raise Exception.Create('TDualUdpCommunicationChannel.SendTo: Sending to IPv6 address ' + TIPv6AddressUtility.ToString(DestinationAddress.IPv6Address) + ' and port ' + IntToStr(DestinationPort) + ' failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
 
     end;
 
@@ -873,7 +873,7 @@ begin
 
       IPv4SocketAddress.sin_family := AF_INET; IPv4SocketAddress.sin_addr := DestinationAddress.IPv4Address; IPv4SocketAddress.sin_port := HTONS(DestinationPort);
 
-      if not IsValidSocketResult(IPv4SendTo(Self.IPv4SocketHandle, Buffer^, BufferLen, 0, IPv4SocketAddress, SizeOf(TIPv4SocketAddress))) then raise Exception.Create('TDualUdpCommunicationChannel.SendTo: Sending to IPv4 address ' + TIPv4AddressUtility.ToString(DestinationAddress.IPv4Address) + ' and port ' + IntToStr(DestinationPort) + ' failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
+      if not(IsValidSocketResult(IPv4SendTo(Self.IPv4SocketHandle, Buffer^, BufferLen, 0, IPv4SocketAddress, SizeOf(TIPv4SocketAddress)))) then raise Exception.Create('TDualUdpCommunicationChannel.SendTo: Sending to IPv4 address ' + TIPv4AddressUtility.ToString(DestinationAddress.IPv4Address) + ' and port ' + IntToStr(DestinationPort) + ' failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
 
     end;
 
@@ -993,7 +993,7 @@ constructor TIPv4TcpCommunicationChannel.Create;
 begin
   Self.SocketHandle := Socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
-  if not IsValidSocketHandle(Self.SocketHandle) then raise Exception.Create('TIPv4TcpCommunicationChannel.Create: Socket allocation failed.');
+  if not(IsValidSocketHandle(Self.SocketHandle)) then raise Exception.Create('TIPv4TcpCommunicationChannel.Create: Socket allocation failed.');
 end;
 
 // --------------------------------------------------------------------------
@@ -1017,7 +1017,7 @@ begin
 
   IPv4SocketAddress.sin_family := AF_INET; IPv4SocketAddress.sin_addr := BindingAddress; IPv4SocketAddress.sin_port := HTONS(BindingPort);
 
-  if not IsValidSocketResult(IPv4Bind(Self.SocketHandle, IPv4SocketAddress, SizeOf(TIPv4SocketAddress))) then raise Exception.Create('TIPv4TcpCommunicationChannel.Bind: Binding to address ' + TIPv4AddressUtility.ToString(BindingAddress) + ' and port ' + IntToStr(BindingPort) + ' failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
+  if not(IsValidSocketResult(IPv4Bind(Self.SocketHandle, IPv4SocketAddress, SizeOf(TIPv4SocketAddress)))) then raise Exception.Create('TIPv4TcpCommunicationChannel.Bind: Binding to address ' + TIPv4AddressUtility.ToString(BindingAddress) + ' and port ' + IntToStr(BindingPort) + ' failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
 end;
 
 // --------------------------------------------------------------------------
@@ -1026,7 +1026,7 @@ end;
 
 procedure TIPv4TcpCommunicationChannel.Listen;
 begin
-  if not IsValidSocketResult(CommunicationChannels.Listen(Self.SocketHandle, 0)) then raise Exception.Create('TIPv4TcpCommunicationChannel.Listen: Listening failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
+  if not(IsValidSocketResult(CommunicationChannels.Listen(Self.SocketHandle, 0))) then raise Exception.Create('TIPv4TcpCommunicationChannel.Listen: Listening failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
 end;
 
 // --------------------------------------------------------------------------
@@ -1039,7 +1039,7 @@ var
 begin
   IPv4SocketAddressLen := SizeOf(TIPv4SocketAddress); FillChar(IPv4SocketAddress, IPv4SocketAddressLen, 0);
 
-  IncomingConnectionSocketHandle := IPv4Accept(Self.SocketHandle, IPv4SocketAddress, IPv4SocketAddressLen); if not IsValidSocketHandle(IncomingConnectionSocketHandle) then raise Exception.Create('TIPv4TcpCommunicationChannel.Accept: Accepting socket failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.'); Result := TIPv4TcpCommunicationChannel.Create(IncomingConnectionSocketHandle, IPv4SocketAddress.sin_addr, HTONS(IPv4SocketAddress.sin_port));
+  IncomingConnectionSocketHandle := IPv4Accept(Self.SocketHandle, IPv4SocketAddress, IPv4SocketAddressLen); if not(IsValidSocketHandle(IncomingConnectionSocketHandle)) then raise Exception.Create('TIPv4TcpCommunicationChannel.Accept: Accepting socket failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.'); Result := TIPv4TcpCommunicationChannel.Create(IncomingConnectionSocketHandle, IPv4SocketAddress.sin_addr, HTONS(IPv4SocketAddress.sin_port));
 end;
 
 // --------------------------------------------------------------------------
@@ -1059,7 +1059,7 @@ begin
 
     IPv4SocketAddressLen := SizeOf(TIPv4SocketAddress); FillChar(IPv4SocketAddress, IPv4SocketAddressLen, 0);
 
-    IncomingConnectionSocketHandle := IPv4Accept(Self.SocketHandle, IPv4SocketAddress, IPv4SocketAddressLen); if not IsValidSocketHandle(IncomingConnectionSocketHandle) then raise Exception.Create('TIPv4TcpCommunicationChannel.Accept: Accepting socket failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.'); Result := TIPv4TcpCommunicationChannel.Create(IncomingConnectionSocketHandle, IPv4SocketAddress.sin_addr, HTONS(IPv4SocketAddress.sin_port));
+    IncomingConnectionSocketHandle := IPv4Accept(Self.SocketHandle, IPv4SocketAddress, IPv4SocketAddressLen); if not(IsValidSocketHandle(IncomingConnectionSocketHandle)) then raise Exception.Create('TIPv4TcpCommunicationChannel.Accept: Accepting socket failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.'); Result := TIPv4TcpCommunicationChannel.Create(IncomingConnectionSocketHandle, IPv4SocketAddress.sin_addr, HTONS(IPv4SocketAddress.sin_port));
 
   end else begin
 
@@ -1080,7 +1080,7 @@ begin
 
   IPv4SocketAddress.sin_family := AF_INET; IPv4SocketAddress.sin_addr := RemoteAddress; IPv4SocketAddress.sin_port := HTONS(RemotePort);
 
-  if not IsValidSocketResult(IPv4Connect(Self.SocketHandle, IPv4SocketAddress, SizeOf(TIPv4SocketAddress))) then raise Exception.Create('TIPv4TcpCommunicationChannel.Connect: Connection to address ' + TIPv4AddressUtility.ToString(RemoteAddress) + ' and port ' + IntToStr(RemotePort) + ' failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
+  if not(IsValidSocketResult(IPv4Connect(Self.SocketHandle, IPv4SocketAddress, SizeOf(TIPv4SocketAddress)))) then raise Exception.Create('TIPv4TcpCommunicationChannel.Connect: Connection to address ' + TIPv4AddressUtility.ToString(RemoteAddress) + ' and port ' + IntToStr(RemotePort) + ' failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
 
   Self.RemoteAddress := RemoteAddress; Self.RemotePort := RemotePort;
 end;
@@ -1091,7 +1091,7 @@ end;
 
 procedure TIPv4TcpCommunicationChannel.Send(Buffer: Pointer; BufferLen: Integer);
 begin
-  if not IsValidSocketResult(IPv4Send(Self.SocketHandle, Buffer^, BufferLen, 0)) then raise Exception.Create('TIPv4TcpCommunicationChannel.Send: Sending to address ' + TIPv4AddressUtility.ToString(Self.RemoteAddress) + ' and port ' + IntToStr(Self.RemotePort) + ' failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
+  if not(IsValidSocketResult(IPv4Send(Self.SocketHandle, Buffer^, BufferLen, 0))) then raise Exception.Create('TIPv4TcpCommunicationChannel.Send: Sending to address ' + TIPv4AddressUtility.ToString(Self.RemoteAddress) + ' and port ' + IntToStr(Self.RemotePort) + ' failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
 end;
 
 // --------------------------------------------------------------------------
@@ -1139,7 +1139,7 @@ constructor TIPv6TcpCommunicationChannel.Create;
 begin
   Self.SocketHandle := Socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP);
 
-  if not IsValidSocketHandle(Self.SocketHandle) then raise Exception.Create('TIPv6TcpCommunicationChannel.Create: Socket allocation failed.');
+  if not(IsValidSocketHandle(Self.SocketHandle)) then raise Exception.Create('TIPv6TcpCommunicationChannel.Create: Socket allocation failed.');
 end;
 
 // --------------------------------------------------------------------------
@@ -1163,7 +1163,7 @@ begin
 
   IPv6SocketAddress.sin_family := AF_INET6; IPv6SocketAddress.sin_addr := BindingAddress; IPv6SocketAddress.sin_port := HTONS(BindingPort);
 
-  if not IsValidSocketResult(IPv6Bind(Self.SocketHandle, IPv6SocketAddress, SizeOf(TIPv6SocketAddress))) then raise Exception.Create('TIPv6TcpCommunicationChannel.Bind: Binding to address ' + TIPv6AddressUtility.ToString(BindingAddress) + ' and port ' + IntToStr(BindingPort) + ' failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
+  if not(IsValidSocketResult(IPv6Bind(Self.SocketHandle, IPv6SocketAddress, SizeOf(TIPv6SocketAddress)))) then raise Exception.Create('TIPv6TcpCommunicationChannel.Bind: Binding to address ' + TIPv6AddressUtility.ToString(BindingAddress) + ' and port ' + IntToStr(BindingPort) + ' failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
 end;
 
 // --------------------------------------------------------------------------
@@ -1172,7 +1172,7 @@ end;
 
 procedure TIPv6TcpCommunicationChannel.Listen;
 begin
-  if not IsValidSocketResult(CommunicationChannels.Listen(Self.SocketHandle, 0)) then raise Exception.Create('TIPv6TcpCommunicationChannel.Listen: Listening failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
+  if not(IsValidSocketResult(CommunicationChannels.Listen(Self.SocketHandle, 0))) then raise Exception.Create('TIPv6TcpCommunicationChannel.Listen: Listening failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
 end;
 
 // --------------------------------------------------------------------------
@@ -1185,7 +1185,7 @@ var
 begin
   IPv6SocketAddressLen := SizeOf(TIPv6SocketAddress); FillChar(IPv6SocketAddress, IPv6SocketAddressLen, 0);
 
-  IncomingConnectionSocketHandle := IPv6Accept(Self.SocketHandle, IPv6SocketAddress, IPv6SocketAddressLen); if not IsValidSocketHandle(IncomingConnectionSocketHandle) then raise Exception.Create('TIPv6TcpCommunicationChannel.Accept: Accepting socket failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.'); Result := TIPv6TcpCommunicationChannel.Create(IncomingConnectionSocketHandle, IPv6SocketAddress.sin_addr, HTONS(IPv6SocketAddress.sin_port));
+  IncomingConnectionSocketHandle := IPv6Accept(Self.SocketHandle, IPv6SocketAddress, IPv6SocketAddressLen); if not(IsValidSocketHandle(IncomingConnectionSocketHandle)) then raise Exception.Create('TIPv6TcpCommunicationChannel.Accept: Accepting socket failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.'); Result := TIPv6TcpCommunicationChannel.Create(IncomingConnectionSocketHandle, IPv6SocketAddress.sin_addr, HTONS(IPv6SocketAddress.sin_port));
 end;
 
 // --------------------------------------------------------------------------
@@ -1205,7 +1205,7 @@ begin
 
     IPv6SocketAddressLen := SizeOf(TIPv6SocketAddress); FillChar(IPv6SocketAddress, IPv6SocketAddressLen, 0);
 
-    IncomingConnectionSocketHandle := IPv6Accept(Self.SocketHandle, IPv6SocketAddress, IPv6SocketAddressLen); if not IsValidSocketHandle(IncomingConnectionSocketHandle) then raise Exception.Create('TIPv6TcpCommunicationChannel.Accept: Accepting socket failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.'); Result := TIPv6TcpCommunicationChannel.Create(IncomingConnectionSocketHandle, IPv6SocketAddress.sin_addr, HTONS(IPv6SocketAddress.sin_port));
+    IncomingConnectionSocketHandle := IPv6Accept(Self.SocketHandle, IPv6SocketAddress, IPv6SocketAddressLen); if not(IsValidSocketHandle(IncomingConnectionSocketHandle)) then raise Exception.Create('TIPv6TcpCommunicationChannel.Accept: Accepting socket failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.'); Result := TIPv6TcpCommunicationChannel.Create(IncomingConnectionSocketHandle, IPv6SocketAddress.sin_addr, HTONS(IPv6SocketAddress.sin_port));
 
   end else begin
 
@@ -1226,7 +1226,7 @@ begin
 
   IPv6SocketAddress.sin_family := AF_INET6; IPv6SocketAddress.sin_addr := RemoteAddress; IPv6SocketAddress.sin_port := HTONS(RemotePort);
 
-  if not IsValidSocketResult(IPv6Connect(Self.SocketHandle, IPv6SocketAddress, SizeOf(TIPv6SocketAddress))) then raise Exception.Create('TIPv6TcpCommunicationChannel.Connect: Connection to address ' + TIPv6AddressUtility.ToString(RemoteAddress) + ' and port ' + IntToStr(RemotePort) + ' failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
+  if not(IsValidSocketResult(IPv6Connect(Self.SocketHandle, IPv6SocketAddress, SizeOf(TIPv6SocketAddress)))) then raise Exception.Create('TIPv6TcpCommunicationChannel.Connect: Connection to address ' + TIPv6AddressUtility.ToString(RemoteAddress) + ' and port ' + IntToStr(RemotePort) + ' failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
 
   Self.RemoteAddress := RemoteAddress; Self.RemotePort := RemotePort;
 end;
@@ -1237,7 +1237,7 @@ end;
 
 procedure TIPv6TcpCommunicationChannel.Send(Buffer: Pointer; BufferLen: Integer);
 begin
-  if not IsValidSocketResult(IPv6Send(Self.SocketHandle, Buffer^, BufferLen, 0)) then raise Exception.Create('TIPv6TcpCommunicationChannel.Send: Sending to address ' + TIPv6AddressUtility.ToString(Self.RemoteAddress) + ' and port ' + IntToStr(Self.RemotePort) + ' failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
+  if not(IsValidSocketResult(IPv6Send(Self.SocketHandle, Buffer^, BufferLen, 0))) then raise Exception.Create('TIPv6TcpCommunicationChannel.Send: Sending to address ' + TIPv6AddressUtility.ToString(Self.RemoteAddress) + ' and port ' + IntToStr(Self.RemotePort) + ' failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
 end;
 
 // --------------------------------------------------------------------------

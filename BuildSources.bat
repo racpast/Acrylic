@@ -42,10 +42,18 @@ Echo.
 If ErrorLevel 1 Echo FAILED! & Pause & Exit /b 0
 
 Echo.
+Echo Compiling Acrylic regex tester...
+Echo.
+
+"%DCC%" AcrylicRegExTester.dpr
+
+If ErrorLevel 1 Echo FAILED! & Pause & Exit /b 0
+
+Echo.
 Echo Building Acrylic portable package...
 Echo.
 
-7za.exe a -tzip -mx9 Acrylic-Portable.zip AcrylicHosts.txt AcrylicConfiguration.ini InstallAcrylicService.bat UninstallAcrylicService.bat StartAcrylicService.bat StartAcrylicServiceSilently.bat StopAcrylicService.bat StopAcrylicServiceSilently.bat RestartAcrylicService.bat RestartAcrylicServiceSilently.bat PurgeAcrylicCacheData.bat PurgeAcrylicCacheDataSilently.bat ActivateAcrylicDebugLog.bat ActivateAcrylicDebugLogSilently.bat DeactivateAcrylicDebugLog.bat DeactivateAcrylicDebugLogSilently.bat AcrylicController.exe.manifest AcrylicController.exe AcrylicService.exe AcrylicConsole.exe License.txt Readme.txt
+7za.exe a -tzip -mx9 Acrylic-Portable.zip AcrylicHosts.txt AcrylicConfiguration.ini AcrylicController.exe.manifest AcrylicController.exe AcrylicController.txt AcrylicService.exe AcrylicConsole.exe AcrylicConsole.txt AcrylicRegExTester.exe AcrylicRegExTester.txt License.txt Readme.txt InstallAcrylicService.bat UninstallAcrylicService.bat StartAcrylicService.bat StartAcrylicServiceSilently.bat StopAcrylicService.bat StopAcrylicServiceSilently.bat RestartAcrylicService.bat RestartAcrylicServiceSilently.bat PurgeAcrylicCacheData.bat PurgeAcrylicCacheDataSilently.bat ActivateAcrylicDebugLog.bat ActivateAcrylicDebugLogSilently.bat DeactivateAcrylicDebugLog.bat DeactivateAcrylicDebugLogSilently.bat
 
 If ErrorLevel 1 Echo FAILED! & Pause & Exit /b 0
 

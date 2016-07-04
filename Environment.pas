@@ -109,7 +109,7 @@ begin
 
       FillChar(ProcessInfo, SizeOf(TProcessInformation), #0);
 
-      if not CreateProcess(nil, PChar(CommandLine), @SecurityAttributes, @SecurityAttributes, True, NORMAL_PRIORITY_CLASS, nil, nil, StartupInfo, ProcessInfo) then begin
+      if not(CreateProcess(nil, PChar(CommandLine), @SecurityAttributes, @SecurityAttributes, True, NORMAL_PRIORITY_CLASS, nil, nil, StartupInfo, ProcessInfo)) then begin
         Exit;
       end;
 

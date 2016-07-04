@@ -9,7 +9,7 @@
 ;--------------------------------
 
 ; Name
-Name "Acrylic DNS Proxy (0.9.33)"
+Name "Acrylic DNS Proxy (0.9.34)"
 
 ; Output
 OutFile "Acrylic.exe"
@@ -66,8 +66,12 @@ Section "Acrylic" SecMain
   File "AcrylicConfiguration.ini"
   File "AcrylicController.exe.manifest"
   File "AcrylicController.exe"
+  File "AcrylicController.txt"
   File "AcrylicService.exe"
   File "AcrylicConsole.exe"
+  File "AcrylicConsole.txt"
+  File "AcrylicRegExTester.exe"
+  File "AcrylicRegExTester.txt"
   File "License.txt"
   File "Readme.txt"
 
@@ -164,8 +168,12 @@ Section "Uninstall"
 
   Delete "$INSTDIR\Readme.txt"
   Delete "$INSTDIR\License.txt"
+  Delete "$INSTDIR\AcrylicRegExTester.txt"
+  Delete "$INSTDIR\AcrylicRegExTester.exe"
+  Delete "$INSTDIR\AcrylicConsole.txt"
   Delete "$INSTDIR\AcrylicConsole.exe"
   Delete "$INSTDIR\AcrylicService.exe"
+  Delete "$INSTDIR\AcrylicController.txt"
   Delete "$INSTDIR\AcrylicController.exe"
   Delete "$INSTDIR\AcrylicController.exe.manifest"
   Delete "$INSTDIR\AcrylicConfiguration.ini"

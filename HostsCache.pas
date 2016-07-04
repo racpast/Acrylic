@@ -74,15 +74,15 @@ uses
   FileStreamLineEx,
   MemoryStore,
   PatternMatching,
-  RegExpr,
-                                                                                                                                                                                                                                                   Tracer;
+  PerlRegEx,
+  Tracer;
 
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
 
 type
-  TRegExprList = class
+  TRegularExpressionList = class
     private
       List1: TList;
       List2: TList;
@@ -91,7 +91,7 @@ type
     public
       constructor Create;
       procedure   Add(Expression: String; Associated: TObject);
-      function    ExecRegExpr(Index: Integer; InputStr: String): Boolean;
+      function    ExecRegularExpression(Index: Integer; InputStr: String): Boolean;
       function    GetAssociatedObject(Index: Integer): TObject;
       procedure   BeginUpdate;
       procedure   EndUpdate;
@@ -111,7 +111,7 @@ var
 
 var
   THostsCache_IPv4List: THashedStringList;
-  THostsCache_IPv4Expressions: TRegExprList;
+  THostsCache_IPv4Expressions: TRegularExpressionList;
   THostsCache_IPv4Patterns: TStringList;
   THostsCache_IPv4Exceptions: THashedStringList;
 
@@ -121,7 +121,7 @@ var
 
 var
   THostsCache_IPv6List: THashedStringList;
-  THostsCache_IPv6Expressions: TRegExprList;
+  THostsCache_IPv6Expressions: TRegularExpressionList;
   THostsCache_IPv6Patterns: TStringList;
   THostsCache_IPv6Exceptions: THashedStringList;
 
@@ -134,12 +134,12 @@ begin
   THostsCache_MemoryStore := TMemoryStore.Create;
 
   THostsCache_IPv4List := THashedStringList.Create; THostsCache_IPv4List.CaseSensitive := False; THostsCache_IPv4List.Duplicates := dupIgnore;
-  THostsCache_IPv4Expressions := TRegExprList.Create;
+  THostsCache_IPv4Expressions := TRegularExpressionList.Create;
   THostsCache_IPv4Patterns := TStringList.Create;
   THostsCache_IPv4Exceptions := THashedStringList.Create; THostsCache_IPv4Exceptions.CaseSensitive := False; THostsCache_IPv4Exceptions.Duplicates := dupIgnore;
 
   THostsCache_IPv6List := THashedStringList.Create; THostsCache_IPv6List.CaseSensitive := False; THostsCache_IPv6List.Duplicates := dupIgnore;
-  THostsCache_IPv6Expressions := TRegExprList.Create;
+  THostsCache_IPv6Expressions := TRegularExpressionList.Create;
   THostsCache_IPv6Patterns := TStringList.Create;
   THostsCache_IPv6Exceptions := THashedStringList.Create; THostsCache_IPv6Exceptions.CaseSensitive := False; THostsCache_IPv6Exceptions.Duplicates := dupIgnore;
 end;
@@ -192,7 +192,7 @@ begin
 
             for ListIndex := 0 to (THostsCache_IPv4Expressions.Count - 1) do begin
               try
-                if THostsCache_IPv4Expressions.ExecRegExpr(ListIndex, HostName) then begin
+                if THostsCache_IPv4Expressions.ExecRegularExpression(ListIndex, HostName) then begin
                   if not(THostsCache_IPv4Exceptions.IndexOf(HostName) > -1) then begin
 
                     HostsEntry.Family := AddressHostsEntryFamily;
@@ -254,7 +254,7 @@ begin
 
             for ListIndex := 0 to (THostsCache_IPv6Expressions.Count - 1) do begin
               try
-                if THostsCache_IPv6Expressions.ExecRegExpr(ListIndex, HostName) then begin
+                if THostsCache_IPv6Expressions.ExecRegularExpression(ListIndex, HostName) then begin
                   if not(THostsCache_IPv6Exceptions.IndexOf(HostName) > -1) then begin
 
                     HostsEntry.Family := AddressHostsEntryFamily;
@@ -509,7 +509,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-constructor TRegExprList.Create;
+constructor TRegularExpressionList.Create;
 begin
   List1 := TList.Create; List2 := TList.Create; Count := 0;
 end;
@@ -518,27 +518,29 @@ end;
 //
 // --------------------------------------------------------------------------
 
-procedure TRegExprList.Add(Expression: String; Associated: TObject);
+procedure TRegularExpressionList.Add(Expression: String; Associated: TObject);
 var
-  RegExpr: TRegExpr;
+  RegularExpression: TPerlRegEx;
 begin
-  RegExpr := TRegExpr.Create; RegExpr.Expression := Expression; RegExpr.ModifierI := True; List1.Add(RegExpr); List2.Add(Associated); Inc(Count);
+  RegularExpression := TPerlRegEx.Create; RegularExpression.RegEx := Expression; RegularExpression.Options := [preCaseLess]; RegularExpression.Compile; List1.Add(RegularExpression); List2.Add(Associated); Inc(Count);
 end;
 
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
 
-function TRegExprList.ExecRegExpr(Index: Integer; InputStr: String): Boolean;
+function TRegularExpressionList.ExecRegularExpression(Index: Integer; InputStr: String): Boolean;
+var
+  RegularExpression: TPerlRegEx;
 begin
-  Result := TRegExpr(List1[Index]).Exec(InputStr);
+  RegularExpression := TPerlRegEx(List1[Index]); RegularExpression.Subject := InputStr; Result := RegularExpression.Match;
 end;
 
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
 
-function TRegExprList.GetAssociatedObject(Index: Integer): TObject;
+function TRegularExpressionList.GetAssociatedObject(Index: Integer): TObject;
 begin
   Result := List2[Index];
 end;
@@ -547,7 +549,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-procedure TRegExprList.BeginUpdate;
+procedure TRegularExpressionList.BeginUpdate;
 begin
 end;
 
@@ -555,7 +557,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-procedure TRegExprList.EndUpdate;
+procedure TRegularExpressionList.EndUpdate;
 begin
 end;
 
@@ -563,11 +565,11 @@ end;
 //
 // --------------------------------------------------------------------------
 
-destructor TRegExprList.Free;
+destructor TRegularExpressionList.Free;
 var
   Index: Integer;
 begin
-  List2.Free; for Index := 0 to (Count - 1) do TRegExpr(List1[Index]).Free; List1.Free;
+  List2.Free; for Index := 0 to (Count - 1) do TPerlRegEx(List1[Index]).Free; List1.Free;
 end;
 
 // --------------------------------------------------------------------------

@@ -77,12 +77,6 @@ begin
     Position := i; Length := 1; Result := True; Exit;
   end;
 
-  i := Pos(#13, CurrentLine);
-
-  if (i > 0) then begin
-    Position := i; Length := 1; Result := True; Exit;
-  end;
-
   Result := False;
 end;
 
@@ -92,27 +86,27 @@ end;
 
 function TFileStreamLineEx.ReadLine(var OutputLine: String): Boolean;
 var
-  Buffer: String; Bytes: Integer; LineTerminatorFound: Boolean; Position, Length: Integer;
+  ChunkData: String; ChunkSize: Integer; LineTerminatorFound: Boolean; LineTerminatorPosition, LineTerminatorLength: Integer;
 begin
-  LineTerminatorFound := Self.TryFindLineTerminator(Self.CurrentLine, Position, Length); while not LineTerminatorFound do begin
+  LineTerminatorFound := Self.TryFindLineTerminator(Self.CurrentLine, LineTerminatorPosition, LineTerminatorLength); while not LineTerminatorFound do begin
 
-    SetLength(Buffer, LINE_READ_CHUNK); Bytes := Stream.Read(Buffer[1], LINE_READ_CHUNK); if (Bytes > 0) then begin // If there is data...
+    SetLength(ChunkData, LINE_READ_CHUNK); ChunkSize := Stream.Read(ChunkData[1], LINE_READ_CHUNK); if (ChunkSize > 0) then begin
 
-      Self.CurrentLine := Self.CurrentLine + Copy(Buffer, 1, Bytes);
+      Self.CurrentLine := Self.CurrentLine + Copy(ChunkData, 1, ChunkSize);
 
-      LineTerminatorFound := Self.TryFindLineTerminator(Self.CurrentLine, Position, Length);
+      LineTerminatorFound := Self.TryFindLineTerminator(Self.CurrentLine, LineTerminatorPosition, LineTerminatorLength);
 
-    end else begin // There is no data
+    end else begin
       Break;
     end;
 
   end; if LineTerminatorFound then begin
 
-    OutputLine := Copy(Self.CurrentLine, 1, Position - 1); Delete(Self.CurrentLine, 1, Position + Length - 1);
+    OutputLine := Copy(Self.CurrentLine, 1, LineTerminatorPosition - 1); Delete(Self.CurrentLine, 1, LineTerminatorPosition + LineTerminatorLength - 1);
 
     Result := True;
 
-  end else begin // A line terminator has not been found
+  end else begin
 
     OutputLine := Self.CurrentLine; SetLength(Self.CurrentLine, 0);
 

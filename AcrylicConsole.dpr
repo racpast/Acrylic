@@ -37,7 +37,7 @@ uses
   MemoryManager in 'MemoryManager.pas',
   MemoryStore in 'MemoryStore.pas',
   PatternMatching in 'PatternMatching.pas',
-  RegExpr in 'RegExpr.pas',
+  PerlRegEx in 'PerlRegEx.pas',
   SessionCache in 'SessionCache.pas',
   Tracer in 'Tracer.pas',
   Statistics in 'Statistics.pas',
@@ -69,13 +69,36 @@ var
 begin
   DecimalSeparator := '.';
 
+  if ((ParamCount = 1) and (ParamStr(1) = '/?')) then begin
+
+    WriteLn('==============================================================================');
+    WriteLn('Acrylic DNS Proxy Console');
+    WriteLn('==============================================================================');
+    WriteLn;
+    WriteLn('Usage:');
+    WriteLn('  AcrylicConsole.exe [/NoBanner] [/NoLog]');
+    WriteLn;
+    WriteLn('Options:');
+    WriteLn('  /NoBanner');
+    WriteLn('    Does not write the application banner to the console on startup.');
+    WriteLn('  /NoLog');
+    WriteLn('    Does not write the application log to the console while running.');
+    WriteLn;
+    WriteLn('Examples:');
+    WriteLn('  AcrylicConsole.exe');
+    WriteLn('  AcrylicConsole.exe /NoBanner /NoLog');
+
+    Exit;
+
+  end;
+
   NoLog := GetBooleanCommandLineParamValue('NoLog');
   NoBanner := GetBooleanCommandLineParamValue('NoBanner');
 
   if (not(NoBanner)) then begin
 
     WriteLn('==============================================================================');
-    WriteLn('Acrylic DNS Proxy Console Version                          Press ENTER To Quit');
+    WriteLn('Acrylic DNS Proxy Console                                  Press ENTER To Quit');
     WriteLn('==============================================================================');
 
   end;

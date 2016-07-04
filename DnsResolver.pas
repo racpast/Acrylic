@@ -259,7 +259,7 @@ begin
 
         end else begin // The domain name is neither in the hosts cache nor is a cache exception
 
-          if not TConfiguration.GetAddressCacheDisabled then begin
+          if not(TConfiguration.GetAddressCacheDisabled) then begin
 
             // Gonna check by hash if the request exists in the address cache
             TDnsProtocolUtility.SetIdIntoPacket(0, Buffer); RequestHash := TDigest.ComputeCRC64(Buffer, BufferLen); TDnsProtocolUtility.SetIdIntoPacket(SessionId, Buffer); case TAddressCache.Find(ArrivalTime, RequestHash, Output, OutputLen) of
@@ -444,13 +444,13 @@ begin
 
         if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' received from server ' + TDualIPAddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' [' + TDnsProtocolUtility.PrintResponsePacketDescriptionAsNormalStringFromPacket(Buffer, BufferLen, True) + '].');
 
-        if not TDnsProtocolUtility.IsFailureResponsePacket(Buffer, BufferLen) then begin
+        if not(TDnsProtocolUtility.IsFailureResponsePacket(Buffer, BufferLen)) then begin
 
           if TSessionCache.Extract(SessionId, RequestHash, AltAddress, AltPort, IsSilentUpdate, IsCacheException) then begin
 
             if IsCacheException then begin
 
-              if not TDnsProtocolUtility.IsNegativeResponsePacket(Buffer, BufferLen) then begin
+              if not(TDnsProtocolUtility.IsNegativeResponsePacket(Buffer, BufferLen)) then begin
 
                 TSessionCache.Delete(SessionId);
 
@@ -462,7 +462,7 @@ begin
 
               end else begin // The response is negative!
 
-                if not TConfiguration.GetDnsServerConfiguration(DnsServerIndex).IgnoreNegativeResponsesFromServer then begin
+                if not(TConfiguration.GetDnsServerConfiguration(DnsServerIndex).IgnoreNegativeResponsesFromServer) then begin
 
                   TSessionCache.Delete(SessionId);
 
@@ -482,11 +482,11 @@ begin
 
             end else if IsSilentUpdate then begin
 
-              if not TDnsProtocolUtility.IsNegativeResponsePacket(Buffer, BufferLen) then begin
+              if not(TDnsProtocolUtility.IsNegativeResponsePacket(Buffer, BufferLen)) then begin
 
                 TSessionCache.Delete(SessionId);
 
-                if not TConfiguration.GetAddressCacheDisabled then begin
+                if not(TConfiguration.GetAddressCacheDisabled) then begin
 
                   TDnsProtocolUtility.SetIdIntoPacket(0, Buffer); TAddressCache.Add(ArrivalTime, RequestHash, Buffer, BufferLen, False);
 
@@ -504,7 +504,7 @@ begin
 
             end else begin // It's a response to a standard request!
 
-              if not TDnsProtocolUtility.IsNegativeResponsePacket(Buffer, BufferLen) then begin
+              if not(TDnsProtocolUtility.IsNegativeResponsePacket(Buffer, BufferLen)) then begin
 
                 TSessionCache.Delete(SessionId);
 
@@ -526,7 +526,7 @@ begin
 
               end else begin // The response is negative!
 
-                if not TConfiguration.GetDnsServerConfiguration(DnsServerIndex).IgnoreNegativeResponsesFromServer then begin
+                if not(TConfiguration.GetDnsServerConfiguration(DnsServerIndex).IgnoreNegativeResponsesFromServer) then begin
 
                   TSessionCache.Delete(SessionId);
 
