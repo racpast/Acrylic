@@ -227,13 +227,19 @@ begin
             if TConfiguration.GetDnsServerConfiguration(DnsServerIndex).IsEnabled then begin // If it has been configured
               if TConfiguration.IsDomainNameAffinityMatch(DomainName, TConfiguration.GetDnsServerConfiguration(DnsServerIndex).DomainNameAffinityMask) and TConfiguration.IsQueryTypeAffinityMatch(QueryType, TConfiguration.GetDnsServerConfiguration(DnsServerIndex).QueryTypeAffinityMask) then begin
 
-                Forwarded := True;
+                if TDnsForwarder.ForwardDnsRequest(TConfiguration.GetDnsServerConfiguration(DnsServerIndex), Buffer, BufferLen, SessionId) then begin
 
-                TDnsForwarder.ForwardDnsRequest(TConfiguration.GetDnsServerConfiguration(DnsServerIndex), Buffer, BufferLen, SessionId);
+                  Forwarded := True;
 
-                if TStatistics.IsEnabled then TStatistics.IncTotalResponsesAndMeasureFlyTime(ArrivalTick, False, DnsServerIndex, SessionId);
+                  if TStatistics.IsEnabled then TStatistics.IncTotalResponsesAndMeasureFlyTime(ArrivalTick, False, DnsServerIndex, SessionId);
 
-                if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Request ID ' + FormatCurr('00000', SessionId) + ' forwarded to server ' + TDualIPAddressUtility.ToString(TConfiguration.GetDnsServerConfiguration(DnsServerIndex).Address) + ':' + IntToStr(TConfiguration.GetDnsServerConfiguration(DnsServerIndex).Port) + ' as cache exception.');
+                  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Request ID ' + FormatCurr('00000', SessionId) + ' forwarded to server ' + TDualIPAddressUtility.ToString(TConfiguration.GetDnsServerConfiguration(DnsServerIndex).Address) + ':' + IntToStr(TConfiguration.GetDnsServerConfiguration(DnsServerIndex).Port) + ' as cache exception.');
+
+                end else begin
+
+                  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Request ID ' + FormatCurr('00000', SessionId) + ' failed to be forwarded to server ' + TDualIPAddressUtility.ToString(TConfiguration.GetDnsServerConfiguration(DnsServerIndex).Address) + ':' + IntToStr(TConfiguration.GetDnsServerConfiguration(DnsServerIndex).Port) + ' as cache exception.');
+
+                end;
 
               end;
             end;
@@ -288,13 +294,19 @@ begin
                   if TConfiguration.GetDnsServerConfiguration(DnsServerIndex).IsEnabled then begin // If it has been configured
                     if TConfiguration.IsDomainNameAffinityMatch(DomainName, TConfiguration.GetDnsServerConfiguration(DnsServerIndex).DomainNameAffinityMask) and TConfiguration.IsQueryTypeAffinityMatch(QueryType, TConfiguration.GetDnsServerConfiguration(DnsServerIndex).QueryTypeAffinityMask) then begin
 
-                      Forwarded := True;
+                      if TDnsForwarder.ForwardDnsRequest(TConfiguration.GetDnsServerConfiguration(DnsServerIndex), Buffer, BufferLen, SessionId) then begin
 
-                      TDnsForwarder.ForwardDnsRequest(TConfiguration.GetDnsServerConfiguration(DnsServerIndex), Buffer, BufferLen, SessionId);
+                        Forwarded := True;
 
-                      if TStatistics.IsEnabled then TStatistics.IncTotalResponsesAndMeasureFlyTime(ArrivalTick, False, DnsServerIndex, SessionId);
+                        if TStatistics.IsEnabled then TStatistics.IncTotalResponsesAndMeasureFlyTime(ArrivalTick, False, DnsServerIndex, SessionId);
 
-                      if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Request ID ' + FormatCurr('00000', SessionId) + ' forwarded to server ' + TDualIPAddressUtility.ToString(TConfiguration.GetDnsServerConfiguration(DnsServerIndex).Address) + ':' + IntToStr(TConfiguration.GetDnsServerConfiguration(DnsServerIndex).Port) + ' as silent update.');
+                        if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Request ID ' + FormatCurr('00000', SessionId) + ' forwarded to server ' + TDualIPAddressUtility.ToString(TConfiguration.GetDnsServerConfiguration(DnsServerIndex).Address) + ':' + IntToStr(TConfiguration.GetDnsServerConfiguration(DnsServerIndex).Port) + ' as silent update.');
+
+                      end else begin
+
+                        if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Request ID ' + FormatCurr('00000', SessionId) + ' failed to be forwarded to server ' + TDualIPAddressUtility.ToString(TConfiguration.GetDnsServerConfiguration(DnsServerIndex).Address) + ':' + IntToStr(TConfiguration.GetDnsServerConfiguration(DnsServerIndex).Port) + ' as silent update.');
+
+                      end;
 
                     end;
                   end;
@@ -320,13 +332,19 @@ begin
                   if TConfiguration.GetDnsServerConfiguration(DnsServerIndex).IsEnabled then begin // If it has been configured
                     if TConfiguration.IsDomainNameAffinityMatch(DomainName, TConfiguration.GetDnsServerConfiguration(DnsServerIndex).DomainNameAffinityMask) and TConfiguration.IsQueryTypeAffinityMatch(QueryType, TConfiguration.GetDnsServerConfiguration(DnsServerIndex).QueryTypeAffinityMask) then begin
 
-                      Forwarded := True;
+                      if TDnsForwarder.ForwardDnsRequest(TConfiguration.GetDnsServerConfiguration(DnsServerIndex), Buffer, BufferLen, SessionId) then begin
 
-                      TDnsForwarder.ForwardDnsRequest(TConfiguration.GetDnsServerConfiguration(DnsServerIndex), Buffer, BufferLen, SessionId);
+                        Forwarded := True;
 
-                      if TStatistics.IsEnabled then TStatistics.IncTotalResponsesAndMeasureFlyTime(ArrivalTick, False, DnsServerIndex, SessionId);
+                        if TStatistics.IsEnabled then TStatistics.IncTotalResponsesAndMeasureFlyTime(ArrivalTick, False, DnsServerIndex, SessionId);
 
-                      if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Request ID ' + FormatCurr('00000', SessionId) + ' forwarded to server ' + TDualIPAddressUtility.ToString(TConfiguration.GetDnsServerConfiguration(DnsServerIndex).Address) + ':' + IntToStr(TConfiguration.GetDnsServerConfiguration(DnsServerIndex).Port) + '.');
+                        if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Request ID ' + FormatCurr('00000', SessionId) + ' forwarded to server ' + TDualIPAddressUtility.ToString(TConfiguration.GetDnsServerConfiguration(DnsServerIndex).Address) + ':' + IntToStr(TConfiguration.GetDnsServerConfiguration(DnsServerIndex).Port) + '.');
+
+                      end else begin
+
+                        if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Request ID ' + FormatCurr('00000', SessionId) + ' failed to be forwarded to server ' + TDualIPAddressUtility.ToString(TConfiguration.GetDnsServerConfiguration(DnsServerIndex).Address) + ':' + IntToStr(TConfiguration.GetDnsServerConfiguration(DnsServerIndex).Port) + '.');
+
+                      end;
 
                     end;
                   end;
@@ -362,13 +380,19 @@ begin
               if TConfiguration.GetDnsServerConfiguration(DnsServerIndex).IsEnabled then begin // If it has been configured
                 if TConfiguration.IsDomainNameAffinityMatch(DomainName, TConfiguration.GetDnsServerConfiguration(DnsServerIndex).DomainNameAffinityMask) and TConfiguration.IsQueryTypeAffinityMatch(QueryType, TConfiguration.GetDnsServerConfiguration(DnsServerIndex).QueryTypeAffinityMask) then begin
 
-                  Forwarded := True;
+                  if TDnsForwarder.ForwardDnsRequest(TConfiguration.GetDnsServerConfiguration(DnsServerIndex), Buffer, BufferLen, SessionId) then begin
 
-                  TDnsForwarder.ForwardDnsRequest(TConfiguration.GetDnsServerConfiguration(DnsServerIndex), Buffer, BufferLen, SessionId);
+                    Forwarded := True;
 
-                  if TStatistics.IsEnabled then TStatistics.IncTotalResponsesAndMeasureFlyTime(ArrivalTick, False, DnsServerIndex, SessionId);
+                    if TStatistics.IsEnabled then TStatistics.IncTotalResponsesAndMeasureFlyTime(ArrivalTick, False, DnsServerIndex, SessionId);
 
-                  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Request ID ' + FormatCurr('00000', SessionId) + ' forwarded to server ' + TDualIPAddressUtility.ToString(TConfiguration.GetDnsServerConfiguration(DnsServerIndex).Address) + ':' + IntToStr(TConfiguration.GetDnsServerConfiguration(DnsServerIndex).Port) + '.');
+                    if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Request ID ' + FormatCurr('00000', SessionId) + ' forwarded to server ' + TDualIPAddressUtility.ToString(TConfiguration.GetDnsServerConfiguration(DnsServerIndex).Address) + ':' + IntToStr(TConfiguration.GetDnsServerConfiguration(DnsServerIndex).Port) + '.');
+
+                  end else begin
+
+                    if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Request ID ' + FormatCurr('00000', SessionId) + ' failed to be forwarded to server ' + TDualIPAddressUtility.ToString(TConfiguration.GetDnsServerConfiguration(DnsServerIndex).Address) + ':' + IntToStr(TConfiguration.GetDnsServerConfiguration(DnsServerIndex).Port) + '.');
+
+                  end;
 
                 end;
               end;

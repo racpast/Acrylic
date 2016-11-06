@@ -26,7 +26,7 @@ uses
 
 type
   TDnsForwarder = class
-    class procedure ForwardDnsRequest(DnsServerConfiguration: TDnsServerConfiguration; Buffer: Pointer; BufferLen: Integer; SessionId: Word);
+    class function ForwardDnsRequest(DnsServerConfiguration: TDnsServerConfiguration; Buffer: Pointer; BufferLen: Integer; SessionId: Word): Boolean;
   end;
 
 // --------------------------------------------------------------------------
@@ -186,12 +186,106 @@ const
 //
 // --------------------------------------------------------------------------
 
-class procedure TDnsForwarder.ForwardDnsRequest(DnsServerConfiguration: TDnsServerConfiguration; Buffer: Pointer; BufferLen: Integer; SessionId: Word);
+class function TDnsForwarder.ForwardDnsRequest(DnsServerConfiguration: TDnsServerConfiguration; Buffer: Pointer; BufferLen: Integer; SessionId: Word): Boolean;
+var
+  DnsForwarderThread: TThread;
 begin
-  case DnsServerConfiguration.Protocol of
-       UdpProtocol: if DnsServerConfiguration.Address.IsIPv6Address then TIPv6UdpDnsForwarder.Create(DnsServerConfiguration, Buffer, BufferLen, SessionId).Resume else TIPv4UdpDnsForwarder.Create(DnsServerConfiguration, Buffer, BufferLen, SessionId).Resume;
-       TcpProtocol: if DnsServerConfiguration.Address.IsIPv6Address then TIPv6TcpDnsForwarder.Create(DnsServerConfiguration, Buffer, BufferLen, SessionId).Resume else TIPv4TcpDnsForwarder.Create(DnsServerConfiguration, Buffer, BufferLen, SessionId).Resume;
-    Socks5Protocol: if DnsServerConfiguration.ProxyAddress.IsIPv6Address then TIPv6Socks5DnsForwarder.Create(DnsServerConfiguration, Buffer, BufferLen, SessionId).Resume else TIPv4Socks5DnsForwarder.Create(DnsServerConfiguration, Buffer, BufferLen, SessionId).Resume;
+  Result := False;
+
+  DnsForwarderThread := nil; try
+
+    case DnsServerConfiguration.Protocol of
+
+      UdpProtocol:
+
+        if DnsServerConfiguration.Address.IsIPv6Address then begin
+
+          DnsForwarderThread := TIPv6UdpDnsForwarder.Create(DnsServerConfiguration, Buffer, BufferLen, SessionId);
+
+          if (DnsForwarderThread <> nil) then begin
+
+            DnsForwarderThread.Resume;
+
+            Result := True;
+
+          end;
+
+        end else begin
+
+          DnsForwarderThread := TIPv4UdpDnsForwarder.Create(DnsServerConfiguration, Buffer, BufferLen, SessionId);
+
+          if (DnsForwarderThread <> nil) then begin
+
+            DnsForwarderThread.Resume;
+
+            Result := True;
+
+          end;
+
+        end;
+
+      TcpProtocol:
+
+        if DnsServerConfiguration.Address.IsIPv6Address then begin
+
+          DnsForwarderThread := TIPv6TcpDnsForwarder.Create(DnsServerConfiguration, Buffer, BufferLen, SessionId);
+
+          if (DnsForwarderThread <> nil) then begin
+
+            DnsForwarderThread.Resume;
+
+            Result := True;
+
+          end;
+
+        end else begin
+
+          DnsForwarderThread := TIPv4TcpDnsForwarder.Create(DnsServerConfiguration, Buffer, BufferLen, SessionId);
+
+          if (DnsForwarderThread <> nil) then begin
+
+            DnsForwarderThread.Resume;
+
+            Result := True;
+
+          end;
+
+        end;
+
+      Socks5Protocol:
+
+        if DnsServerConfiguration.ProxyAddress.IsIPv6Address then begin
+
+          DnsForwarderThread := TIPv6Socks5DnsForwarder.Create(DnsServerConfiguration, Buffer, BufferLen, SessionId);
+
+          if (DnsForwarderThread <> nil) then begin
+
+            DnsForwarderThread.Resume;
+
+            Result := True;
+
+          end;
+
+        end else begin
+
+          DnsForwarderThread := TIPv4Socks5DnsForwarder.Create(DnsServerConfiguration, Buffer, BufferLen, SessionId);
+
+          if (DnsForwarderThread <> nil) then begin
+
+            DnsForwarderThread.Resume;
+
+            Result := True;
+
+          end;
+
+        end;
+
+    end;
+
+  except
+
+    on E: Exception do if (DnsForwarderThread <> nil) then DnsForwarderThread.Destroy;
+
   end;
 end;
 

@@ -86,7 +86,7 @@ ConsoleApp=0
 DebugInfo=0
 RemoteSymbols=0
 MinStackSize=16384
-MaxStackSize=1048576
+MaxStackSize=131072
 ImageBase=4194304
 ExeDescription=
 [Directories]
