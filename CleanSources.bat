@@ -1,7 +1,6 @@
 @Echo Off
 
 Del Acrylic.exe >NUL 2>NUL
-Del Acrylic-Sources.zip >NUL 2>NUL
 
 Del AcrylicRegExTester.exe >NUL 2>NUL
 Del AcrylicController.exe >NUL 2>NUL

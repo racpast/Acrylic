@@ -606,7 +606,7 @@ begin
 
             TDnsProtocolUtility.WrapTcpResponsePacketOverUdpResponsePacket(Self.Intermediate, Self.IntermediateLen, Self.Output, Self.OutputLen);
 
-            TDnsResolver.GetInstance.HandleDnsResponse(Self.Output, Self.OutputLen, DnsServerConfiguration.Address, DnsServerConfiguration.Port);
+            TDnsResolver.GetInstance.HandleDnsResponse(Self.Output, Self.OutputLen, Self.DnsServerConfiguration.Address, Self.DnsServerConfiguration.Port);
 
           end;
 

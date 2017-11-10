@@ -32,7 +32,7 @@ type
 // --------------------------------------------------------------------------
 
 type
-  PGenericIPAddress = ^TDualIPAddress;
+  PDualIPAddress = ^TDualIPAddress;
   TDualIPAddress = packed record
     IsIPv6Address: Boolean;
     case Integer of
@@ -92,11 +92,17 @@ type
   TDualIPAddressUtility = class
     public
       class function Parse(Text: String): TDualIPAddress;
+      class function ParseAsPointer(Text: String): PDualIPAddress;
+    public
       class function ToString(Address: TDualIPAddress): String;
-      class function AreEqual(Address1, Address2: TDualIPAddress): Boolean;
     public
       class function CreateFromIPv4Address(Address: TIPv4Address): TDualIPAddress;
       class function CreateFromIPv6Address(Address: TIPv6Address): TDualIPAddress;
+    public
+      class function CreateFromIPv4AddressAsPointer(Address: TIPv4Address): PDualIPAddress;
+      class function CreateFromIPv6AddressAsPointer(Address: TIPv6Address): PDualIPAddress;
+    public
+      class function AreEqual(Address1, Address2: TDualIPAddress): Boolean;
     public
       class function IsLocalHost(Address: TDualIPAddress): Boolean;
   end;
@@ -518,9 +524,20 @@ end;
 
 class function TDualIPAddressUtility.Parse(Text: String): TDualIPAddress;
 var
-  IPAddress: TDualIPAddress;
+  DualIPAddress: TDualIPAddress;
 begin
-  if (Pos(':', Text) > 0) then begin IPAddress.IPv6Address := TIPv6AddressUtility.Parse(Text); IPAddress.IsIPv6Address := True; end else begin IPAddress.IPv4Address := TIPv4AddressUtility.Parse(Text); IPAddress.IsIPv6Address := False; end; Result := IPAddress;
+  if (Pos(':', Text) > 0) then begin DualIPAddress.IPv6Address := TIPv6AddressUtility.Parse(Text); DualIPAddress.IsIPv6Address := True; end else begin DualIPAddress.IPv4Address := TIPv4AddressUtility.Parse(Text); DualIPAddress.IsIPv6Address := False; end; Result := DualIPAddress;
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class function TDualIPAddressUtility.ParseAsPointer(Text: String): PDualIPAddress;
+var
+  DualIPAddress: TDualIPAddress;
+begin
+  DualIPAddress := TDualIPAddressUtility.Parse(Text); Result := @DualIPAddress;
 end;
 
 // --------------------------------------------------------------------------
@@ -561,6 +578,28 @@ var
   DualIPAddress: TDualIPAddress;
 begin
   DualIPAddress.IPv6Address := Address; DualIPAddress.IsIPv6Address := True; Result := DualIPAddress;
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class function TDualIPAddressUtility.CreateFromIPv4AddressAsPointer(Address: TIPv4Address): PDualIPAddress;
+var
+  DualIPAddress: TDualIPAddress;
+begin
+  DualIPAddress := TDualIPAddressUtility.CreateFromIPv4Address(Address); Result := @DualIPAddress;
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class function TDualIPAddressUtility.CreateFromIPv6AddressAsPointer(Address: TIPv6Address): PDualIPAddress;
+var
+  DualIPAddress: TDualIPAddress;
+begin
+  DualIPAddress := TDualIPAddressUtility.CreateFromIPv6Address(Address); Result := @DualIPAddress;
 end;
 
 // --------------------------------------------------------------------------

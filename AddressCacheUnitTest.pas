@@ -37,17 +37,17 @@ end;
 
 procedure TAddressCacheUnitTest.ExecuteTest;
 var
-  i, j: Integer; Time: TDateTime; Seed: Integer;
+  i, j: Integer; Time: TDateTime; InitSeed: Integer;
 begin
   Time := Now;
 
-  Seed := Round(Frac(Time) * 8640000.0);
+  InitSeed := Round(Frac(Time) * 8640000.0);
 
   TAddressCache.Initialize;
 
   TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Start massive insertion...');
 
-  RandSeed := Seed; for i := 0 to ((1000 * TAddressCacheUnitTest_KCacheItems) - 1) do begin
+  RandSeed := InitSeed; for i := 0 to ((1000 * TAddressCacheUnitTest_KCacheItems) - 1) do begin
 
     BufferLenA := Random(MAX_DNS_PACKET_LEN - MIN_DNS_PACKET_LEN + 1) + MIN_DNS_PACKET_LEN; for j := 0 to (BufferLenA - 1) do PByteArray(BufferA)^[j] := Random(256);
     BufferLenB := Random(MAX_DNS_PACKET_LEN - MIN_DNS_PACKET_LEN + 1) + MIN_DNS_PACKET_LEN; for j := 0 to (BufferLenB - 1) do PByteArray(BufferB)^[j] := Random(256);
@@ -74,7 +74,7 @@ begin
 
   TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Start massive search...');
 
-  RandSeed := Seed; for i := 0 to ((1000 * TAddressCacheUnitTest_KCacheItems) - 1) do begin
+  RandSeed := InitSeed; for i := 0 to ((1000 * TAddressCacheUnitTest_KCacheItems) - 1) do begin
 
     BufferLenA := Random(MAX_DNS_PACKET_LEN - MIN_DNS_PACKET_LEN + 1) + MIN_DNS_PACKET_LEN; for j := 0 to (BufferLenA - 1) do PByteArray(BufferA)^[j] := Random(256);
     BufferLenB := Random(MAX_DNS_PACKET_LEN - MIN_DNS_PACKET_LEN + 1) + MIN_DNS_PACKET_LEN; for j := 0 to (BufferLenB - 1) do PByteArray(BufferB)^[j] := Random(256);

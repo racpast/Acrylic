@@ -150,16 +150,17 @@ begin
 
         if TConfiguration.IsBlackException(DomainName) then begin
 
-          case QueryType of
+          if (QueryType = DNS_QUERY_TYPE_A) then begin
 
-            DNS_QUERY_TYPE_A:
-              TDnsProtocolUtility.BuildPositiveIPv4ResponsePacket(DomainName, QueryType, LOCALHOST_IPV4_ADDRESS, TConfiguration.GetGeneratedDnsResponseTimeToLive, Output, OutputLen);
+            TDnsProtocolUtility.BuildPositiveIPv4ResponsePacket(DomainName, QueryType, LOCALHOST_IPV4_ADDRESS, TConfiguration.GetGeneratedDnsResponseTimeToLive, Output, OutputLen);
 
-            DNS_QUERY_TYPE_AAAA:
-              TDnsProtocolUtility.BuildPositiveIPv6ResponsePacket(DomainName, QueryType, LOCALHOST_IPV6_ADDRESS, TConfiguration.GetGeneratedDnsResponseTimeToLive, Output, OutputLen);
+          end else if (QueryType = DNS_QUERY_TYPE_AAAA) then begin
 
-            else
-              TDnsProtocolUtility.BuildPositiveResponsePacket(DomainName, QueryType, Output, OutputLen);
+            TDnsProtocolUtility.BuildPositiveIPv6ResponsePacket(DomainName, QueryType, LOCALHOST_IPV6_ADDRESS, TConfiguration.GetGeneratedDnsResponseTimeToLive, Output, OutputLen);
+
+          end else begin
+
+            TDnsProtocolUtility.BuildPositiveResponsePacket(DomainName, QueryType, Output, OutputLen);
 
           end;
 
@@ -171,9 +172,9 @@ begin
 
           if THitLogger.IsEnabled and (Pos('B', TConfiguration.GetHitLogFileWhat) > 0) then begin if (TConfiguration.GetHitLogFileMode = 'Legacy') then THitLogger.AddHit(ArrivalTime, 'B', Address, TDnsProtocolUtility.PrintRequestPacketDescriptionAsLegacyStringFromPacket(Buffer, BufferLen, False)) else THitLogger.AddHit(ArrivalTime, 'B', Address, TDnsProtocolUtility.PrintRequestPacketDescriptionAsNormalStringFromPacket(Buffer, BufferLen, False)); end;
 
-        end else if (QueryType = DNS_QUERY_TYPE_A) and THostsCache.Find(DomainName, DNS_QUERY_TYPE_A, HostsEntry) then begin
+        end else if (QueryType = DNS_QUERY_TYPE_A) and THostsCache.FindNXHostsEntryFamily(DomainName, HostsEntry) then begin
 
-          TDnsProtocolUtility.BuildPositiveIPv4ResponsePacket(DomainName, QueryType, HostsEntry.Address.IPv4Address, TConfiguration.GetGeneratedDnsResponseTimeToLive, Output, OutputLen);
+          TDnsProtocolUtility.BuildNegativeResponsePacket(DomainName, QueryType, Output, OutputLen);
 
           TDnsProtocolUtility.SetIdIntoPacket(SessionId, Output); Self.CommunicationChannel.SendTo(Output, OutputLen, Address, Port);
 
@@ -183,7 +184,19 @@ begin
 
           if THitLogger.IsEnabled and (Pos('H', TConfiguration.GetHitLogFileWhat) > 0) then begin if (TConfiguration.GetHitLogFileMode = 'Legacy') then THitLogger.AddHit(ArrivalTime, 'H', Address, TDnsProtocolUtility.PrintRequestPacketDescriptionAsLegacyStringFromPacket(Buffer, BufferLen, False)) else THitLogger.AddHit(ArrivalTime, 'H', Address, TDnsProtocolUtility.PrintRequestPacketDescriptionAsNormalStringFromPacket(Buffer, BufferLen, False)); end;
 
-        end else if (QueryType = DNS_QUERY_TYPE_A) and THostsCache.Find(DomainName, DNS_QUERY_TYPE_AAAA, HostsEntry) then begin
+        end else if (QueryType = DNS_QUERY_TYPE_A) and THostsCache.FindIPv4AddressHostsEntryFamily(DomainName, HostsEntry) then begin
+
+          TDnsProtocolUtility.BuildPositiveIPv4ResponsePacket(DomainName, QueryType, HostsEntry.Address^.IPv4Address, TConfiguration.GetGeneratedDnsResponseTimeToLive, Output, OutputLen);
+
+          TDnsProtocolUtility.SetIdIntoPacket(SessionId, Output); Self.CommunicationChannel.SendTo(Output, OutputLen, Address, Port);
+
+          if TStatistics.IsEnabled then TStatistics.IncTotalRequestsResolvedThroughHostsFile;
+
+          if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' sent to client ' + TDualIPAddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' directly from hosts cache.');
+
+          if THitLogger.IsEnabled and (Pos('H', TConfiguration.GetHitLogFileWhat) > 0) then begin if (TConfiguration.GetHitLogFileMode = 'Legacy') then THitLogger.AddHit(ArrivalTime, 'H', Address, TDnsProtocolUtility.PrintRequestPacketDescriptionAsLegacyStringFromPacket(Buffer, BufferLen, False)) else THitLogger.AddHit(ArrivalTime, 'H', Address, TDnsProtocolUtility.PrintRequestPacketDescriptionAsNormalStringFromPacket(Buffer, BufferLen, False)); end;
+
+        end else if (QueryType = DNS_QUERY_TYPE_A) and THostsCache.FindIPv6AddressHostsEntryFamily(DomainName, HostsEntry) then begin
 
           TDnsProtocolUtility.BuildPositiveResponsePacket(DomainName, QueryType, Output, OutputLen);
 
@@ -195,9 +208,9 @@ begin
 
           if THitLogger.IsEnabled and (Pos('H', TConfiguration.GetHitLogFileWhat) > 0) then begin if (TConfiguration.GetHitLogFileMode = 'Legacy') then THitLogger.AddHit(ArrivalTime, 'H', Address, TDnsProtocolUtility.PrintRequestPacketDescriptionAsLegacyStringFromPacket(Buffer, BufferLen, False)) else THitLogger.AddHit(ArrivalTime, 'H', Address, TDnsProtocolUtility.PrintRequestPacketDescriptionAsNormalStringFromPacket(Buffer, BufferLen, False)); end;
 
-        end else if (QueryType = DNS_QUERY_TYPE_AAAA) and THostsCache.Find(DomainName, DNS_QUERY_TYPE_AAAA, HostsEntry) then begin
+        end else if (QueryType = DNS_QUERY_TYPE_AAAA) and THostsCache.FindNXHostsEntryFamily(DomainName, HostsEntry) then begin
 
-          TDnsProtocolUtility.BuildPositiveIPv6ResponsePacket(DomainName, QueryType, HostsEntry.Address.IPv6Address, TConfiguration.GetGeneratedDnsResponseTimeToLive, Output, OutputLen);
+          TDnsProtocolUtility.BuildNegativeResponsePacket(DomainName, QueryType, Output, OutputLen);
 
           TDnsProtocolUtility.SetIdIntoPacket(SessionId, Output); Self.CommunicationChannel.SendTo(Output, OutputLen, Address, Port);
 
@@ -207,7 +220,19 @@ begin
 
           if THitLogger.IsEnabled and (Pos('H', TConfiguration.GetHitLogFileWhat) > 0) then begin if (TConfiguration.GetHitLogFileMode = 'Legacy') then THitLogger.AddHit(ArrivalTime, 'H', Address, TDnsProtocolUtility.PrintRequestPacketDescriptionAsLegacyStringFromPacket(Buffer, BufferLen, False)) else THitLogger.AddHit(ArrivalTime, 'H', Address, TDnsProtocolUtility.PrintRequestPacketDescriptionAsNormalStringFromPacket(Buffer, BufferLen, False)); end;
 
-        end else if (QueryType = DNS_QUERY_TYPE_AAAA) and THostsCache.Find(DomainName, DNS_QUERY_TYPE_A, HostsEntry) then begin
+        end else if (QueryType = DNS_QUERY_TYPE_AAAA) and THostsCache.FindIPv6AddressHostsEntryFamily(DomainName, HostsEntry) then begin
+
+          TDnsProtocolUtility.BuildPositiveIPv6ResponsePacket(DomainName, QueryType, HostsEntry.Address^.IPv6Address, TConfiguration.GetGeneratedDnsResponseTimeToLive, Output, OutputLen);
+
+          TDnsProtocolUtility.SetIdIntoPacket(SessionId, Output); Self.CommunicationChannel.SendTo(Output, OutputLen, Address, Port);
+
+          if TStatistics.IsEnabled then TStatistics.IncTotalRequestsResolvedThroughHostsFile;
+
+          if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' sent to client ' + TDualIPAddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' directly from hosts cache.');
+
+          if THitLogger.IsEnabled and (Pos('H', TConfiguration.GetHitLogFileWhat) > 0) then begin if (TConfiguration.GetHitLogFileMode = 'Legacy') then THitLogger.AddHit(ArrivalTime, 'H', Address, TDnsProtocolUtility.PrintRequestPacketDescriptionAsLegacyStringFromPacket(Buffer, BufferLen, False)) else THitLogger.AddHit(ArrivalTime, 'H', Address, TDnsProtocolUtility.PrintRequestPacketDescriptionAsNormalStringFromPacket(Buffer, BufferLen, False)); end;
+
+        end else if (QueryType = DNS_QUERY_TYPE_AAAA) and THostsCache.FindIPv4AddressHostsEntryFamily(DomainName, HostsEntry) then begin
 
           TDnsProtocolUtility.BuildPositiveResponsePacket(DomainName, QueryType, Output, OutputLen);
 
@@ -270,7 +295,8 @@ begin
             // Gonna check by hash if the request exists in the address cache
             TDnsProtocolUtility.SetIdIntoPacket(0, Buffer); RequestHash := TDigest.ComputeCRC64(Buffer, BufferLen); TDnsProtocolUtility.SetIdIntoPacket(SessionId, Buffer); case TAddressCache.Find(ArrivalTime, RequestHash, Output, OutputLen) of
 
-              RecentEnough: begin
+              RecentEnough:
+              begin
 
                 TDnsProtocolUtility.SetIdIntoPacket(SessionId, Output); Self.CommunicationChannel.SendTo(Output, OutputLen, Address, Port);
 
@@ -282,7 +308,8 @@ begin
 
               end;
 
-              NeedsUpdate: begin
+              NeedsUpdate:
+              begin
 
                 TDnsProtocolUtility.SetIdIntoPacket(SessionId, Output); Self.CommunicationChannel.SendTo(Output, OutputLen, Address, Port);
 
@@ -324,7 +351,8 @@ begin
 
               end;
 
-              NotFound: begin
+              NotFound:
+              begin
 
                 Forwarded := False;
 

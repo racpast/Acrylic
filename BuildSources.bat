@@ -1,118 +1,99 @@
 @Echo Off
 
-Set DST=C:\Temp
+Set DST=C:\Temp\Acrylic-Latest
+Set FSP=C:\Temp\Acrylic-Latest-ArchivesForFalsePositivesReports
 
-Echo.
-Echo Cleaning...
-Echo.
+Echo CLEANING...
 
 Call CleanSources.bat
 
-Echo.
-Echo Searching the compiler...
-Echo.
+RmDir /s /q "%DST%" >NUL 2>NUL & MkDir "%DST%" >NUL 2>NUL
+
+RmDir /s /q "%FSP%" >NUL 2>NUL & MkDir "%FSP%" >NUL 2>NUL
+
+Echo SEARCHING THE COMPILER...
 
 If Exist "%PROGRAMFILES%\Delphi7SE\Bin\DCC32.exe" Set DCC=%PROGRAMFILES%\Delphi7SE\Bin\DCC32.exe
 If Exist "%PROGRAMFILES(X86)%\Delphi7SE\Bin\DCC32.exe" Set DCC=%PROGRAMFILES(X86)%\Delphi7SE\Bin\DCC32.exe
 
-Echo Compiler found here: %DCC%
+Echo COMPILER FOUND HERE: %DCC%
 
-Echo.
-Echo Compiling Acrylic console...
-Echo.
+Echo COMPILING ACRYLIC CONSOLE...
 
 "%DCC%" AcrylicConsole.dpr
 
-If ErrorLevel 1 Echo FAILED! & Pause & Exit /b 0
+If %ErrorLevel% Neq 0 Echo FAILED! & Pause & Exit /b 0
 
-Echo.
-Echo Compiling Acrylic service...
-Echo.
+Echo COMPILING ACRYLIC SERVICE...
 
 "%DCC%" AcrylicService.dpr
 
-If ErrorLevel 1 Echo FAILED! & Pause & Exit /b 0
+If %ErrorLevel% Neq 0 Echo FAILED! & Pause & Exit /b 0
 
-Echo.
-Echo Compiling Acrylic controller...
-Echo.
+Echo COMPILING ACRYLIC CONTROLLER...
 
 "%DCC%" AcrylicController.dpr
 
-If ErrorLevel 1 Echo FAILED! & Pause & Exit /b 0
+If %ErrorLevel% Neq 0 Echo FAILED! & Pause & Exit /b 0
 
-Echo.
-Echo Compiling Acrylic regex tester...
-Echo.
+Echo COMPILING ACRYLIC REGEX TESTER...
 
 "%DCC%" AcrylicRegExTester.dpr
 
-If ErrorLevel 1 Echo FAILED! & Pause & Exit /b 0
+If %ErrorLevel% Neq 0 Echo FAILED! & Pause & Exit /b 0
 
-Echo.
-Echo Building Acrylic portable package...
-Echo.
+Echo BUILDING ACRYLIC PORTABLE PACKAGE...
 
-7za.exe a -tzip -mx9 Acrylic-Portable.zip AcrylicHosts.txt AcrylicConfiguration.ini AcrylicController.exe.manifest AcrylicController.exe AcrylicController.txt AcrylicService.exe AcrylicConsole.exe AcrylicConsole.txt AcrylicRegExTester.exe AcrylicRegExTester.txt License.txt Readme.txt InstallAcrylicService.bat UninstallAcrylicService.bat StartAcrylicService.bat StartAcrylicServiceSilently.bat StopAcrylicService.bat StopAcrylicServiceSilently.bat RestartAcrylicService.bat RestartAcrylicServiceSilently.bat PurgeAcrylicCacheData.bat PurgeAcrylicCacheDataSilently.bat ActivateAcrylicDebugLog.bat ActivateAcrylicDebugLogSilently.bat DeactivateAcrylicDebugLog.bat DeactivateAcrylicDebugLogSilently.bat
+7za.exe a -tzip -mx9 "%DST%\Acrylic-Portable.zip" AcrylicHosts.txt AcrylicConfiguration.ini AcrylicController.exe.manifest AcrylicController.exe AcrylicController.txt AcrylicService.exe AcrylicConsole.exe AcrylicConsole.txt AcrylicRegExTester.exe AcrylicRegExTester.txt License.txt Readme.txt InstallAcrylicService.bat UninstallAcrylicService.bat StartAcrylicService.bat StartAcrylicServiceSilently.bat StopAcrylicService.bat StopAcrylicServiceSilently.bat RestartAcrylicService.bat RestartAcrylicServiceSilently.bat PurgeAcrylicCacheData.bat PurgeAcrylicCacheDataSilently.bat ActivateAcrylicDebugLog.bat ActivateAcrylicDebugLogSilently.bat DeactivateAcrylicDebugLog.bat DeactivateAcrylicDebugLogSilently.bat
 
-If ErrorLevel 1 Echo FAILED! & Pause & Exit /b 0
+If %ErrorLevel% Neq 0 Echo FAILED! & Pause & Exit /b 0
 
-Echo.
-Echo Moving Acrylic portable package to "%DST%"...
-Echo.
+Echo BUILDING ACRYLIC FALSE POSITIVES PACKAGE (AcrylicController.exe)...
 
-If Not Exist "%DST%" MkDir "%DST%" >NUL 2>NUL
-If Exist "%DST%\Acrylic-Portable.zip" Del "%DST%\Acrylic-Portable.zip" >NUL 2>NUL
+7za.exe a -tzip -mx9 "%FSP%\AcrylicController.zip" AcrylicController.exe
 
-Move /y Acrylic-Portable.zip "%DST%"
+If %ErrorLevel% Neq 0 Echo FAILED! & Pause & Exit /b 0
 
-If ErrorLevel 1 Echo FAILED! & Pause & Exit /b 0
+Echo BUILDING ACRYLIC FALSE POSITIVES PACKAGE (AcrylicService.exe)...
 
-Echo.
-Echo Building Acrylic setup package...
-Echo.
+7za.exe a -tzip -mx9 "%FSP%\AcrylicService.zip" AcrylicService.exe
+
+If %ErrorLevel% Neq 0 Echo FAILED! & Pause & Exit /b 0
+
+Echo BUILDING ACRYLIC FALSE POSITIVES PACKAGE (AcrylicConsole.exe)...
+
+7za.exe a -tzip -mx9 "%FSP%\AcrylicConsole.zip" AcrylicConsole.exe
+
+If %ErrorLevel% Neq 0 Echo FAILED! & Pause & Exit /b 0
+
+Echo BUILDING ACRYLIC FALSE POSITIVES PACKAGE (AcrylicRegExTester.exe)...
+
+7za.exe a -tzip -mx9 "%FSP%\AcrylicRegExTester.zip" AcrylicRegExTester.exe
+
+If %ErrorLevel% Neq 0 Echo FAILED! & Pause & Exit /b 0
+
+Echo BUILDING ACRYLIC SETUP PACKAGE...
 
 "C:\Wintools\NSIS\App\NSIS\makensis.exe" AcrylicSetup.nsi
 
-If ErrorLevel 1 Echo FAILED! & Pause & Exit /b 0
+If %ErrorLevel% Neq 0 Echo FAILED! & Pause & Exit /b 0
 
-Echo.
-Echo Moving Acrylic setup package to "%DST%"...
-Echo.
-
-If Not Exist "%DST%" MkDir "%DST%" >NUL 2>NUL
-If Exist "%DST%\Acrylic.exe" Del "%DST%\Acrylic.exe" >NUL 2>NUL
+Echo MOVING ACRYLIC SETUP PACKAGE TO "%DST%"...
 
 Move /y Acrylic.exe "%DST%"
 
-If ErrorLevel 1 Echo FAILED! & Pause & Exit /b 0
+If %ErrorLevel% Neq 0 Echo FAILED! & Pause & Exit /b 0
 
-Echo.
-Echo Cleaning...
-Echo.
+Echo CLEANING...
 
 Call CleanSources.bat
 
-Echo.
-Echo Building Acrylic source archive...
-Echo.
+Echo BUILDING ACRYLIC SOURCE ARCHIVE...
 
-7za.exe a Acrylic-Sources.zip -xr!.git -x!.gitignore *
+7za.exe a -tzip -mx9 "%DST%\Acrylic-Sources.zip" -xr!.git -x!.gitignore *
 
-If ErrorLevel 1 Echo FAILED! & Pause & Exit /b 0
+If %ErrorLevel% Neq 0 Echo FAILED! & Pause & Exit /b 0
 
-Echo.
-Echo Moving Acrylic source archive to "%DST%"...
-Echo.
-
-If Not Exist "%DST%" MkDir "%DST%" >NUL 2>NUL
-If Exist "%DST%\Acrylic-Sources.zip" Del "%DST%\Acrylic-Sources.zip" >NUL 2>NUL
-
-Move /y Acrylic-Sources.zip "%DST%"
-
-If ErrorLevel 1 Echo FAILED! & Pause & Exit /b 0
-
-Echo.
-Echo Done successfully.
+Echo DONE SUCCESSFULLY.
 
 Pause

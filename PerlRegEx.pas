@@ -22,13 +22,13 @@
 {                                                                                                  }
 {**************************************************************************************************}
 
-unit PerlRegEx;
+unit
+  PerlRegEx;
 
 interface
 
 uses
-  Windows, Messages, SysUtils, Classes,
-  pcre;
+  Windows, Messages, SysUtils, Classes, PCRE;
 
 type
   TPerlRegExOptions = set of (
@@ -106,7 +106,7 @@ type
     function GetSubjectRight: PCREString;
   protected
     procedure CleanUp;
-        // Dispose off whatever we created, so we can start over. Called automatically when needed, so it is not made public
+        // Dispose off whatever we created, so we can start over. Called automatically when needed, so it is not made public.
     procedure ClearStoredGroups;
   public
     constructor Create;
@@ -114,25 +114,24 @@ type
     destructor Destroy; override;
         // Clean up after ourselves
     class function EscapeRegExChars(const S: string): string;
-        // Escapes regex characters in S so that the regex engine can be used to match S as plain text
+        // Escapes regex characters in S so that the regex engine can be used to match S as plain text.
     procedure Compile;
         // Compile the regex. Called automatically by Match
     procedure Study;
         // Study the regex. Studying takes time, but will make the execution of the regex a lot faster.
         // Call study if you will be using the same regex many times
     function Match: Boolean;
-        // Attempt to match the regex, starting the attempt from the beginning of Subject
+        // Attempt to match the regex, starting the attempt from the beginning of Subject.
     function MatchAgain: Boolean;
-        // Attempt to match the regex to the remainder of Subject after the previous match (as indicated by Start)
+        // Attempt to match the regex to the remainder of Subject after the previous match (as indicated by Start).
     function Replace: PCREString;
-        // Replace matched expression in Subject with ComputeReplacement.  Returns the actual replacement text from ComputeReplacement
+        // Replace matched expression in Subject with ComputeReplacement. Returns the actual replacement text from ComputeReplacement.
     function ReplaceAll: Boolean;
-        // Repeat MatchAgain and Replace until you drop.  Returns True if anything was replaced at all.
+        // Repeat MatchAgain and Replace until you drop. Returns True if anything was replaced at all.
     function ComputeReplacement: PCREString;
         // Returns Replacement with backreferences filled in
     procedure StoreGroups;
-        // Stores duplicates of Groups[] so they and ComputeReplacement will still return the proper strings
-        // even if FSubject is changed or cleared
+        // Stores duplicates of Groups[] so they and ComputeReplacement will still return the proper strings even if FSubject is changed or cleared.
     function NamedGroup(const Name: PCREString): Integer;
         // Returns the index of the named group Name
     procedure Split(Strings: TStrings; Limit: Integer);
@@ -179,19 +178,19 @@ type
         // The regular expression to be matched
     property Replacement: PCREString read FReplacement write FReplacement;
         // Text to replace matched expression with. \number and $number backreferences will be substituted with Groups
-        // TPerlRegEx supports the "JGsoft" replacement text flavor as explained at http://www.regular-expressions.info/refreplace.html
+        // TPerlRegEx supports the "JGsoft" replacement text flavor as explained at: http://www.regular-expressions.info/refreplace.html
     property OnMatch: TNotifyEvent read FOnMatch write FOnMatch;
         // Triggered by Match and MatchAgain after a successful match
     property OnReplace: TPerlRegExReplaceEvent read FOnReplace write FOnReplace;
-        // Triggered by Replace and ReplaceAll just before the replacement is done, allowing you to determine the new PCREString
+        // Triggered by Replace and ReplaceAll just before the replacement is done, allowing you to determine the new PCREString.
   end;
 
 {
   You can add TPerlRegEx instances to a TPerlRegExList to match them all together on the same subject,
   as if they were one regex regex1|regex2|regex3|...
-  TPerlRegExList does not own the TPerlRegEx components, just like a TList
+  TPerlRegExList does not own the TPerlRegEx components, just like a TList.
   If a TPerlRegEx has been added to a TPerlRegExList, it should not be used in any other situation
-  until it is removed from the list
+  until it is removed from the list.
 }
 
 type
@@ -230,9 +229,6 @@ type
   end;
 
 implementation
-
-
-         { ********* Unit support routines ********* }
 
 function FirstCap(const S: string): string;
 begin
@@ -295,9 +291,6 @@ begin
     end;
 {$ENDIF UNICODE}
 end;
-
-
-         { ********* TPerlRegEx component ********* }
 
 procedure TPerlRegEx.CleanUp;
 begin
@@ -724,7 +717,7 @@ procedure TPerlRegEx.SetStart(const Value: Integer);
 begin
   if Value < 1 then FStart := 1
   else FStart := Value;
-  // If FStart > Length(Subject), MatchAgain() will simply return False
+  // If FStart > Length(Subject), MatchAgain() will simply return False.
 end;
 
 procedure TPerlRegEx.SetStop(const Value: Integer);
@@ -827,8 +820,6 @@ begin
     raise Exception.Create('TPerlRegEx.Study() - Error studying the regex: ' + AnsiString(Error));
   FStudied := True
 end;
-
-{ TPerlRegExList }
 
 function TPerlRegExList.Add(ARegEx: TPerlRegEx): Integer;
 begin
