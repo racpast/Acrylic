@@ -1,4 +1,4 @@
-object AcrylicServiceController: TAcrylicServiceController
+object AcrylicDNSProxySvc: TAcrylicDNSProxySvc
   OldCreateOrder = False
   AllowPause = False
   DisplayName = 'Acrylic DNS Proxy'

@@ -187,9 +187,12 @@ const
 // --------------------------------------------------------------------------
 
 class function TDnsForwarder.ForwardDnsRequest(DnsServerConfiguration: TDnsServerConfiguration; Buffer: Pointer; BufferLen: Integer; SessionId: Word): Boolean;
+
 var
   DnsForwarderThread: TThread;
+
 begin
+
   Result := False;
 
   DnsForwarderThread := nil; try
@@ -287,6 +290,7 @@ begin
     on E: Exception do if (DnsForwarderThread <> nil) then DnsForwarderThread.Destroy;
 
   end;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -294,10 +298,13 @@ end;
 // --------------------------------------------------------------------------
 
 constructor TIPv4UdpDnsForwarder.Create(DnsServerConfiguration: TDnsServerConfiguration; Buffer: Pointer; BufferLen: Integer; SessionId: Word);
+
 begin
+
   inherited Create(True); Self.FreeOnTerminate := True;
 
   Self.DnsServerConfiguration := DnsServerConfiguration; TMemoryManager.GetMemory(Self.Buffer, MAX_DNS_BUFFER_LEN); Move(Buffer^, Self.Buffer^, BufferLen); Self.BufferLen := BufferLen; TMemoryManager.GetMemory(Self.Output, MAX_DNS_BUFFER_LEN); Self.OutputLen := 0; Self.SessionId := SessionId;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -305,9 +312,12 @@ end;
 // --------------------------------------------------------------------------
 
 procedure TIPv4UdpDnsForwarder.Execute;
+
 var
   CommunicationChannel: TIPv4UdpCommunicationChannel; IPv4Address: TIPv4Address; Port: Word;
+
 begin
+
   try
 
     CommunicationChannel := TIPv4UdpCommunicationChannel.Create;
@@ -335,6 +345,7 @@ begin
     on E: Exception do if (TTracer.IsEnabled) then TTracer.Trace(TracePriorityError, 'TIPv4UdpDnsForwarder.Execute: ' + E.Message);
 
   end;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -342,10 +353,13 @@ end;
 // --------------------------------------------------------------------------
 
 destructor TIPv4UdpDnsForwarder.Destroy;
+
 begin
+
   TMemoryManager.FreeMemory(Self.Output, MAX_DNS_BUFFER_LEN); TMemoryManager.FreeMemory(Self.Buffer, MAX_DNS_BUFFER_LEN);
 
   inherited Destroy;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -353,10 +367,13 @@ end;
 // --------------------------------------------------------------------------
 
 constructor TIPv6UdpDnsForwarder.Create(DnsServerConfiguration: TDnsServerConfiguration; Buffer: Pointer; BufferLen: Integer; SessionId: Word);
+
 begin
+
   inherited Create(True); Self.FreeOnTerminate := True;
 
   Self.DnsServerConfiguration := DnsServerConfiguration; TMemoryManager.GetMemory(Self.Buffer, MAX_DNS_BUFFER_LEN); Move(Buffer^, Self.Buffer^, BufferLen); Self.BufferLen := BufferLen; TMemoryManager.GetMemory(Self.Output, MAX_DNS_BUFFER_LEN); Self.OutputLen := 0; Self.SessionId := SessionId;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -364,9 +381,12 @@ end;
 // --------------------------------------------------------------------------
 
 procedure TIPv6UdpDnsForwarder.Execute;
+
 var
   CommunicationChannel: TIPv6UdpCommunicationChannel; IPv6Address: TIPv6Address; Port: Word;
+
 begin
+
   try
 
     CommunicationChannel := TIPv6UdpCommunicationChannel.Create;
@@ -394,6 +414,7 @@ begin
     on E: Exception do if (TTracer.IsEnabled) then TTracer.Trace(TracePriorityError, 'TIPv4UdpDnsForwarder.Execute: ' + E.Message);
 
   end;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -401,10 +422,13 @@ end;
 // --------------------------------------------------------------------------
 
 destructor TIPv6UdpDnsForwarder.Destroy;
+
 begin
+
   TMemoryManager.FreeMemory(Self.Output, MAX_DNS_BUFFER_LEN); TMemoryManager.FreeMemory(Self.Buffer, MAX_DNS_BUFFER_LEN);
 
   inherited Destroy;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -412,10 +436,13 @@ end;
 // --------------------------------------------------------------------------
 
 constructor TIPv4TcpDnsForwarder.Create(DnsServerConfiguration: TDnsServerConfiguration; Buffer: Pointer; BufferLen: Integer; SessionId: Word);
+
 begin
+
   inherited Create(True); Self.FreeOnTerminate := True;
 
   Self.DnsServerConfiguration := DnsServerConfiguration; TMemoryManager.GetMemory(Self.Buffer, MAX_DNS_BUFFER_LEN); Move(Buffer^, Self.Buffer^, BufferLen); Self.BufferLen := BufferLen; TMemoryManager.GetMemory(Self.Intermediate, MAX_DNS_BUFFER_LEN); Self.IntermediateLen := 0; TMemoryManager.GetMemory(Self.Output, MAX_DNS_BUFFER_LEN); Self.OutputLen := 0; Self.SessionId := SessionId;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -423,9 +450,12 @@ end;
 // --------------------------------------------------------------------------
 
 procedure TIPv4TcpDnsForwarder.Execute;
+
 var
   CommunicationChannel: TIPv4TcpCommunicationChannel;
+
 begin
+
   try
 
     CommunicationChannel := TIPv4TcpCommunicationChannel.Create;
@@ -457,6 +487,7 @@ begin
     on E: Exception do if (TTracer.IsEnabled) then TTracer.Trace(TracePriorityError, 'TIPv4TcpDnsForwarder.Execute: ' + E.Message);
 
   end;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -464,10 +495,13 @@ end;
 // --------------------------------------------------------------------------
 
 destructor TIPv4TcpDnsForwarder.Destroy;
+
 begin
+
   TMemoryManager.FreeMemory(Self.Output, MAX_DNS_BUFFER_LEN); TMemoryManager.FreeMemory(Self.Intermediate, MAX_DNS_BUFFER_LEN); TMemoryManager.FreeMemory(Self.Buffer, MAX_DNS_BUFFER_LEN);
 
   inherited Destroy;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -475,10 +509,13 @@ end;
 // --------------------------------------------------------------------------
 
 constructor TIPv6TcpDnsForwarder.Create(DnsServerConfiguration: TDnsServerConfiguration; Buffer: Pointer; BufferLen: Integer; SessionId: Word);
+
 begin
+
   inherited Create(True); Self.FreeOnTerminate := True;
 
   Self.DnsServerConfiguration := DnsServerConfiguration; TMemoryManager.GetMemory(Self.Buffer, MAX_DNS_BUFFER_LEN); Move(Buffer^, Self.Buffer^, BufferLen); Self.BufferLen := BufferLen; TMemoryManager.GetMemory(Self.Intermediate, MAX_DNS_BUFFER_LEN); Self.IntermediateLen := 0; TMemoryManager.GetMemory(Self.Output, MAX_DNS_BUFFER_LEN); Self.OutputLen := 0; Self.SessionId := SessionId;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -486,9 +523,12 @@ end;
 // --------------------------------------------------------------------------
 
 procedure TIPv6TcpDnsForwarder.Execute;
+
 var
   CommunicationChannel: TIPv6TcpCommunicationChannel;
+
 begin
+
   try
 
     CommunicationChannel := TIPv6TcpCommunicationChannel.Create;
@@ -520,6 +560,7 @@ begin
     on E: Exception do if (TTracer.IsEnabled) then TTracer.Trace(TracePriorityError, 'TIPv6TcpDnsForwarder.Execute: ' + E.Message);
 
   end;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -527,10 +568,13 @@ end;
 // --------------------------------------------------------------------------
 
 destructor TIPv6TcpDnsForwarder.Destroy;
+
 begin
+
   TMemoryManager.FreeMemory(Self.Output, MAX_DNS_BUFFER_LEN); TMemoryManager.FreeMemory(Self.Intermediate, MAX_DNS_BUFFER_LEN); TMemoryManager.FreeMemory(Self.Buffer, MAX_DNS_BUFFER_LEN);
 
   inherited Destroy;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -538,10 +582,13 @@ end;
 // --------------------------------------------------------------------------
 
 constructor TIPv4Socks5DnsForwarder.Create(DnsServerConfiguration: TDnsServerConfiguration; Buffer: Pointer; BufferLen: Integer; SessionId: Word);
+
 begin
+
   inherited Create(True); Self.FreeOnTerminate := True;
 
   Self.DnsServerConfiguration := DnsServerConfiguration; TMemoryManager.GetMemory(Self.Buffer, MAX_DNS_BUFFER_LEN); Move(Buffer^, Self.Buffer^, BufferLen); Self.BufferLen := BufferLen; TMemoryManager.GetMemory(Self.Intermediate, MAX_DNS_BUFFER_LEN); Self.IntermediateLen := 0; TMemoryManager.GetMemory(Self.Output, MAX_DNS_BUFFER_LEN); Self.OutputLen := 0; Self.SessionId := SessionId;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -549,9 +596,12 @@ end;
 // --------------------------------------------------------------------------
 
 procedure TIPv4Socks5DnsForwarder.Execute;
+
 var
   CommunicationChannel: TIPv4TcpCommunicationChannel;
+
 begin
+
   try
 
     CommunicationChannel := TIPv4TcpCommunicationChannel.Create;
@@ -625,6 +675,7 @@ begin
     on E: Exception do if (TTracer.IsEnabled) then TTracer.Trace(TracePriorityError, 'TIPv4Socks5DnsForwarder.Execute: ' + E.Message);
 
   end;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -632,10 +683,13 @@ end;
 // --------------------------------------------------------------------------
 
 destructor TIPv4Socks5DnsForwarder.Destroy;
+
 begin
+
   TMemoryManager.FreeMemory(Self.Output, MAX_DNS_BUFFER_LEN); TMemoryManager.FreeMemory(Self.Intermediate, MAX_DNS_BUFFER_LEN); TMemoryManager.FreeMemory(Self.Buffer, MAX_DNS_BUFFER_LEN);
 
   inherited Destroy;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -643,10 +697,13 @@ end;
 // --------------------------------------------------------------------------
 
 constructor TIPv6Socks5DnsForwarder.Create(DnsServerConfiguration: TDnsServerConfiguration; Buffer: Pointer; BufferLen: Integer; SessionId: Word);
+
 begin
+
   inherited Create(True); Self.FreeOnTerminate := True;
 
   Self.DnsServerConfiguration := DnsServerConfiguration; TMemoryManager.GetMemory(Self.Buffer, MAX_DNS_BUFFER_LEN); Move(Buffer^, Self.Buffer^, BufferLen); Self.BufferLen := BufferLen; TMemoryManager.GetMemory(Self.Intermediate, MAX_DNS_BUFFER_LEN); Self.IntermediateLen := 0; TMemoryManager.GetMemory(Self.Output, MAX_DNS_BUFFER_LEN); Self.OutputLen := 0; Self.SessionId := SessionId;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -654,9 +711,12 @@ end;
 // --------------------------------------------------------------------------
 
 procedure TIPv6Socks5DnsForwarder.Execute;
+
 var
   CommunicationChannel: TIPv6TcpCommunicationChannel;
+
 begin
+
   try
 
     CommunicationChannel := TIPv6TcpCommunicationChannel.Create;
@@ -730,6 +790,7 @@ begin
     on E: Exception do if (TTracer.IsEnabled) then TTracer.Trace(TracePriorityError, 'TIPv6Socks5DnsForwarder.Execute: ' + E.Message);
 
   end;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -737,10 +798,13 @@ end;
 // --------------------------------------------------------------------------
 
 destructor TIPv6Socks5DnsForwarder.Destroy;
+
 begin
+
   TMemoryManager.FreeMemory(Self.Output, MAX_DNS_BUFFER_LEN); TMemoryManager.FreeMemory(Self.Intermediate, MAX_DNS_BUFFER_LEN); TMemoryManager.FreeMemory(Self.Buffer, MAX_DNS_BUFFER_LEN);
 
   inherited Destroy;
+
 end;
 
 // --------------------------------------------------------------------------

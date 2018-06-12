@@ -11,7 +11,7 @@ program
 
 uses
   SvcMgr,
-  AcrylicServiceUnit in 'AcrylicServiceUnit.pas',
+  AcrylicServiceController in 'AcrylicServiceController.pas',
   AcrylicVersionInfo in 'AcrylicVersionInfo.pas',
   AddressCache in 'AddressCache.pas',
   Bootstrapper in 'Bootstrapper.pas',
@@ -28,20 +28,26 @@ uses
   FileTracerAgent in 'FileTracerAgent.pas',
   HitLogger in 'HitLogger.pas',
   HostsCache in 'HostsCache.pas',
-  HttpServer in 'HttpServer.pas',
   MemoryManager in 'MemoryManager.pas',
   MemoryStore in 'MemoryStore.pas',
   PatternMatching in 'PatternMatching.pas',
+  PCRE in 'PCRE.pas',
   PerlRegEx in 'PerlRegEx.pas',
   SessionCache in 'SessionCache.pas',
-  Tracer in 'Tracer.pas',
   Statistics in 'Statistics.pas',
-  Stopwatch in 'Stopwatch.pas';
+  Stopwatch in 'Stopwatch.pas',
+  Tracer in 'Tracer.pas';
 
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
 
 begin
-  Application.Initialize; Application.CreateForm(TAcrylicServiceController, AcrylicServiceController); Application.Run;
+
+  Application.Initialize;
+
+  Application.CreateForm(TAcrylicDNSProxySvc, AcrylicDNSProxySvc);
+
+  Application.Run;
+
 end.

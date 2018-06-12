@@ -66,8 +66,11 @@ uses
 // --------------------------------------------------------------------------
 
 constructor EmptyException.Create(Msg: String);
+
 begin
+
   inherited Create(Msg);
+
 end;
 
 // --------------------------------------------------------------------------
@@ -75,8 +78,11 @@ end;
 // --------------------------------------------------------------------------
 
 constructor EmptyException.Create;
+
 begin
+
   inherited Create('');
+
 end;
 
 // --------------------------------------------------------------------------
@@ -84,8 +90,11 @@ end;
 // --------------------------------------------------------------------------
 
 procedure TAbstractUnitTest.ExecuteTest;
+
 begin
+
   raise UndefinedUnitTestException.Create('');
+
 end;
 
 // --------------------------------------------------------------------------
@@ -93,9 +102,12 @@ end;
 // --------------------------------------------------------------------------
 
 class procedure TAbstractUnitTest.ControlTestExecution(RealUnitTest: TAbstractUnitTest);
+
 var
   ClassName: String;
+
 begin
+
   ClassName := RealUnitTest.ClassName; try
 
     TTracer.Trace(TracePriorityInfo, ClassName + ': Started...');
@@ -111,6 +123,7 @@ begin
    on E: Exception do TTracer.Trace(TracePriorityError, ClassName + ': Failed ' + E.Message);
 
   end;
+
 end;
 
 // --------------------------------------------------------------------------

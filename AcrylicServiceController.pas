@@ -3,7 +3,7 @@
 // --------------------------------------------------------------------------
 
 unit
-  AcrylicServiceUnit;
+  AcrylicServiceController;
 
 // --------------------------------------------------------------------------
 //
@@ -23,7 +23,7 @@ uses
 // --------------------------------------------------------------------------
 
 type
-  TAcrylicServiceController = class(TService)
+  TAcrylicDNSProxySvc = class(TService)
       procedure ServiceAfterInstall(Sender: TService);
       procedure ServiceStart(Sender: TService; var Started: Boolean);
       procedure ServiceStop(Sender: TService; var Stopped: Boolean);
@@ -37,7 +37,7 @@ type
 // --------------------------------------------------------------------------
 
 var
-  AcrylicServiceController: TAcrylicServiceController;
+  AcrylicDNSProxySvc: TAcrylicDNSProxySvc;
 
 // --------------------------------------------------------------------------
 //
@@ -50,7 +50,15 @@ implementation
 // --------------------------------------------------------------------------
 
 uses
-  Registry, SysUtils, Windows, AcrylicVersionInfo, Bootstrapper, Configuration, Environment, FileTracerAgent, Tracer;
+  SysUtils,
+  Windows,
+  Registry,
+  AcrylicVersionInfo,
+  Bootstrapper,
+  Configuration,
+  Environment,
+  FileTracerAgent,
+  Tracer;
 
 // --------------------------------------------------------------------------
 //
@@ -63,27 +71,36 @@ uses
 // --------------------------------------------------------------------------
 
 procedure ServiceController(CtrlCode: Cardinal); stdcall;
+
 begin
-  AcrylicServiceController.Controller(CtrlCode);
+
+  AcrylicDNSProxySvc.Controller(CtrlCode);
+
 end;
 
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
 
-function TAcrylicServiceController.GetServiceController: TServiceController;
+function TAcrylicDNSProxySvc.GetServiceController: TServiceController;
+
 begin
+
   Result := ServiceController;
+
 end;
 
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
 
-procedure TAcrylicServiceController.ServiceAfterInstall(Sender: TService);
+procedure TAcrylicDNSProxySvc.ServiceAfterInstall(Sender: TService);
+
 var
   R: TRegistry;
+
 begin
+
   R := TRegistry.Create(KEY_READ or KEY_WRITE);
 
   try
@@ -91,8 +108,11 @@ begin
     R.RootKey := HKEY_LOCAL_MACHINE;
 
     if R.OpenKey('\System\CurrentControlSet\Services\' + Self.Name, false) then begin
+
       R.WriteString('Description', 'A local DNS proxy which improves the performance of your computer.');
+
       R.CloseKey;
+
     end;
 
   finally
@@ -100,14 +120,17 @@ begin
     R.Free;
 
   end;
+
 end;
 
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
 
-procedure TAcrylicServiceController.ServiceStart(Sender: TService; var Started: Boolean);
+procedure TAcrylicDNSProxySvc.ServiceStart(Sender: TService; var Started: Boolean);
+
 begin
+
   try
 
     DecimalSeparator := '.';
@@ -130,14 +153,17 @@ begin
 
     end;
   end;
+
 end;
 
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
 
-procedure TAcrylicServiceController.ServiceStop(Sender: TService; var Stopped: Boolean);
+procedure TAcrylicDNSProxySvc.ServiceStop(Sender: TService; var Stopped: Boolean);
+
 begin
+
   try
 
     TBootstrapper.StopSystem;
@@ -156,14 +182,17 @@ begin
 
     end;
   end;
+
 end;
 
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
 
-procedure TAcrylicServiceController.ServiceShutdown(Sender: TService);
+procedure TAcrylicDNSProxySvc.ServiceShutdown(Sender: TService);
+
 begin
+
   try
 
     TBootstrapper.StopSystem;
@@ -179,6 +208,7 @@ begin
     end;
 
   end;
+
 end;
 
 // --------------------------------------------------------------------------

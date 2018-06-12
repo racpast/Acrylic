@@ -23,12 +23,15 @@ type
 // --------------------------------------------------------------------------
 
 constructor TAddressCacheUnitTest.Create;
+
 begin
+
   inherited Create;
 
   TMemoryManager.GetMemory(BufferA, MAX_DNS_PACKET_LEN);
   TMemoryManager.GetMemory(BufferB, MAX_DNS_PACKET_LEN);
   TMemoryManager.GetMemory(BufferC, MAX_DNS_PACKET_LEN);
+
 end;
 
 // --------------------------------------------------------------------------
@@ -36,16 +39,19 @@ end;
 // --------------------------------------------------------------------------
 
 procedure TAddressCacheUnitTest.ExecuteTest;
+
 var
   i, j: Integer; Time: TDateTime; InitSeed: Integer;
+
 begin
+
   Time := Now;
 
   InitSeed := Round(Frac(Time) * 8640000.0);
 
   TAddressCache.Initialize;
 
-  TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Start massive insertion...');
+  TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Starting massive insertion...');
 
   RandSeed := InitSeed; for i := 0 to ((1000 * TAddressCacheUnitTest_KCacheItems) - 1) do begin
 
@@ -58,7 +64,7 @@ begin
 
   TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Done.');
 
-  TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Start scavenging to file...');
+  TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Starting scavenging to file...');
 
   TAddressCache.ScavengeToFile(ClassName + '.tmp');
 
@@ -66,13 +72,13 @@ begin
 
   TAddressCache.Finalize; TAddressCache.Initialize;
 
-  TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Start loading from file...');
+  TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Starting loading from file...');
 
   TAddressCache.LoadFromFile(ClassName + '.tmp');
 
   TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Done.');
 
-  TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Start massive search...');
+  TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Starting massive search...');
 
   RandSeed := InitSeed; for i := 0 to ((1000 * TAddressCacheUnitTest_KCacheItems) - 1) do begin
 
@@ -92,6 +98,7 @@ begin
   TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Done.');
 
   TAddressCache.Finalize;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -99,12 +106,15 @@ end;
 // --------------------------------------------------------------------------
 
 destructor TAddressCacheUnitTest.Destroy;
+
 begin
+
   TMemoryManager.FreeMemory(BufferA, MAX_DNS_PACKET_LEN);
   TMemoryManager.FreeMemory(BufferB, MAX_DNS_PACKET_LEN);
   TMemoryManager.FreeMemory(BufferC, MAX_DNS_PACKET_LEN);
 
   inherited Destroy;
+
 end;
 
 // --------------------------------------------------------------------------

@@ -96,8 +96,11 @@ var
 // --------------------------------------------------------------------------
 
 class function TStatistics.IsEnabled: Boolean;
+
 begin
+
   Result := TConfiguration.GetStatsLogFileName <> '';
+
 end;
 
 // --------------------------------------------------------------------------
@@ -105,8 +108,11 @@ end;
 // --------------------------------------------------------------------------
 
 class procedure TStatistics.IncTotalPacketsDiscarded;
+
 begin
+
   Inc(TStatistics_TotalPacketsDiscarded); TStatistics_Changed := True;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -114,8 +120,11 @@ end;
 // --------------------------------------------------------------------------
 
 class procedure TStatistics.IncTotalRequestsReceived;
+
 begin
+
   Inc(TStatistics_TotalRequestsReceived); TStatistics_Changed := True;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -123,8 +132,11 @@ end;
 // --------------------------------------------------------------------------
 
 class procedure TStatistics.IncTotalRequestsForwarded;
+
 begin
+
   Inc(TStatistics_TotalRequestsForwarded); TStatistics_Changed := True;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -132,8 +144,11 @@ end;
 // --------------------------------------------------------------------------
 
 class procedure TStatistics.IncTotalRequestsResolvedThroughCache;
+
 begin
+
   Inc(TStatistics_TotalRequestsResolvedThroughCache); TStatistics_Changed := True;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -141,8 +156,11 @@ end;
 // --------------------------------------------------------------------------
 
 class procedure TStatistics.IncTotalRequestsResolvedThroughHostsFile;
+
 begin
+
   Inc(TStatistics_TotalRequestsResolvedThroughHostsFile); TStatistics_Changed := True;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -150,8 +168,11 @@ end;
 // --------------------------------------------------------------------------
 
 class procedure TStatistics.IncTotalRequestsResolvedThroughOtherWays;
+
 begin
+
   Inc(TStatistics_TotalRequestsResolvedThroughOtherWays); TStatistics_Changed := True;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -159,9 +180,12 @@ end;
 // --------------------------------------------------------------------------
 
 class procedure TStatistics.IncTotalResponsesAndMeasureFlyTime(Arrival: Double; Response: Boolean; DnsIndex: Integer; SessionId: Word);
+
 var
   Elapsed: Double;
+
 begin
+
   if Response then begin
 
     if TStatistics_SingleFlyTimesMeasuredFromDnsFlg[DnsIndex, SessionId] then begin
@@ -185,9 +209,12 @@ end;
 // --------------------------------------------------------------------------
 
 class procedure TStatistics.FlushStatisticsToDisk;
+
 var
   Name: String; Handle: THandle; Data: String; Written: Cardinal; DnsIndex: Integer;
+
 begin
+
   if TStatistics_Changed then begin
 
     SetLength(Data, 0);
@@ -221,6 +248,7 @@ begin
     TStatistics_Changed := False;
 
   end;
+
 end;
 
 // --------------------------------------------------------------------------

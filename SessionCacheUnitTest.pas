@@ -18,10 +18,13 @@ type
 // --------------------------------------------------------------------------
 
 constructor TSessionCacheUnitTest.Create;
+
 begin
+
   inherited Create;
 
   TMemoryManager.GetMemory(Buffer, MAX_DNS_PACKET_LEN);
+
 end;
 
 // --------------------------------------------------------------------------
@@ -29,9 +32,12 @@ end;
 // --------------------------------------------------------------------------
 
 procedure TSessionCacheUnitTest.ExecuteTest;
+
 var
   i, j: Integer; Time: TDateTime; Seed: Integer; RequestHash: Int64; ClientAddress: TDualIPAddress; ClientPort: Word; IsSilentUpdate, IsCacheException: Boolean; const CacheItems = 65536;
+
 begin
+
   Time := Now;
 
   Seed := Round(Frac(Time) * 8640000.0);
@@ -81,6 +87,7 @@ begin
   end;
 
   TSessionCache.Finalize;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -88,10 +95,13 @@ end;
 // --------------------------------------------------------------------------
 
 destructor TSessionCacheUnitTest.Destroy;
+
 begin
+
   TMemoryManager.FreeMemory(Buffer, MAX_DNS_PACKET_LEN);
 
   inherited Destroy;
+
 end;
 
 // --------------------------------------------------------------------------

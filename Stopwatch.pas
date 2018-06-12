@@ -52,8 +52,11 @@ var
 // --------------------------------------------------------------------------
 
 class procedure TStopwatch.Start;
+
 begin
+
   TStopwatch_Buffer := GetInstantValue;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -61,8 +64,11 @@ end;
 // --------------------------------------------------------------------------
 
 class procedure TStopwatch.Stop;
+
 begin
+
   TStopwatch_Buffer := GetInstantValue - TStopwatch_Buffer;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -70,8 +76,11 @@ end;
 // --------------------------------------------------------------------------
 
 class function TStopwatch.GetElapsedTime: Double;
+
 begin
+
   Result := TStopwatch_Buffer;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -79,8 +88,11 @@ end;
 // --------------------------------------------------------------------------
 
 class function TStopwatch.GetInstantValue: Double;
+
 begin
+
   QueryPerformanceCounter(TStopwatch_Counter); Result := TStopwatch_Counter / TStopwatch_Frequency;
+
 end;
 
 // --------------------------------------------------------------------------

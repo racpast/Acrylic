@@ -15,8 +15,11 @@ type
 // --------------------------------------------------------------------------
 
 constructor TCommunicationChannelsUnitTest.Create;
+
 begin
+
   inherited Create;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -24,9 +27,12 @@ end;
 // --------------------------------------------------------------------------
 
 procedure TCommunicationChannelsUnitTest.ExecuteTest;
+
 var
   IPv4Address: TIPv4Address; IPv6Address: TIPv6Address;
+
 begin
+
   // Init class
   TCommunicationChannel.Initialize;
 
@@ -125,6 +131,7 @@ begin
 
   // Finalize class
   TCommunicationChannel.Finalize;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -132,8 +139,11 @@ end;
 // --------------------------------------------------------------------------
 
 destructor TCommunicationChannelsUnitTest.Destroy;
+
 begin
+
   inherited Destroy;
+
 end;
 
 // --------------------------------------------------------------------------

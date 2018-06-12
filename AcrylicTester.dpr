@@ -49,24 +49,25 @@ uses
 // --------------------------------------------------------------------------
 
 const
-  TAddressCacheUnitTest_KCacheItems =  750;
-  THostsCacheUnitTest_KHostsItems   = 2000;
+  TAddressCacheUnitTest_KCacheItems = 750;
+  THostsCacheUnitTest_KHostsItems = 1000;
 
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
 
 {$i CommunicationChannelsUnitTest.pas }
-{$i SessionCacheUnitTest.pas          }
-{$i AddressCacheUnitTest.pas          }
-{$i HostsCacheUnitTest.pas            }
-{$i RegularExpressionUnitTest.pas     }
+{$i SessionCacheUnitTest.pas }
+{$i AddressCacheUnitTest.pas }
+{$i HostsCacheUnitTest.pas }
+{$i RegularExpressionUnitTest.pas }
 
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
 
 begin
+
   DecimalSeparator := '.';
 
   WriteLn('==============================================================================');
@@ -86,4 +87,5 @@ begin
   TTracer.Finalize; TConfiguration.Finalize;
 
   WriteLn('Press ENTER To Quit.'); ReadLn;
+
 end.

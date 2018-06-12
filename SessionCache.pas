@@ -64,8 +64,11 @@ var
 // --------------------------------------------------------------------------
 
 class procedure TSessionCache.Initialize;
+
 begin
+
   FillChar(TSessionCache_List, SizeOf(TSessionCache_List), 0);
+
 end;
 
 // --------------------------------------------------------------------------
@@ -73,13 +76,16 @@ end;
 // --------------------------------------------------------------------------
 
 class procedure TSessionCache.Insert(SessionId: Word; RequestHash: Int64; ClientAddress: TDualIPAddress; ClientPort: Word; IsSilentUpdate: Boolean; IsCacheException: Boolean);
+
 begin
+
   TSessionCache_List[SessionId].IsAllocated := True;
   TSessionCache_List[SessionId].RequestHash := RequestHash;
   TSessionCache_List[SessionId].ClientAddress := ClientAddress;
   TSessionCache_List[SessionId].ClientPort := ClientPort;
   TSessionCache_List[SessionId].IsSilentUpdate := IsSilentUpdate;
   TSessionCache_List[SessionId].IsCacheException := IsCacheException;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -87,7 +93,9 @@ end;
 // --------------------------------------------------------------------------
 
 class function TSessionCache.Extract(SessionId: Word; var RequestHash: Int64; var ClientAddress: TDualIPAddress; var ClientPort: Word; var IsSilentUpdate: Boolean; var IsCacheException: Boolean): Boolean;
+
 begin
+
   if TSessionCache_List[SessionId].IsAllocated then begin
 
     RequestHash := TSessionCache_List[SessionId].RequestHash;
@@ -103,6 +111,7 @@ begin
     Result := False;
 
   end;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -110,8 +119,11 @@ end;
 // --------------------------------------------------------------------------
 
 class procedure TSessionCache.Delete(SessionId: Word);
+
 begin
+
     TSessionCache_List[SessionId].IsAllocated := False;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -119,8 +131,11 @@ end;
 // --------------------------------------------------------------------------
 
 class procedure TSessionCache.Finalize;
+
 begin
+
   // Nothing to do
+
 end;
 
 // --------------------------------------------------------------------------

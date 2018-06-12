@@ -155,6 +155,7 @@ type
     public
       class function  GetIdFromPacket(Buffer: Pointer): Word;
       class procedure SetIdIntoPacket(Value: Word; Buffer: Pointer);
+    public
       class procedure GetDomainNameAndQueryTypeFromRequestPacket(Buffer: Pointer; BufferLen: Integer; var DomainName: String; var QueryType: Word);
     public
       class procedure BuildNegativeResponsePacket(DomainName: String; QueryType: Word; Buffer: Pointer; var BufferLen: Integer);
@@ -198,7 +199,9 @@ uses
 // --------------------------------------------------------------------------
 
 class function TDnsQueryTypeUtility.Parse(Text: String): Word;
+
 begin
+
        if (Text = 'A'          ) then Result := DNS_QUERY_TYPE_A
   else if (Text = 'NS'         ) then Result := DNS_QUERY_TYPE_NS
   else if (Text = 'MD'         ) then Result := DNS_QUERY_TYPE_MD
@@ -285,6 +288,7 @@ begin
   else if (Text = 'WINS'       ) then Result := DNS_QUERY_TYPE_WINS
   else if (Text = 'WINSR'      ) then Result := DNS_QUERY_TYPE_WINSR
   else                                Result := 0;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -292,7 +296,9 @@ end;
 // --------------------------------------------------------------------------
 
 class function TDnsQueryTypeUtility.ToString(Value: Word): String;
+
 begin
+
   case Value of
     DNS_QUERY_TYPE_A          : Result := 'A';
     DNS_QUERY_TYPE_NS         : Result := 'NS';
@@ -381,6 +387,7 @@ begin
     DNS_QUERY_TYPE_WINSR      : Result := 'WINSR';
     else                        Result := IntToStr(Value);
   end;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -388,10 +395,14 @@ end;
 // --------------------------------------------------------------------------
 
 class function TDnsProtocolUtility.ParseDnsProtocol(Text: String): TDnsProtocol;
+
 var
   InvariantText: String;
+
 begin
+
   InvariantText := UpperCase(Text); if (InvariantText = 'SOCKS5') then Result := Socks5Protocol else if (InvariantText = 'TCP') then Result := TcpProtocol else Result := UdpProtocol;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -399,8 +410,11 @@ end;
 // --------------------------------------------------------------------------
 
 class function TDnsProtocolUtility.GetIdFromPacket(Buffer: Pointer): Word;
+
 begin
+
   Result := (PByteArray(Buffer)^[0] shl 8) + PByteArray(Buffer)^[1];
+
 end;
 
 // --------------------------------------------------------------------------
@@ -408,8 +422,11 @@ end;
 // --------------------------------------------------------------------------
 
 class procedure TDnsProtocolUtility.SetIdIntoPacket(Value: Word; Buffer: Pointer);
+
 begin
+
   PByteArray(Buffer)^[0] := Value shr 8; PByteArray(Buffer)^[1] := Value and 255;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -417,8 +434,11 @@ end;
 // --------------------------------------------------------------------------
 
 class function TDnsProtocolUtility.GetWordFromPacket(Buffer: Pointer; Offset: Integer; BufferLen: Integer): Word;
+
 begin
+
   Result := (PByteArray(Buffer)^[Offset] shl 8) + PByteArray(Buffer)^[Offset + 1];
+
 end;
 
 // --------------------------------------------------------------------------
@@ -426,8 +446,11 @@ end;
 // --------------------------------------------------------------------------
 
 class function TDnsProtocolUtility.GetIPv4AddressFromPacket(Buffer: Pointer; Offset: Integer; BufferLen: Integer): TIPv4Address;
+
 begin
+
   Result := (PByteArray(Buffer)^[Offset] shl 24) + (PByteArray(Buffer)^[Offset + 1] shl 16) + (PByteArray(Buffer)^[Offset + 2] shl 8) + PByteArray(Buffer)^[Offset + 3];
+
 end;
 
 // --------------------------------------------------------------------------
@@ -435,10 +458,14 @@ end;
 // --------------------------------------------------------------------------
 
 class function TDnsProtocolUtility.GetIPv6AddressFromPacket(Buffer: Pointer; Offset: Integer; BufferLen: Integer): TIPv6Address;
+
 var
   IPv6Address: TIPv6Address;
+
 begin
+
   Move(PByteArray(Buffer)^[Offset], IPv6Address, SizeOf(TIPv6Address)); Result := IPv6Address;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -446,11 +473,16 @@ end;
 // --------------------------------------------------------------------------
 
 class function TDnsProtocolUtility.GetStringFromPacket(Value: String; Buffer: Pointer; var OffsetL1: Integer; var OffsetLX: Integer; Level: Integer; BufferLen: Integer): String;
+
 var
   Index: Integer;
+
 begin
+
   if (OffsetLX < BufferLen) then begin
+
     if (PByteArray(Buffer)^[OffsetLX] > 0) then begin
+
       if ((PByteArray(Buffer)^[OffsetLX] and $C0) > 0) then begin
 
         if ((OffsetLX + 1) < BufferLen) then begin
@@ -474,12 +506,15 @@ begin
         Value := TDnsProtocolUtility.GetStringFromPacket(Value, Buffer, OffsetL1, OffsetLX, Level, BufferLen);
 
       end;
+
     end else begin
 
       if (Level = 1) then Inc(OffsetL1); Inc(OffsetLX);
 
     end;
+
   end; Result := Value;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -487,8 +522,11 @@ end;
 // --------------------------------------------------------------------------
 
 class function TDnsProtocolUtility.GetStringFromPacket(Buffer: Pointer; var OffsetL1: Integer; var OffsetLX: Integer; BufferLen: Integer): String;
+
 begin
+
   Result := TDnsProtocolUtility.GetStringFromPacket('', Buffer, OffsetL1, OffsetLX, 1, BufferLen);
+
 end;
 
 // --------------------------------------------------------------------------
@@ -496,10 +534,14 @@ end;
 // --------------------------------------------------------------------------
 
 class function TDnsProtocolUtility.GetStringFromPacket(Buffer: Pointer; var OffsetL1: Integer; BufferLen: Integer): String;
+
 var
   OffsetLX: Integer;
+
 begin
+
   OffsetLX := OffsetL1; Result := TDnsProtocolUtility.GetStringFromPacket(Buffer, OffsetL1, OffsetLX, BufferLen);
+
 end;
 
 // --------------------------------------------------------------------------
@@ -507,9 +549,12 @@ end;
 // --------------------------------------------------------------------------
 
 class procedure TDnsProtocolUtility.SetStringIntoPacket(Value: String; Buffer: Pointer; var Offset: Integer; BufferLen: Integer);
+
 var
   PIndex: Integer; CIndex: Integer;
+
 begin
+
   PIndex := 0;
 
   for CIndex := 1 to Length(Value) do begin
@@ -527,6 +572,7 @@ begin
   PByteArray(Buffer)^[Offset] := $00;
 
   Inc(Offset);
+
 end;
 
 // --------------------------------------------------------------------------
@@ -534,10 +580,14 @@ end;
 // --------------------------------------------------------------------------
 
 class procedure TDnsProtocolUtility.GetDomainNameAndQueryTypeFromRequestPacket(Buffer: Pointer; BufferLen: Integer; var DomainName: String; var QueryType: Word);
+
 var
   OffsetL1: Integer;
+
 begin
+
   OffsetL1 := $0C; DomainName := TDnsProtocolUtility.GetStringFromPacket(Buffer, OffsetL1, BufferLen); QueryType := TDnsProtocolUtility.GetWordFromPacket(Buffer, OffsetL1, BufferLen);
+
 end;
 
 // --------------------------------------------------------------------------
@@ -545,9 +595,12 @@ end;
 // --------------------------------------------------------------------------
 
 class procedure TDnsProtocolUtility.BuildNegativeResponsePacket(DomainName: String; QueryType: Word; Buffer: Pointer; var BufferLen: Integer);
+
 var
   Offset: Integer;
+
 begin
+
   // Header
   PByteArray(Buffer)^[$00] := $00; // Query ID (LSB)
   PByteArray(Buffer)^[$01] := $00; // Query ID (LSB)
@@ -575,6 +628,7 @@ begin
   PByteArray(Buffer)^[Offset] := $01; Inc(Offset);               // QUERYCLASS (LSB)
 
   BufferLen := Offset;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -582,9 +636,12 @@ end;
 // --------------------------------------------------------------------------
 
 class procedure TDnsProtocolUtility.BuildPositiveResponsePacket(DomainName: String; QueryType: Word; Buffer: Pointer; var BufferLen: Integer);
+
 var
   Offset: Integer;
+
 begin
+
   // Header
   PByteArray(Buffer)^[$00] := $00; // Query ID (LSB)
   PByteArray(Buffer)^[$01] := $00; // Query ID (LSB)
@@ -612,6 +669,7 @@ begin
   PByteArray(Buffer)^[Offset] := $01; Inc(Offset);               // QUERYCLASS (LSB)
 
   BufferLen := Offset;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -619,9 +677,12 @@ end;
 // --------------------------------------------------------------------------
 
 class procedure TDnsProtocolUtility.BuildPositiveIPv4ResponsePacket(DomainName: String; QueryType: Word; HostAddress: TIPv4Address; TimeToLive: Integer; Buffer: Pointer; var BufferLen: Integer);
+
 var
   Offset: Integer;
+
 begin
+
   // Header
   PByteArray(Buffer)^[$00] := $00; // Query ID (LSB)
   PByteArray(Buffer)^[$01] := $00; // Query ID (LSB)
@@ -672,6 +733,7 @@ begin
   Move(HostAddress, PByteArray(Buffer)^[Offset], 4); Inc(Offset, 4);
 
   BufferLen := Offset;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -679,9 +741,12 @@ end;
 // --------------------------------------------------------------------------
 
 class procedure TDnsProtocolUtility.BuildPositiveIPv6ResponsePacket(DomainName: String; QueryType: Word; HostAddress: TIPv6Address; TimeToLive: Integer; Buffer: Pointer; var BufferLen: Integer);
+
 var
   Offset: Integer;
+
 begin
+
   // Header
   PByteArray(Buffer)^[$00] := $00; // Query ID (LSB)
   PByteArray(Buffer)^[$01] := $00; // Query ID (LSB)
@@ -732,6 +797,7 @@ begin
   Move(HostAddress, PByteArray(Buffer)^[Offset], 16); Inc(Offset, 16);
 
   BufferLen := Offset;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -739,8 +805,11 @@ end;
 // --------------------------------------------------------------------------
 
 class procedure TDnsProtocolUtility.BuildPositiveResponsePacket(DomainName: String; QueryType: Word; HostAddress: TDualIPAddress; TimeToLive: Integer; Buffer: Pointer; var BufferLen: Integer);
+
 begin
+
   if HostAddress.IsIPv6Address then TDnsProtocolUtility.BuildPositiveIPv6ResponsePacket(DomainName, QueryType, HostAddress.IPv6Address, TimeToLive, Buffer, BufferLen) else TDnsProtocolUtility.BuildPositiveIPv4ResponsePacket(DomainName, QueryType, HostAddress.IPv4Address, TimeToLive, Buffer, BufferLen);
+
 end;
 
 // --------------------------------------------------------------------------
@@ -748,10 +817,14 @@ end;
 // --------------------------------------------------------------------------
 
 class function TDnsProtocolUtility.PrintGenericPacketBytesAsStringFromPacket(Buffer: Pointer; BufferLen: Integer): String;
+
 var
   Index: Integer;
+
 begin
+
   Result := 'Z='; for Index := 0 to BufferLen - 1 do Result := Result + IntToHex(PByteArray(Buffer)^[Index], 2);
+
 end;
 
 // --------------------------------------------------------------------------
@@ -759,10 +832,14 @@ end;
 // --------------------------------------------------------------------------
 
 class function TDnsProtocolUtility.PrintGenericPacketBytesAsStringFromPacketWithOffset(Buffer: Pointer; BufferLen: Integer; Offset: Integer; NumBytes: Integer): String;
+
 var
   Index: Integer;
+
 begin
+
   SetLength(Result, 0); for Index := Offset to Min(BufferLen - 1, Offset + NumBytes - 1) do Result := Result + IntToHex(PByteArray(Buffer)^[Index], 2);
+
 end;
 
 // --------------------------------------------------------------------------
@@ -770,12 +847,16 @@ end;
 // --------------------------------------------------------------------------
 
 class function TDnsProtocolUtility.PrintRequestPacketDescriptionAsNormalStringFromPacket(Buffer: Pointer; BufferLen: Integer; IncludePacketBytesAlways: Boolean): String;
+
 var
   DomainName: String; QueryType: Word;
+
 begin
+
   TDnsProtocolUtility.GetDomainNameAndQueryTypeFromRequestPacket(Buffer, BufferLen, DomainName, QueryType);
 
   if (IncludePacketBytesAlways) then Result := 'Q[1]=' + DomainName + ';T[1]=' + TDnsQueryTypeUtility.ToString(QueryType) + ';' + TDnsProtocolUtility.PrintGenericPacketBytesAsStringFromPacket(Buffer, BufferLen) else Result := 'Q[1]=' + DomainName + ';T[1]=' + TDnsQueryTypeUtility.ToString(QueryType);
+
 end;
 
 // --------------------------------------------------------------------------
@@ -783,9 +864,12 @@ end;
 // --------------------------------------------------------------------------
 
 class function TDnsProtocolUtility.PrintResponsePacketDescriptionAsNormalStringFromPacket(Buffer: Pointer; BufferLen: Integer; IncludePacketBytesAlways: Boolean): String;
+
 var
   FValue: String; AValue: String; BValue: String; OffsetL1: Integer; RCode: Byte; QdCnt: Word; AnCnt: Word; Index: Integer; AnTyp: Word; AnDta: Word;
+
 begin
+
   RCode := PByteArray(Buffer)^[$03] and $0f;
 
   QdCnt := TDnsProtocolUtility.GetWordFromPacket(Buffer, $04, BufferLen);
@@ -910,6 +994,7 @@ begin
     Result := FValue + ';' + TDnsProtocolUtility.PrintGenericPacketBytesAsStringFromPacket(Buffer, BufferLen);
 
   end;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -917,10 +1002,14 @@ end;
 // --------------------------------------------------------------------------
 
 class function TDnsProtocolUtility.PrintRequestPacketDescriptionAsLegacyStringFromPacket(Buffer: Pointer; BufferLen: Integer; IncludePacketBytesAlways: Boolean): String;
+
 var
   DomainName: String; QueryType: Word;
+
 begin
+
   TDnsProtocolUtility.GetDomainNameAndQueryTypeFromRequestPacket(Buffer, BufferLen, DomainName, QueryType); Result := DomainName;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -928,9 +1017,12 @@ end;
 // --------------------------------------------------------------------------
 
 class function TDnsProtocolUtility.PrintResponsePacketDescriptionAsLegacyStringFromPacket(Buffer: Pointer; BufferLen: Integer; IncludePacketBytesAlways: Boolean): String;
+
 var
   FValue: String; AValue: String; BValue: String; OffsetL1: Integer; RCode: Byte; QdCnt: Word; AnCnt: Word; Index: Integer; AnTyp: Word; AnDta: Word;
+
 begin
+
   RCode := PByteArray(Buffer)^[$03] and $0f;
 
   QdCnt := TDnsProtocolUtility.GetWordFromPacket(Buffer, $04, BufferLen);
@@ -996,8 +1088,11 @@ begin
     Result := FValue;
 
   end else begin
+
     Result := TDnsProtocolUtility.PrintGenericPacketBytesAsStringFromPacket(Buffer, BufferLen);
+
   end;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -1005,10 +1100,14 @@ end;
 // --------------------------------------------------------------------------
 
 class function TDnsProtocolUtility.IsFailureResponsePacket(Buffer: Pointer; BufferLen: Integer): Boolean;
+
 var
   RCode: Byte;
+
 begin
+
   RCode := PByteArray(Buffer)^[$03] and $0f; Result := not((RCode = 0) or (RCode = 3));
+
 end;
 
 // --------------------------------------------------------------------------
@@ -1016,10 +1115,14 @@ end;
 // --------------------------------------------------------------------------
 
 class function TDnsProtocolUtility.IsNegativeResponsePacket(Buffer: Pointer; BufferLen: Integer): Boolean;
+
 var
   RCode: Byte;
+
 begin
+
   RCode := PByteArray(Buffer)^[$03] and $0f; Result := (RCode = 3);
+
 end;
 
 // --------------------------------------------------------------------------
@@ -1027,8 +1130,11 @@ end;
 // --------------------------------------------------------------------------
 
 class procedure TDnsProtocolUtility.WrapUdpRequestPacketOverTcpRequestPacket(Buffer: Pointer; BufferLen: Integer; var Output: Pointer; var OutputLen: Integer);
+
 begin
+
   Move(Buffer^, Pointer(Integer(Output) + $02)^, BufferLen); PByteArray(Output)^[$00] := BufferLen shr 8; PByteArray(Output)^[$01] := BufferLen and 255; OutputLen := BufferLen + $02;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -1036,8 +1142,11 @@ end;
 // --------------------------------------------------------------------------
 
 class procedure TDnsProtocolUtility.WrapTcpResponsePacketOverUdpResponsePacket(Buffer: Pointer; BufferLen: Integer; var Output: Pointer; var OutputLen: Integer);
+
 begin
+
   OutputLen := BufferLen - $02; Move(Pointer(Integer(Buffer) + $02)^, Output^, OutputLen);
+
 end;
 
 // --------------------------------------------------------------------------

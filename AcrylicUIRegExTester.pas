@@ -3,7 +3,7 @@
 // --------------------------------------------------------------------------
 
 unit
-  EnvironmentVariables;
+  AcrylicUIRegExTester;
 
 // --------------------------------------------------------------------------
 //
@@ -16,17 +16,43 @@ interface
 // --------------------------------------------------------------------------
 
 uses
-  Classes;
+  Windows,
+  SysUtils,
+  Classes,
+  Controls,
+  Forms,
+  StdCtrls,
+  AcrylicUIUtils;
 
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
 
 type
-  TEnvironmentVariables = class
-    public
-      class function Get(Name: String; DefValue: String): String;
+  TRegExTesterForm = class(TForm)
+
+    lblDomainName: TLabel;
+    txtDomainName: TEdit;
+    lblRegEx: TLabel;
+    txtRegEx: TEdit;
+    lblResult: TLabel;
+    btnTestRegEx: TButton;
+
+    procedure FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+
+    procedure btnTestRegExClick(Sender: TObject);
+
+  private
+  public
+
   end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+var
+  RegExTesterForm: TRegExTesterForm;
 
 // --------------------------------------------------------------------------
 //
@@ -38,34 +64,45 @@ implementation
 //
 // --------------------------------------------------------------------------
 
-uses
-  SysUtils,
-  Windows;
+{$R *.dfm}
 
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
 
-class function TEnvironmentVariables.Get(Name: String; DefValue: String): String;
-
-var
-  Value: String; Length: Integer;
+procedure TRegExTesterForm.FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
 
 begin
 
-  Length := GetEnvironmentVariable(PChar(Name), nil, 0);
+  if (Key = 27) then Self.ModalResult := mrCancel;
 
-  if not(Length > 0) then begin
+end;
 
-    Result := DefValue; Exit;
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+procedure TRegExTesterForm.btnTestRegExClick(Sender: TObject);
+
+begin
+
+  try
+
+    if AcrylicUIUtils.TestRegEx(txtDomainName.Text, txtRegEx.Text) then begin
+
+      lblResult.Caption := 'Match: YES.';
+
+    end else begin
+
+      lblResult.Caption := 'Match: NO.';
+
+    end;
+
+  except
+
+    lblResult.Caption := 'Invalid regular expression specified.';
 
   end;
-
-  SetLength(Value, Length - 1);
-
-  GetEnvironmentVariable(PChar(Name), PChar(Value), Length);
-
-  Result := Value;
 
 end;
 

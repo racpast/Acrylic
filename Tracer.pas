@@ -77,8 +77,11 @@ var
 // --------------------------------------------------------------------------
 
 class procedure TTracer.Initialize;
+
 begin
+
   TTracer_TracerAgent := nil; TTracer_MinimumTracingPriority := TracePriorityInfo;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -86,8 +89,11 @@ end;
 // --------------------------------------------------------------------------
 
 class function TTracer.IsEnabled: Boolean;
+
 begin
+
   Result := (TTracer_TracerAgent <> nil);
+
 end;
 
 // --------------------------------------------------------------------------
@@ -95,8 +101,11 @@ end;
 // --------------------------------------------------------------------------
 
 class procedure TTracer.SetTracerAgent(TracerAgent: ITracerAgent);
+
 begin
+
   if (TTracer_TracerAgent <> nil) then TTracer_TracerAgent.CloseTrace; TTracer_TracerAgent := TracerAgent;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -104,8 +113,11 @@ end;
 // --------------------------------------------------------------------------
 
 class procedure TTracer.SetMinimumTracingPriority(Priority: TracePriority);
+
 begin
+
   TTracer_MinimumTracingPriority := Priority;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -113,7 +125,9 @@ end;
 // --------------------------------------------------------------------------
 
 class procedure TTracer.Trace(Priority: TracePriority; Message: String);
+
 begin
+
   if (TTracer_TracerAgent <> nil) then begin
 
     if (Priority >= TTracer_MinimumTracingPriority) then TTracer_TracerAgent.RenderTrace(Now, Priority, Message);
@@ -123,6 +137,7 @@ begin
     raise Exception.Create('TTracer.Trace: The tracer agent must be set before calling this method.');
 
   end;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -130,8 +145,11 @@ end;
 // --------------------------------------------------------------------------
 
 class procedure TTracer.Finalize;
+
 begin
+
   if (TTracer_TracerAgent <> nil) then TTracer_TracerAgent.CloseTrace; TTracer_TracerAgent := nil;
+
 end;
 
 // --------------------------------------------------------------------------

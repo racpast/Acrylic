@@ -41,8 +41,11 @@ implementation
 // --------------------------------------------------------------------------
 
 class procedure TMemoryManager.GetMemory(var Address: Pointer; Size: Integer);
+
 begin
+
   GetMem(Address, Size);
+
 end;
 
 // --------------------------------------------------------------------------
@@ -50,8 +53,11 @@ end;
 // --------------------------------------------------------------------------
 
 class procedure TMemoryManager.FreeMemory(Address: Pointer; Size: Integer);
+
 begin
+
   FreeMem(Address, Size);
+
 end;
 
 // --------------------------------------------------------------------------

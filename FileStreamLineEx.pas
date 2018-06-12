@@ -53,8 +53,11 @@ const
 // --------------------------------------------------------------------------
 
 constructor TFileStreamLineEx.Create(Stream: TStream);
+
 begin
+
   Self.Stream := Stream; SetLength(Self.CurrentLine, 0);
+
 end;
 
 // --------------------------------------------------------------------------
@@ -62,9 +65,12 @@ end;
 // --------------------------------------------------------------------------
 
 function TFileStreamLineEx.TryFindLineTerminator(CurrentLine: String; var Position, Length: Integer): Boolean;
+
 var
   i: Integer;
+
 begin
+
   i := Pos(#13#10, CurrentLine);
 
   if (i > 0) then begin
@@ -78,6 +84,7 @@ begin
   end;
 
   Result := False;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -85,9 +92,12 @@ end;
 // --------------------------------------------------------------------------
 
 function TFileStreamLineEx.ReadLine(var OutputLine: String): Boolean;
+
 var
   ChunkData: String; ChunkSize: Integer; LineTerminatorFound: Boolean; LineTerminatorPosition, LineTerminatorLength: Integer;
+
 begin
+
   LineTerminatorFound := Self.TryFindLineTerminator(Self.CurrentLine, LineTerminatorPosition, LineTerminatorLength); while not LineTerminatorFound do begin
 
     SetLength(ChunkData, LINE_READ_CHUNK); ChunkSize := Stream.Read(ChunkData[1], LINE_READ_CHUNK); if (ChunkSize > 0) then begin
@@ -113,6 +123,7 @@ begin
     Result := False;
 
   end;
+
 end;
 
 // --------------------------------------------------------------------------

@@ -39,7 +39,6 @@ uses
   Configuration,
   Environment,
   HostsCache,
-  HttpServer,
   DnsResolver,
   SessionCache,
   Tracer;
@@ -49,7 +48,9 @@ uses
 // --------------------------------------------------------------------------
 
 class procedure TBootstrapper.StartSystem;
+
 begin
+
   if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StartSystem: Initialization...');
 
   TCommunicationChannel.Initialize; TSessionCache.Initialize; TAddressCache.Initialize; THostsCache.Initialize;
@@ -68,17 +69,7 @@ begin
 
   if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StartSystem: Done.');
 
-  if TConfiguration.GetHttpServerConfiguration.IsEnabled then begin
-
-    if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StartSystem: Starting HTTP server...');
-
-    THttpServer.StartInstance;
-
-    if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StartSystem: Done.');
-
-  end;
-
-  if FileExists(TConfiguration.GetAddressCacheFileName) then begin
+  if not(TConfiguration.GetAddressCacheDisabled) and FileExists(TConfiguration.GetAddressCacheFileName) then begin
 
     if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StartSystem: Loading address cache items...');
 
@@ -103,6 +94,7 @@ begin
   TDnsResolver.StartInstance;
 
   if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StartSystem: Done.');
+
 end;
 
 // --------------------------------------------------------------------------
@@ -110,24 +102,20 @@ end;
 // --------------------------------------------------------------------------
 
 class procedure TBootstrapper.StopSystem;
+
 begin
+
   if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StopSystem: Stopping DNS resolver...');
 
   TDnsResolver.StopInstance;
 
   if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StopSystem: Done.');
 
-  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StopSystem: Saving address cache items...');
+  if not(TConfiguration.GetAddressCacheDisabled) then begin
 
-  TAddressCache.ScavengeToFile(TConfiguration.GetAddressCacheFileName);
+    if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StopSystem: Saving address cache items...');
 
-  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StopSystem: Done.');
-
-  if TConfiguration.GetHttpServerConfiguration.IsEnabled then begin
-
-    if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StopSystem: Stopping HTTP server...');
-
-    THttpServer.StopInstance;
+    TAddressCache.ScavengeToFile(TConfiguration.GetAddressCacheFileName);
 
     if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StopSystem: Done.');
 
@@ -138,6 +126,7 @@ begin
   THostsCache.Finalize; TAddressCache.Finalize; TSessionCache.Finalize; TCommunicationChannel.Finalize;
 
   if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StopSystem: Done.');
+
 end;
 
 // --------------------------------------------------------------------------

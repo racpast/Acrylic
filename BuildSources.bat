@@ -18,6 +18,12 @@ If Exist "%PROGRAMFILES(X86)%\Delphi7SE\Bin\DCC32.exe" Set DCC=%PROGRAMFILES(X86
 
 Echo COMPILER FOUND HERE: %DCC%
 
+Echo COMPILING ACRYLIC UI...
+
+"%DCC%" AcrylicUI.dpr
+
+If %ErrorLevel% Neq 0 Echo FAILED! & Pause & Exit /b 0
+
 Echo COMPILING ACRYLIC TESTER...
 
 "%DCC%" AcrylicTester.dpr
@@ -36,27 +42,9 @@ Echo COMPILING ACRYLIC SERVICE...
 
 If %ErrorLevel% Neq 0 Echo FAILED! & Pause & Exit /b 0
 
-Echo COMPILING ACRYLIC CONTROLLER...
-
-"%DCC%" AcrylicController.dpr
-
-If %ErrorLevel% Neq 0 Echo FAILED! & Pause & Exit /b 0
-
-Echo COMPILING ACRYLIC REGEX TESTER...
-
-"%DCC%" AcrylicRegExTester.dpr
-
-If %ErrorLevel% Neq 0 Echo FAILED! & Pause & Exit /b 0
-
 Echo BUILDING ACRYLIC PORTABLE PACKAGE...
 
-7za.exe a -tzip -mx9 "%DST%\Acrylic-Portable.zip" AcrylicHosts.txt AcrylicConfiguration.ini AcrylicController.exe.manifest AcrylicController.exe AcrylicController.txt AcrylicService.exe AcrylicConsole.exe AcrylicConsole.txt AcrylicRegExTester.exe AcrylicRegExTester.txt License.txt Readme.txt InstallAcrylicService.bat UninstallAcrylicService.bat StartAcrylicService.bat StartAcrylicServiceSilently.bat StopAcrylicService.bat StopAcrylicServiceSilently.bat RestartAcrylicService.bat RestartAcrylicServiceSilently.bat PurgeAcrylicCacheData.bat PurgeAcrylicCacheDataSilently.bat ActivateAcrylicDebugLog.bat ActivateAcrylicDebugLogSilently.bat DeactivateAcrylicDebugLog.bat DeactivateAcrylicDebugLogSilently.bat
-
-If %ErrorLevel% Neq 0 Echo FAILED! & Pause & Exit /b 0
-
-Echo BUILDING ACRYLIC FALSE POSITIVES PACKAGE (AcrylicConsole.exe)...
-
-7za.exe a -tzip -mx9 "%FSP%\AcrylicConsole.zip" AcrylicConsole.exe
+7za.exe a -tzip -mx9 "%DST%\Acrylic-Portable.zip" AcrylicConfiguration.ini AcrylicHosts.txt AcrylicService.exe AcrylicConsole.exe AcrylicUI.exe.manifest AcrylicUI.exe License.txt ReadMe.txt
 
 If %ErrorLevel% Neq 0 Echo FAILED! & Pause & Exit /b 0
 
@@ -66,15 +54,15 @@ Echo BUILDING ACRYLIC FALSE POSITIVES PACKAGE (AcrylicService.exe)...
 
 If %ErrorLevel% Neq 0 Echo FAILED! & Pause & Exit /b 0
 
-Echo BUILDING ACRYLIC FALSE POSITIVES PACKAGE (AcrylicController.exe)...
+Echo BUILDING ACRYLIC FALSE POSITIVES PACKAGE (AcrylicConsole.exe)...
 
-7za.exe a -tzip -mx9 "%FSP%\AcrylicController.zip" AcrylicController.exe
+7za.exe a -tzip -mx9 "%FSP%\AcrylicConsole.zip" AcrylicConsole.exe
 
 If %ErrorLevel% Neq 0 Echo FAILED! & Pause & Exit /b 0
 
-Echo BUILDING ACRYLIC FALSE POSITIVES PACKAGE (AcrylicRegExTester.exe)...
+Echo BUILDING ACRYLIC FALSE POSITIVES PACKAGE (AcrylicUI.exe)...
 
-7za.exe a -tzip -mx9 "%FSP%\AcrylicRegExTester.zip" AcrylicRegExTester.exe
+7za.exe a -tzip -mx9 "%FSP%\AcrylicUI.zip" AcrylicUI.exe
 
 If %ErrorLevel% Neq 0 Echo FAILED! & Pause & Exit /b 0
 

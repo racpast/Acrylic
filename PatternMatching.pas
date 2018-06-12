@@ -35,7 +35,9 @@ uses
 // --------------------------------------------------------------------------
 
 class function TPatternMatching.Match(Element: PChar; Pattern: PChar): Boolean;
+
 begin
+
   if (StrComp(Pattern, '*') = 0) then Result := True else if (Element^ = Chr(0)) and (Pattern^ <> Chr(0)) then Result := False else if (Element^ = Chr(0)) then Result := True else begin
     case Pattern^ of
       '*': if Self.Match(Element, @Pattern[1]) then Result := True else Result := Self.Match(@Element[1], Pattern);
@@ -43,6 +45,7 @@ begin
       else if (UpCase(Element^) = UpCase(Pattern^)) then Result := Self.Match(@Element[1], @Pattern[1]) else Result := False;
     end;
   end;
+
 end;
 
 // --------------------------------------------------------------------------

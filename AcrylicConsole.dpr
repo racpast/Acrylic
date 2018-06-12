@@ -33,10 +33,10 @@ uses
   FileTracerAgent in 'FileTracerAgent.pas',
   HitLogger in 'HitLogger.pas',
   HostsCache in 'HostsCache.pas',
-  HttpServer in 'HttpServer.pas',
   MemoryManager in 'MemoryManager.pas',
   MemoryStore in 'MemoryStore.pas',
   PatternMatching in 'PatternMatching.pas',
+  PCRE in 'PCRE.pas',
   PerlRegEx in 'PerlRegEx.pas',
   SessionCache in 'SessionCache.pas',
   Tracer in 'Tracer.pas',
@@ -48,10 +48,14 @@ uses
 // --------------------------------------------------------------------------
 
 function GetBooleanCommandLineParamValue(ParamName: String): Boolean;
+
 var
   i: Integer;
+
 begin
+
   for i := 1 to ParamCount do if (ParamStr(i) = '/' + ParamName) then begin Result := True; Exit; end; Result := False;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -67,6 +71,7 @@ var
 // --------------------------------------------------------------------------
 
 begin
+
   DecimalSeparator := '.';
 
   if ((ParamCount = 1) and (ParamStr(1) = '/?')) then begin
@@ -114,4 +119,5 @@ begin
   TBootstrapper.StopSystem;
 
   TTracer.Finalize; TConfiguration.Finalize;
+
 end.

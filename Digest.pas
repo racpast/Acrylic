@@ -78,13 +78,19 @@ const
 // --------------------------------------------------------------------------
 
 class function TDigest.ComputeCRC64(Buffer: Pointer; Size: Integer): Int64;
+
 var
   i: Integer; cl, ch, th, tl: Cardinal;
+
 begin
+
   cl := 0; ch := 0; for i := 0 to (Size - 1) do begin
     th := (ch shr 8); tl := (cl shr 8) or ((ch and $ff) shl 24);
     ch := th xor CRC64HashTable[(cl xor PByteArray(Buffer)^[i]) and $ff]; cl := tl;
-  end; Result := (Int64(ch) shl 32) + Int64(cl);
+  end;
+
+  Result := (Int64(ch) shl 32) + Int64(cl);
+
 end;
 
 // --------------------------------------------------------------------------

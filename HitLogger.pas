@@ -54,7 +54,7 @@ uses
 // --------------------------------------------------------------------------
 
 const
-  MAX_PENDING_HITS = 256;
+  MAX_PENDING_HITS = 1024;
 
 // --------------------------------------------------------------------------
 //
@@ -68,8 +68,11 @@ var
 // --------------------------------------------------------------------------
 
 class function THitLogger.IsEnabled: Boolean;
+
 begin
+
   Result := TConfiguration.GetHitLogFileName <> '';
+
 end;
 
 // --------------------------------------------------------------------------
@@ -77,8 +80,11 @@ end;
 // --------------------------------------------------------------------------
 
 class procedure THitLogger.AddHit(When: TDateTime; Treatment: String; Client: TDualIPAddress; Description: String);
+
 begin
+
   if (THitLogger_BufferList = nil) then begin THitLogger_BufferList := TStringList.Create; THitLogger_BufferList.Capacity := MAX_PENDING_HITS; end; THitLogger_BufferList.Add(FormatDateTime('yyyy-mm-dd HH":"nn":"ss.zzz', When) + #9 + TDualIPAddressUtility.ToString(Client) + #9 + Treatment + #9 + Description); if (THitLogger_BufferList.Count >= MAX_PENDING_HITS) then Self.FlushAllPendingHitsToDisk;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -86,9 +92,12 @@ end;
 // --------------------------------------------------------------------------
 
 class procedure THitLogger.FlushAllPendingHitsToDisk;
+
 var
   Name: String; Handle: THandle; Written: Cardinal; Line: String; Index: Integer;
+
 begin
+
   if (THitLogger_BufferList <> nil) and (THitLogger_BufferList.Count > 0) then begin
 
     Name := TConfiguration.GetHitLogFileName;
@@ -110,6 +119,7 @@ begin
     end;
 
   end;
+
 end;
 
 // --------------------------------------------------------------------------
