@@ -30,6 +30,8 @@ function  AcrylicServiceIsRunning: Boolean;
 function  StartAcrylicService: Boolean;
 function  StopAcrylicService: Boolean;
 
+procedure RemoveAcrylicCacheFile;
+
 function  AcrylicServiceDebugLogIsEnabled: Boolean;
 procedure CreateAcrylicServiceDebugLog;
 procedure RemoveAcrylicServiceDebugLog;
@@ -296,6 +298,18 @@ function AcrylicServiceDebugLogIsEnabled: Boolean;
 begin
 
   Result := FileExists(AcrylicDebugLogFilePath);
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+procedure RemoveAcrylicCacheFile;
+
+begin
+
+  DeleteFile(PChar(AcrylicCacheFilePath));
 
 end;
 

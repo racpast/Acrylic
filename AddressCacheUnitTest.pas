@@ -64,9 +64,9 @@ begin
 
   TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Done.');
 
-  TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Starting scavenging to file...');
+  TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Starting saving to file...');
 
-  TAddressCache.ScavengeToFile(ClassName + '.tmp');
+  TAddressCache.SaveToFile(ClassName + '.tmp');
 
   TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Done.');
 

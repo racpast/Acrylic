@@ -307,7 +307,7 @@ begin
 
   end;
 
-  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TEnvironment.ReadSystem: Operation completed successfully.');
+  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TEnvironment.ReadSystem: Done reading system info.');
 
 end;
 

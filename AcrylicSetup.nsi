@@ -9,7 +9,7 @@
 ;--------------------------------
 
 ; Name
-Name "Acrylic DNS Proxy (0.9.38)"
+Name "Acrylic DNS Proxy (0.9.39)"
 
 ; Output
 OutFile "Acrylic.exe"
@@ -71,6 +71,15 @@ Section "Acrylic" SecMain
   File "License.txt"
   File "ReadMe.txt"
 
+  File "InstallAcrylicService.bat"
+  File "StartAcrylicService.bat"
+  File "StopAcrylicService.bat"
+  File "RestartAcrylicService.bat"
+  File "PurgeAcrylicCacheData.bat"
+  File "ActivateAcrylicDebugLog.bat"
+  File "DeactivateAcrylicDebugLog.bat"
+  File "UninstallAcrylicService.bat"
+
   WriteUninstaller "$INSTDIR\Uninstall.exe"
 
   CreateDirectory "$SMPROGRAMS\Acrylic DNS Proxy"
@@ -108,6 +117,15 @@ Section "Uninstall"
   Delete "$INSTDIR\AcrylicUI.ini"
   Delete "$INSTDIR\License.txt"
   Delete "$INSTDIR\ReadMe.txt"
+
+  Delete "$INSTDIR\InstallAcrylicService.bat"
+  Delete "$INSTDIR\StartAcrylicService.bat"
+  Delete "$INSTDIR\StopAcrylicService.bat"
+  Delete "$INSTDIR\RestartAcrylicService.bat"
+  Delete "$INSTDIR\PurgeAcrylicCacheData.bat"
+  Delete "$INSTDIR\ActivateAcrylicDebugLog.bat"
+  Delete "$INSTDIR\DeactivateAcrylicDebugLog.bat"
+  Delete "$INSTDIR\UninstallAcrylicService.bat"
 
   Delete "$INSTDIR\AcrylicCache.dat"
   Delete "$INSTDIR\AcrylicDebug.txt"

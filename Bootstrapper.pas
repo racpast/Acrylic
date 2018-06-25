@@ -51,23 +51,23 @@ class procedure TBootstrapper.StartSystem;
 
 begin
 
-  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StartSystem: Initialization...');
+  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StartSystem: Initializing...');
 
   TCommunicationChannel.Initialize; TSessionCache.Initialize; TAddressCache.Initialize; THostsCache.Initialize;
 
-  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StartSystem: Done.');
+  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StartSystem: Done initializing.');
 
   if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StartSystem: Reading system info...');
 
   TEnvironment.ReadSystem;
 
-  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StartSystem: Done.');
+  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StartSystem: Done reading system info.');
 
   if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StartSystem: Loading configuration file...');
 
   TConfiguration.LoadFromFile(TConfiguration.GetConfigurationFileName);
 
-  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StartSystem: Done.');
+  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StartSystem: Done loading configuration file.');
 
   if not(TConfiguration.GetAddressCacheDisabled) and FileExists(TConfiguration.GetAddressCacheFileName) then begin
 
@@ -75,7 +75,7 @@ begin
 
     TAddressCache.LoadFromFile(TConfiguration.GetAddressCacheFileName);
 
-    if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StartSystem: Done.');
+    if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StartSystem: Done loading address cache items.');
 
   end;
 
@@ -85,7 +85,7 @@ begin
 
     THostsCache.LoadFromFile(TConfiguration.GetHostsCacheFileName);
 
-    if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StartSystem: Done.');
+    if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StartSystem: Done loading hosts cache items.');
 
   end;
 
@@ -93,7 +93,7 @@ begin
 
   TDnsResolver.StartInstance;
 
-  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StartSystem: Done.');
+  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StartSystem: Done starting DNS resolver.');
 
 end;
 
@@ -109,23 +109,23 @@ begin
 
   TDnsResolver.StopInstance;
 
-  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StopSystem: Done.');
+  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StopSystem: Done stopping DNS resolver.');
 
   if not(TConfiguration.GetAddressCacheDisabled) then begin
 
     if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StopSystem: Saving address cache items...');
 
-    TAddressCache.ScavengeToFile(TConfiguration.GetAddressCacheFileName);
+    TAddressCache.SaveToFile(TConfiguration.GetAddressCacheFileName);
 
-    if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StopSystem: Done.');
+    if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StopSystem: Done saving address cache items.');
 
   end;
 
-  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StopSystem: Finalization...');
+  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StopSystem: Finalizing...');
 
   THostsCache.Finalize; TAddressCache.Finalize; TSessionCache.Finalize; TCommunicationChannel.Finalize;
 
-  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StopSystem: Done.');
+  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StopSystem: Done finalizing.');
 
 end;
 

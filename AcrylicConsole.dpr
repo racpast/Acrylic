@@ -100,7 +100,7 @@ begin
   NoLog := GetBooleanCommandLineParamValue('NoLog');
   NoBanner := GetBooleanCommandLineParamValue('NoBanner');
 
-  if (not(NoBanner)) then begin
+  if not NoBanner then begin
 
     WriteLn('==============================================================================');
     WriteLn('Acrylic DNS Proxy Console                                  Press ENTER To Quit');

@@ -299,7 +299,7 @@ end;
 procedure TMainForm.FormCreate(Sender: TObject);
 
 var
-  EditorFont: TFont;
+  MainForm: TForm; EditorFont: TFont;
 
 begin
 
@@ -307,18 +307,11 @@ begin
 
   try
 
-    if (Screen.Fonts.IndexOf('Consolas') >= 0) then begin
-
-      Self.Memo.Font.Name  := 'Consolas';
-      Self.Memo.Font.Size  := 10;
-      Self.Memo.Font.Color := 0;
-      Self.Memo.Font.Style := [fsBold];
-
-    end;
+    MainForm := Self;
 
     EditorFont := Self.Memo.Font;
 
-    if AcrylicUISettings.Load(EditorFont) then begin
+    if AcrylicUISettings.Load(MainForm, EditorFont) then begin
 
       Self.Memo.Font := EditorFont;
 
@@ -370,7 +363,7 @@ begin
 
   try
 
-    AcrylicUISettings.Save(Self.Memo.Font);
+    AcrylicUISettings.Save(Self, Self.Memo.Font);
 
   except
 
@@ -738,7 +731,7 @@ begin
 
       Self.UpdateStatusInfo('Removing the Acrylic cache file...');
 
-      DeleteFile(PChar(AcrylicCacheFilePath));
+      AcrylicUIUtils.RemoveAcrylicCacheFile;
 
     end;
 
@@ -760,7 +753,7 @@ begin
 
       Self.UpdateStatusInfo('Removing the Acrylic cache file...');
 
-      DeleteFile(PChar(AcrylicCacheFilePath));
+      AcrylicUIUtils.RemoveAcrylicCacheFile;
 
     end;
 

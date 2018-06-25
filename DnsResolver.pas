@@ -662,7 +662,7 @@ begin
 
           end else begin
 
-            if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' discarded as orphaned.');
+            if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' discarded as redundant.');
 
           end;
 
@@ -821,7 +821,7 @@ begin
 
   except
 
-    on E: Exception do if (TTracer.IsEnabled) then TTracer.Trace(TracePriorityError, 'TDnsResolver.Execute: ' + E.Message);
+    on E: Exception do if TTracer.IsEnabled then TTracer.Trace(TracePriorityError, 'TDnsResolver.Execute: ' + E.Message);
 
   end;
 

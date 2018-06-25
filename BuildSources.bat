@@ -44,7 +44,7 @@ If %ErrorLevel% Neq 0 Echo FAILED! & Pause & Exit /b 0
 
 Echo BUILDING ACRYLIC PORTABLE PACKAGE...
 
-7za.exe a -tzip -mx9 "%DST%\Acrylic-Portable.zip" AcrylicConfiguration.ini AcrylicHosts.txt AcrylicService.exe AcrylicConsole.exe AcrylicUI.exe.manifest AcrylicUI.exe License.txt ReadMe.txt
+7za.exe a -tzip -mx9 "%DST%\Acrylic-Portable.zip" AcrylicConfiguration.ini AcrylicHosts.txt AcrylicService.exe AcrylicConsole.exe AcrylicUI.exe.manifest AcrylicUI.exe License.txt ReadMe.txt InstallAcrylicService.bat StartAcrylicService.bat StopAcrylicService.bat RestartAcrylicService.bat PurgeAcrylicCacheData.bat ActivateAcrylicDebugLog.bat DeactivateAcrylicDebugLog.bat UninstallAcrylicService.bat
 
 If %ErrorLevel% Neq 0 Echo FAILED! & Pause & Exit /b 0
 

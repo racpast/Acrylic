@@ -15,13 +15,15 @@ For more informations please use the "Acrylic Home Page" shortcut available from
 https://mayakron.altervista.org/acrylic.php
 
 Installed version is:
-0.9.38 released on May 1, 2018.
+0.9.39 released on June 25, 2018.
 
 ================================================================================
 Acrylic DNS Proxy UI
 ================================================================================
 
-Acrylic DNS Proxy UI's icon has been designed by http://www.aha-soft.com/
+Acrylic DNS Proxy UI's icon has been designed by:
+
+http://www.aha-soft.com/
 
 ================================================================================
 Acrylic DNS Proxy Console

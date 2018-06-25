@@ -14,8 +14,7 @@ object MainForm: TMainForm
   Font.Style = []
   Menu = MainMenu
   OldCreateOrder = False
-  Position = poScreenCenter
-  WindowState = wsMaximized
+  Position = poDefault
   OnClose = FormClose
   OnCloseQuery = FormCloseQuery
   OnCreate = FormCreate
@@ -39,9 +38,9 @@ object MainForm: TMainForm
     Ctl3D = False
     Font.Charset = ANSI_CHARSET
     Font.Color = clBlack
-    Font.Height = -11
+    Font.Height = -12
     Font.Name = 'Courier New'
-    Font.Style = []
+    Font.Style = [fsBold]
     ParentCtl3D = False
     ParentFont = False
     ScrollBars = ssVertical

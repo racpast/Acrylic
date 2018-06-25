@@ -5,9 +5,11 @@
 #
 # It contains predefined mappings between domain names and addresses the same way the native Windows HOSTS file does but with a few upgrades.
 #
-# The format is: IPADDRESS DOMAINNAME1 [DOMAINNAME2] [DOMAINNAME3] ...
+# The standard format is: IPADDRESS DOMAINNAME1 [DOMAINNAME2] [DOMAINNAME3] ...
 #
 # Where IPADDRESS is in dotted-quad notation for IPv4 or in colon-separated groups for IPv6 and DOMAINNAME1, DOMAINNAME2 and DOMAINNAME3 are strings.
+#
+# A line starting with the '#' character (and everything after it if it's found within a line) is considered a comment and therefore ignored.
 #
 # Domain names can contain wildcard characters '*' (matches zero or more characters) and '?' (matches exactly one character):
 #
@@ -17,7 +19,9 @@
 #
 # 127.0.0.1 /^ads?\..*$
 #
-# Note that there's no final '/' at the end of a regular expression. More info about the regular expression engine and its syntax can be found at http://www.pcre.org/
+# Note that there's no final '/' at the end of a regular expression. More info about the regular expression engine and its syntax can be found at:
+#
+# http://www.pcre.org/
 #
 # A '>' character at the beginning of a domain name is a convenient shortcut for representing all domain names ending with what follows after that character. For example an entry like this one:
 #
@@ -45,16 +49,6 @@
 # @ AcrylicHostsGroup1.txt
 # @ AcrylicHostsGroup2.txt
 #
-# A line starting with the '#' character (and everything after it if it's found within a line) is considered a comment and therefore ignored.
+# Using a large number of patterns or regular expressions may cause Acrylic to slow down significantly. From a purely performance perspective it is better to use a large list of domain names rather than a lot of patterns and regexes. Patterns and regexes should be used to ease manual maintenance when the full list of domain names is either unknown or too variable. A domain name is free, a pattern is relatively cheap and a regular expression is rather expensive.
 #
-# WHAT ABOUT ACRYLIC PERFORMANCE WITH LARGE HOSTS FILES?
-#
-# From my performance tests on Acrylic these conclusions can be drawn:
-#
-# 1. Because it forwards DNS requests in parallel, Acrylic allows a 25% reduction (your mileage may vary) on the time it takes to resolve a domain name.
-#
-# 2. On an average computer Acrylic takes about half a millisecond to resolve a cached domain name, even when using a HOSTS file with a very large number of domain names in it.
-#
-# 3. Putting a large number of patterns or regular expressions inside the AcrylicHosts.txt file may cause Acrylic to slow down significantly. From a purely performance perspective it is better to use a large list of domain names rather than a lot of patterns and regexes. Patterns and regexes should be used to ease the manual maintenance of the AcrylicHosts.txt file when the full list of domain names is either unknown or too variable. A domain name is free, a pattern is relatively cheap and a regular expression is rather expensive.
-#
-# If all domain names are provided in ascending order Acrylic will be able to load them much faster (avoiding a costly sort at the end of the process).
+# Note: If all domain names are provided in ascending order Acrylic will be able to load them much faster (avoiding a costly sort at the end of the process).

@@ -342,7 +342,7 @@ begin
 
   except
 
-    on E: Exception do if (TTracer.IsEnabled) then TTracer.Trace(TracePriorityError, 'TIPv4UdpDnsForwarder.Execute: ' + E.Message);
+    on E: Exception do if TTracer.IsEnabled then TTracer.Trace(TracePriorityError, 'TIPv4UdpDnsForwarder.Execute: ' + E.Message);
 
   end;
 
@@ -411,7 +411,7 @@ begin
 
   except
 
-    on E: Exception do if (TTracer.IsEnabled) then TTracer.Trace(TracePriorityError, 'TIPv4UdpDnsForwarder.Execute: ' + E.Message);
+    on E: Exception do if TTracer.IsEnabled then TTracer.Trace(TracePriorityError, 'TIPv4UdpDnsForwarder.Execute: ' + E.Message);
 
   end;
 
@@ -484,7 +484,7 @@ begin
 
   except
 
-    on E: Exception do if (TTracer.IsEnabled) then TTracer.Trace(TracePriorityError, 'TIPv4TcpDnsForwarder.Execute: ' + E.Message);
+    on E: Exception do if TTracer.IsEnabled then TTracer.Trace(TracePriorityError, 'TIPv4TcpDnsForwarder.Execute: ' + E.Message);
 
   end;
 
@@ -557,7 +557,7 @@ begin
 
   except
 
-    on E: Exception do if (TTracer.IsEnabled) then TTracer.Trace(TracePriorityError, 'TIPv6TcpDnsForwarder.Execute: ' + E.Message);
+    on E: Exception do if TTracer.IsEnabled then TTracer.Trace(TracePriorityError, 'TIPv6TcpDnsForwarder.Execute: ' + E.Message);
 
   end;
 
@@ -672,7 +672,7 @@ begin
 
   except
 
-    on E: Exception do if (TTracer.IsEnabled) then TTracer.Trace(TracePriorityError, 'TIPv4Socks5DnsForwarder.Execute: ' + E.Message);
+    on E: Exception do if TTracer.IsEnabled then TTracer.Trace(TracePriorityError, 'TIPv4Socks5DnsForwarder.Execute: ' + E.Message);
 
   end;
 
@@ -787,7 +787,7 @@ begin
 
   except
 
-    on E: Exception do if (TTracer.IsEnabled) then TTracer.Trace(TracePriorityError, 'TIPv6Socks5DnsForwarder.Execute: ' + E.Message);
+    on E: Exception do if TTracer.IsEnabled then TTracer.Trace(TracePriorityError, 'TIPv6Socks5DnsForwarder.Execute: ' + E.Message);
 
   end;
 

@@ -576,129 +576,133 @@ begin
 
   if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'THostsCache.LoadFromFileEx: Loading hosts cache items from file "' + FileName + '"...');
 
-  FileStream := TFileStream.Create(FileName, fmOpenRead, fmShareDenyWrite); try
+  try
 
-    FileStreamLineEx := TFileStreamLineEx.Create(FileStream);
+    FileStream := TFileStream.Create(FileName, fmOpenRead, fmShareDenyWrite); try
 
-    repeat
+      FileStreamLineEx := TFileStreamLineEx.Create(FileStream);
 
-      FileStreamLineMoreAvailable := FileStreamLineEx.ReadLine(FileStreamLineData); FileStreamLineSize := Length(FileStreamLineData); if (FileStreamLineSize > 0) then begin
+      repeat
 
-        if (FileStreamLineData[1] = '@') then begin
+        FileStreamLineMoreAvailable := FileStreamLineEx.ReadLine(FileStreamLineData); FileStreamLineSize := Length(FileStreamLineData); if (FileStreamLineSize > 0) then begin
 
-          if (FileStreamLineSize >= 3) then begin
+          if (FileStreamLineData[1] = '@') then begin
 
-            if (FileStreamLineData[2] = ' ') then begin
+            if (FileStreamLineSize >= 3) then begin
 
-              FileNameEx := TConfiguration.MakeAbsolutePath(Copy(FileStreamLineData, 3, FileStreamLineSize - 2));
+              if (FileStreamLineData[2] = ' ') then begin
 
-              if FileExists(FileNameEx) then begin
+                FileNameEx := TConfiguration.MakeAbsolutePath(Copy(FileStreamLineData, 3, FileStreamLineSize - 2));
 
-                Self.LoadFromFileEx(FileNameEx, HostsCacheFWListLastAdded, HostsCacheFWListNeedsSorting, HostsCacheNXListLastAdded, HostsCacheNXListNeedsSorting, HostsCacheIPv4ListLastAdded, HostsCacheIPv4ListNeedsSorting, HostsCacheIPv6ListLastAdded, HostsCacheIPv6ListNeedsSorting);
+                if FileExists(FileNameEx) then begin
 
-              end;
-
-            end;
-
-          end;
-
-          Continue;
-
-        end;
-
-        HostsLineIndexA := 1;
-        HostsLineIndexB := 1;
-
-        HostsLineRecordType := 0; while (HostsLineIndexB <= FileStreamLineSize) do begin
-
-          case (FileStreamLineData[HostsLineIndexB]) of
-
-            #9,
-            #32:
-
-            begin
-
-              if (HostsLineIndexB > HostsLineIndexA) then begin
-
-                case (HostsLineRecordType) of
-
-                  00: begin
-
-                    HostsLineAddressText := Copy(FileStreamLineData, HostsLineIndexA, HostsLineIndexB - HostsLineIndexA);
-
-                    if (HostsLineAddressText = 'FW') then begin
-
-                      HostsLineRecordType  := 10;
-
-                    end else if (HostsLineAddressText = 'NX') then begin
-
-                      HostsLineRecordType  := 20;
-
-                    end else begin
-
-                      HostsLineRecordType  := 99;
-
-                      HostsLineAddressData := TDualIPAddressUtility.Parse(HostsLineAddressText);
-
-                    end;
-
-                  end;
-
-                  10: begin
-
-                    Self.ParseFWHostsLine(FileStreamLineData, HostsLineIndexA, HostsLineIndexB, HostsCacheFWListLastAdded, HostsCacheFWListNeedsSorting);
-
-                  end;
-
-                  20: begin
-
-                    Self.ParseNXHostsLine(FileStreamLineData, HostsLineIndexA, HostsLineIndexB, HostsCacheNXListLastAdded, HostsCacheNXListNeedsSorting);
-
-                  end;
-
-                  99: begin
-
-                    if HostsLineAddressData.IsIPv6Address then Self.ParseIPv6HostsLine(FileStreamLineData, HostsLineIndexA, HostsLineIndexB, HostsLineAddressData.IPv6Address, HostsCacheIPv6ListLastAdded, HostsCacheIPv6ListNeedsSorting) else Self.ParseIPv4HostsLine(FileStreamLineData, HostsLineIndexA, HostsLineIndexB, HostsLineAddressData.IPv4Address, HostsCacheIPv4ListLastAdded, HostsCacheIPv4ListNeedsSorting);
-
-                  end;
+                  Self.LoadFromFileEx(FileNameEx, HostsCacheFWListLastAdded, HostsCacheFWListNeedsSorting, HostsCacheNXListLastAdded, HostsCacheNXListNeedsSorting, HostsCacheIPv4ListLastAdded, HostsCacheIPv4ListNeedsSorting, HostsCacheIPv6ListLastAdded, HostsCacheIPv6ListNeedsSorting);
 
                 end;
 
               end;
 
-              HostsLineIndexA := HostsLineIndexB + 1;
-
             end;
 
-            '#':
-
-            begin
-              Break;
-            end;
+            Continue;
 
           end;
 
-          Inc(HostsLineIndexB);
+          HostsLineIndexA := 1;
+          HostsLineIndexB := 1;
 
-        end; if (HostsLineIndexB > HostsLineIndexA) then begin
+          HostsLineRecordType := 0; while (HostsLineIndexB <= FileStreamLineSize) do begin
 
-          case (HostsLineRecordType) of
+            case (FileStreamLineData[HostsLineIndexB]) of
 
-            10: begin
+              #9,
+              #32:
 
-              Self.ParseFWHostsLine(FileStreamLineData, HostsLineIndexA, HostsLineIndexB, HostsCacheFWListLastAdded, HostsCacheFWListNeedsSorting);
+              begin
+
+                if (HostsLineIndexB > HostsLineIndexA) then begin
+
+                  case (HostsLineRecordType) of
+
+                    00: begin
+
+                      HostsLineAddressText := Copy(FileStreamLineData, HostsLineIndexA, HostsLineIndexB - HostsLineIndexA);
+
+                      if (HostsLineAddressText = 'FW') then begin
+
+                        HostsLineRecordType  := 10;
+
+                      end else if (HostsLineAddressText = 'NX') then begin
+
+                        HostsLineRecordType  := 20;
+
+                      end else begin
+
+                        HostsLineRecordType  := 99;
+
+                        HostsLineAddressData := TDualIPAddressUtility.Parse(HostsLineAddressText);
+
+                      end;
+
+                    end;
+
+                    10: begin
+
+                      Self.ParseFWHostsLine(FileStreamLineData, HostsLineIndexA, HostsLineIndexB, HostsCacheFWListLastAdded, HostsCacheFWListNeedsSorting);
+
+                    end;
+
+                    20: begin
+
+                      Self.ParseNXHostsLine(FileStreamLineData, HostsLineIndexA, HostsLineIndexB, HostsCacheNXListLastAdded, HostsCacheNXListNeedsSorting);
+
+                    end;
+
+                    99: begin
+
+                      if HostsLineAddressData.IsIPv6Address then Self.ParseIPv6HostsLine(FileStreamLineData, HostsLineIndexA, HostsLineIndexB, HostsLineAddressData.IPv6Address, HostsCacheIPv6ListLastAdded, HostsCacheIPv6ListNeedsSorting) else Self.ParseIPv4HostsLine(FileStreamLineData, HostsLineIndexA, HostsLineIndexB, HostsLineAddressData.IPv4Address, HostsCacheIPv4ListLastAdded, HostsCacheIPv4ListNeedsSorting);
+
+                    end;
+
+                  end;
+
+                end;
+
+                HostsLineIndexA := HostsLineIndexB + 1;
+
+              end;
+
+              '#':
+
+              begin
+                Break;
+              end;
 
             end;
 
-            20: begin
+            Inc(HostsLineIndexB);
 
-              Self.ParseNXHostsLine(FileStreamLineData, HostsLineIndexA, HostsLineIndexB, HostsCacheNXListLastAdded, HostsCacheNXListNeedsSorting);
+          end; if (HostsLineIndexB > HostsLineIndexA) then begin
 
-            end;
+            case (HostsLineRecordType) of
 
-            99: begin
+              10: begin
 
-              if HostsLineAddressData.IsIPv6Address then Self.ParseIPv6HostsLine(FileStreamLineData, HostsLineIndexA, HostsLineIndexB, HostsLineAddressData.IPv6Address, HostsCacheIPv6ListLastAdded, HostsCacheIPv6ListNeedsSorting) else Self.ParseIPv4HostsLine(FileStreamLineData, HostsLineIndexA, HostsLineIndexB, HostsLineAddressData.IPv4Address, HostsCacheIPv4ListLastAdded, HostsCacheIPv4ListNeedsSorting);
+                Self.ParseFWHostsLine(FileStreamLineData, HostsLineIndexA, HostsLineIndexB, HostsCacheFWListLastAdded, HostsCacheFWListNeedsSorting);
+
+              end;
+
+              20: begin
+
+                Self.ParseNXHostsLine(FileStreamLineData, HostsLineIndexA, HostsLineIndexB, HostsCacheNXListLastAdded, HostsCacheNXListNeedsSorting);
+
+              end;
+
+              99: begin
+
+                if HostsLineAddressData.IsIPv6Address then Self.ParseIPv6HostsLine(FileStreamLineData, HostsLineIndexA, HostsLineIndexB, HostsLineAddressData.IPv6Address, HostsCacheIPv6ListLastAdded, HostsCacheIPv6ListNeedsSorting) else Self.ParseIPv4HostsLine(FileStreamLineData, HostsLineIndexA, HostsLineIndexB, HostsLineAddressData.IPv4Address, HostsCacheIPv4ListLastAdded, HostsCacheIPv4ListNeedsSorting);
+
+              end;
 
             end;
 
@@ -706,13 +710,17 @@ begin
 
         end;
 
-      end;
+      until not(FileStreamLineMoreAvailable);
 
-    until not(FileStreamLineMoreAvailable);
+    finally
 
-  finally
+      FileStream.Free;
 
-    FileStream.Free;
+    end;
+
+  except
+
+    on E: Exception do if TTracer.IsEnabled then TTracer.Trace(TracePriorityError, 'THostsCache.LoadFromFileEx: ' + E.Message);
 
   end;
 

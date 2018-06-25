@@ -67,7 +67,7 @@ type
       class procedure Add(ArrivalTime: TDateTime; RequestHash: Int64; Response: Pointer; ResponseLen: Integer; IsNegativeResponse: Boolean);
       class function  Find(ArrivalTime: TDateTime; RequestHash: Int64; Response: Pointer; var ResponseLen: Integer): TAddressCacheFindResult;
     public
-      class procedure ScavengeToFile(FileName: String);
+      class procedure SaveToFile(FileName: String);
       class procedure LoadFromFile(FileName: String);
     private
       class function  ShortTime(Value: TDateTime): Cardinal;
@@ -80,8 +80,8 @@ type
       class procedure InternalFind(Hash: Int64; var Data: Pointer; Item: PHashPointerItem);
       class procedure InternalEraseLastFoundItem;
     private
-      class procedure InternalScavengeItemToFile(FileStream: TFileStream; Time: Cardinal; Item: PHashPointerItem);
-      class procedure InternalScavengePartToFile(FileStream: TFileStream; Time: Cardinal; Hash: Int64; Part: Pointer);
+      class procedure InternalSaveItemToFile(FileStream: TFileStream; Time: Cardinal; Item: PHashPointerItem);
+      class procedure InternalSavePartToFile(FileStream: TFileStream; Time: Cardinal; Hash: Int64; Part: Pointer);
   end;
 
 // --------------------------------------------------------------------------
@@ -154,9 +154,13 @@ begin
     Item^.LNext^.LHash := Hash; Item^.LNext^.LData := Data; Item^.LNext^.LNext := nil;
     Item^.LNext^.RHash := Hash; Item^.LNext^.RData := Data; Item^.LNext^.RNext := nil;
 
-  end else begin
+  end else if (Half > 0) then begin
 
     Self.InternalIns(Hash, Data, Item^.LNext, Bull - Half, Half div 2);
+
+  end else begin
+
+    if TTracer.IsEnabled then TTracer.Trace(TracePriorityError, 'TAddressCache.InternalXpl: Unable to insert ' + IntToStr(Hash))
 
   end;
 
@@ -177,9 +181,13 @@ begin
     Item^.RNext^.LHash := Hash; Item^.RNext^.LData := Data; Item^.RNext^.LNext := nil;
     Item^.RNext^.RHash := Hash; Item^.RNext^.RData := Data; Item^.RNext^.RNext := nil;
 
-  end else begin
+  end else if (Half > 0) then begin
 
     Self.InternalIns(Hash, Data, Item^.RNext, Bull + Half, Half div 2);
+
+  end else begin
+
+    if TTracer.IsEnabled then TTracer.Trace(TracePriorityError, 'TAddressCache.InternalXpr: Unable to insert ' + IntToStr(Hash))
 
   end;
 
@@ -359,15 +367,15 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class procedure TAddressCache.InternalScavengeItemToFile(FileStream: TFileStream; Time: Cardinal; Item: PHashPointerItem);
+class procedure TAddressCache.InternalSaveItemToFile(FileStream: TFileStream; Time: Cardinal; Item: PHashPointerItem);
 
 begin
 
-  if (Item^.LData <> nil) then Self.InternalScavengePartToFile(FileStream, Time, Item^.LHash, Item^.LData);
-  if (Item^.LHash <> Item^.RHash) and (Item^.RData <> nil) then Self.InternalScavengePartToFile(FileStream, Time, Item^.RHash, Item^.RData);
+  if (Item^.LData <> nil) then Self.InternalSavePartToFile(FileStream, Time, Item^.LHash, Item^.LData);
+  if (Item^.LHash <> Item^.RHash) and (Item^.RData <> nil) then Self.InternalSavePartToFile(FileStream, Time, Item^.RHash, Item^.RData);
 
-  if (Item^.LNext <> nil) then Self.InternalScavengeItemToFile(FileStream, Time, Item^.LNext);
-  if (Item^.RNext <> nil) then Self.InternalScavengeItemToFile(FileStream, Time, Item^.RNext);
+  if (Item^.LNext <> nil) then Self.InternalSaveItemToFile(FileStream, Time, Item^.LNext);
+  if (Item^.RNext <> nil) then Self.InternalSaveItemToFile(FileStream, Time, Item^.RNext);
 
 end;
 
@@ -375,7 +383,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class procedure TAddressCache.InternalScavengePartToFile(FileStream: TFileStream; Time: Cardinal; Hash: Int64; Part: Pointer);
+class procedure TAddressCache.InternalSavePartToFile(FileStream: TFileStream; Time: Cardinal; Hash: Int64; Part: Pointer);
 
 var
   ElapsedTime: Cardinal;
@@ -404,28 +412,34 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class procedure TAddressCache.ScavengeToFile(FileName: String);
+class procedure TAddressCache.SaveToFile(FileName: String);
 
 var
   FileStream: TFileStream;
 
 begin
 
-  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TAddressCache.ScavengeToFile: Saving address cache items...');
-
-  FileStream := TFileStream.Create(FileName, fmCreate, fmShareDenyWrite);
+  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TAddressCache.SaveToFile: Saving address cache items...');
 
   try
 
-    if (TAddressCache_Root <> nil) then Self.InternalScavengeItemToFile(FileStream, ShortTime(Now), TAddressCache_Root);
+    FileStream := TFileStream.Create(FileName, fmCreate, fmShareDenyWrite); try
 
-  finally
+      if (TAddressCache_Root <> nil) then Self.InternalSaveItemToFile(FileStream, ShortTime(Now), TAddressCache_Root);
 
-    FileStream.Free;
+    finally
+
+      FileStream.Free;
+
+    end;
+
+  except
+
+    on E: Exception do if TTracer.IsEnabled then TTracer.Trace(TracePriorityError, 'TAddressCache.SaveToFile: ' + E.Message);
 
   end;
 
-  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TAddressCache.ScavengeToFile: Address cache items saved successfully.');
+  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TAddressCache.SaveToFile: Done saving address cache items.');
 
 end;
 
@@ -436,17 +450,17 @@ end;
 class procedure TAddressCache.LoadFromFile(FileName: String);
 
 var
-  NumberOfItemsLoaded: Cardinal; FileStream: TFileStream; Hash: Int64; AddressCacheItem: PAddressCacheItem;
+  FileStream: TFileStream; Hash: Int64; AddressCacheItem: PAddressCacheItem;
 
 begin
 
   if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TAddressCache.LoadFromFile: Loading address cache items...');
 
-  NumberOfItemsLoaded := 0; FileStream := TFileStream.Create(FileName, fmOpenRead, fmShareDenyWrite); try
+  try
 
-    while (FileStream.Position < FileStream.Size) do begin
+    FileStream := TFileStream.Create(FileName, fmOpenRead, fmShareDenyWrite); try
 
-      try
+      while (FileStream.Position < FileStream.Size) do begin
 
         AddressCacheItem := TAddressCache_MemoryStore.GetMemory(SizeOf(TAddressCacheItem)); AddressCacheItem^.Response := nil;
 
@@ -462,23 +476,23 @@ begin
 
         if (SizeOf(Boolean) <> FileStream.Read(AddressCacheItem^.IsNegativeResponse, SizeOf(Boolean))) then raise Exception.Create('TAddressCache.LoadFromFile: Loading of the IsNegativeResponse field failed.');
 
-        Self.InternalAdd(Hash, Pointer(AddressCacheItem));
-
-        Inc(NumberOfItemsLoaded);
-
-      except
+        Self.InternalAdd(Hash, AddressCacheItem);
 
       end;
 
+    finally
+
+      FileStream.Free;
+
     end;
 
-  finally
+  except
 
-    FileStream.Free;
+    on E: Exception do if TTracer.IsEnabled then TTracer.Trace(TracePriorityError, 'TAddressCache.LoadFromFile: ' + E.Message);
 
   end;
 
-  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TAddressCache.LoadFromFile: Loaded ' + IntToStr(NumberOfItemsLoaded) + ' address cache items successfully.');
+  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TAddressCache.LoadFromFile: Done loading address cache items.');
 
 end;
 

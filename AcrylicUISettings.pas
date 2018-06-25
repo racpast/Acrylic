@@ -20,14 +20,16 @@ uses
   SysUtils,
   Messages,
   Classes,
-  Graphics;
+  Graphics,
+  Controls,
+  Forms;
 
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
 
-function  Load(var EditorFont: TFont): Boolean;
-procedure Save(EditorFont: TFont);
+function  Load(MainForm: TForm; EditorFont: TFont): Boolean;
+procedure Save(MainForm: TForm; EditorFont: TFont);
 
 // --------------------------------------------------------------------------
 //
@@ -48,7 +50,7 @@ uses
 // --------------------------------------------------------------------------
 
 function
-  Load(var EditorFont: TFont): Boolean;
+  Load(MainForm: TForm; EditorFont: TFont): Boolean;
 
 var
   AcrylicUIIniFilePath: String; IniFile: TIniFile;
@@ -60,6 +62,17 @@ begin
   if FileExists(AcrylicUIIniFilePath) then begin
 
     IniFile := TIniFile.Create(AcrylicUIIniFilePath);
+
+    MainForm.WindowState := TWindowState(IniFile.ReadInteger('MainForm', 'WindowState', Integer(MainForm.WindowState)));
+
+    if (MainForm.WindowState = wsNormal) then begin
+
+      MainForm.Left := IniFile.ReadInteger('MainForm', 'Left', MainForm.Left);
+      MainForm.Top := IniFile.ReadInteger('MainForm', 'Top', MainForm.Top);
+      MainForm.Width := IniFile.ReadInteger('MainForm', 'Width', MainForm.Width);
+      MainForm.Height := IniFile.ReadInteger('MainForm', 'Height', MainForm.Height);
+
+    end;
 
     EditorFont.Name := IniFile.ReadString('MainForm', 'EditorFontName', 'Courier New');
     EditorFont.Size := IniFile.ReadInteger('MainForm', 'EditorFontSize', 10);
@@ -88,7 +101,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-procedure Save(EditorFont: TFont);
+procedure Save(MainForm: TForm; EditorFont: TFont);
 
 var
   AcrylicUIIniFilePath: String; IniFile: TIniFile;
@@ -99,9 +112,17 @@ begin
 
   IniFile := TIniFile.Create(AcrylicUIIniFilePath);
 
+  IniFile.WriteInteger('MainForm', 'WindowState', Integer(MainForm.WindowState));
+
+  IniFile.WriteInteger('MainForm', 'Left', MainForm.Left);
+  IniFile.WriteInteger('MainForm', 'Top', MainForm.Top);
+  IniFile.WriteInteger('MainForm', 'Width', MainForm.Width);
+  IniFile.WriteInteger('MainForm', 'Height', MainForm.Height);
+
   IniFile.WriteString('MainForm', 'EditorFontName', EditorFont.Name);
   IniFile.WriteInteger('MainForm', 'EditorFontSize', EditorFont.Size);
   IniFile.WriteInteger('MainForm', 'EditorFontColor', EditorFont.Color);
+
   IniFile.WriteBool('MainForm', 'EditorFontStyleBold', fsBold in EditorFont.Style);
   IniFile.WriteBool('MainForm', 'EditorFontStyleItalic', fsItalic in EditorFont.Style);
   IniFile.WriteBool('MainForm', 'EditorFontStyleUnderline', fsUnderline in EditorFont.Style);
