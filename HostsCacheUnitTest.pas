@@ -8,6 +8,8 @@ type
       constructor Create;
       procedure   ExecuteTest; override;
       destructor  Destroy; override;
+    private
+      function    GetRandomString: String;
   end;
 
 // --------------------------------------------------------------------------
@@ -26,98 +28,153 @@ end;
 //
 // --------------------------------------------------------------------------
 
+function THostsCacheUnitTest.GetRandomString: String;
+
+begin
+
+  Result := Char(65 + Random(26)) + Char(65 + Random(26)) + Char(65 + Random(26)) + Char(65 + Random(26)) + Char(65 + Random(26)) + Char(65 + Random(26)) + Char(65 + Random(26)) + Char(65 + Random(26));
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
 procedure THostsCacheUnitTest.ExecuteTest;
 
 var
-  HostsStream: TFileStream; i, j, k: Integer; S: String; IPv4Address: TIPv4Address; IPv6Address: TIPv6Address; HostsBlock: String; HostsEntryIPv4Address: TIPv4Address; HostsEntryIPv6Address: TIPv6Address;
+  TimeStamp: TDateTime; InitSeed: Integer; HostsStream: TBufferedSequentialWriteStream; i, j, k: Integer; H: String; IPv4Address: TIPv4Address; IPv6Address: TIPv6Address; HostsEntryIPv4Address: TIPv4Address; HostsEntryIPv6Address: TIPv6Address;
 
 begin
+
+  TimeStamp := Now;
+
+  InitSeed := Round(Frac(TimeStamp) * 8640000.0);
 
   THostsCache.Initialize;
 
   TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Starting massive insertion...');
 
-  HostsStream := TFileStream.Create(Self.ClassName + '.tmp', fmCreate);
+  HostsStream := TBufferedSequentialWriteStream.Create(Self.ClassName + '.tmp', False, BUFFERED_SEQUENTIAL_STREAM_256KB_BUFFER_SIZE);
 
-  RandSeed := 0; for i := 0 to (THostsCacheUnitTest_KHostsItems - 1) do begin
+  RandSeed := InitSeed;
 
-    SetLength(HostsBlock, 0); for j := 0 to 999 do begin
+  for i := 0 to (THostsCacheUnitTest_KHostsItems - 1) do begin
+
+    for j := 0 to 999 do begin
 
       k := (1000 * i) + j;
 
-      S := FormatCurr('000000000', k);
+      H := FormatCurr('000000000', k);
+
+      // IPv4 address
+
+      IPv4Address := Random(256) or (Random(256) shl 8) or (Random(256) shl 16) or (Random(128) shl 24);
 
       // IPv4 entries (1)
 
-      IPv4Address := k;
+      HostsStream.WriteString(TIPv4AddressUtility.ToString(IPv4Address) + #32 + 'IPV4DOMAIN1-' + GetRandomString + '-' + H + '-A' + #32 + 'IPV4DOMAIN1-' + GetRandomString + '-' + H + '-B' + #32 + 'IPV4DOMAIN1-' + GetRandomString + '-' + H + '-C' + #13#10);
 
-      HostsBlock := HostsBlock + TIPv4AddressUtility.ToString(IPv4Address) + #32 + 'IPV4DOMAIN1-' + S + '-A' + #32 + 'IPV4DOMAIN1-' + S + '-B' + #32 + 'IPV4DOMAIN1-' + S + '-C' + #13#10;
+      // IPv6 address
+
+      IPv6Address[00] := Random(256);
+      IPv6Address[01] := Random(256);
+      IPv6Address[02] := Random(256);
+      IPv6Address[03] := Random(256);
+      IPv6Address[04] := Random(256);
+      IPv6Address[05] := Random(256);
+      IPv6Address[06] := Random(256);
+      IPv6Address[07] := Random(256);
+      IPv6Address[08] := Random(256);
+      IPv6Address[09] := Random(256);
+      IPv6Address[10] := Random(256);
+      IPv6Address[11] := Random(256);
+      IPv6Address[12] := Random(256);
+      IPv6Address[13] := Random(256);
+      IPv6Address[14] := Random(256);
+      IPv6Address[15] := Random(256);
 
       // IPv6 entries (1)
 
-      IPv6Address[0] := 0; IPv6Address[1] := k and $ff; IPv6Address[2] := 0; IPv6Address[3] := k and $ff; IPv6Address[4] := 0; IPv6Address[5] := k and $ff; IPv6Address[6] := 0; IPv6Address[7] := k and $ff; IPv6Address[8] := 0; IPv6Address[9] := k and $ff; IPv6Address[10] := 0; IPv6Address[11] := k and $ff; IPv6Address[12] := 0; IPv6Address[13] := k and $ff; IPv6Address[14] := 0; IPv6Address[15] := k and $ff;
-
-      HostsBlock := HostsBlock + TIPv6AddressUtility.ToString(IPv6Address) + #32 + 'IPV6DOMAIN1-' + S + '-A' + #32 + 'IPV6DOMAIN1-' + S + '-B' + #32 + 'IPV6DOMAIN1-' + S + '-C' + #13#10;
+      HostsStream.WriteString(TIPv6AddressUtility.ToString(IPv6Address) + #32 + 'IPV6DOMAIN1-' + GetRandomString + '-' + H + '-A' + #32 + 'IPV6DOMAIN1-' + GetRandomString + '-' + H + '-B' + #32 + 'IPV6DOMAIN1-' + GetRandomString + '-' + H + '-C' + #13#10);
 
       // FW entries (1)
-      HostsBlock := HostsBlock + 'FW' + #32 + 'FWDOMAIN1-' + S + '-A' + #32 + 'FWDOMAIN1-' + S + '-B' + #32 + 'FWDOMAIN1-' + S + '-C' + #13#10;
+
+      HostsStream.WriteString('FW' + #32 + 'FWDOMAIN1-' + GetRandomString + '-' + H + '-A' + #32 + 'FWDOMAIN1-' + GetRandomString + '-' + H + '-B' + #32 + 'FWDOMAIN1-' + GetRandomString + '-' + H + '-C' + #13#10);
 
       // NX entries (1)
-      HostsBlock := HostsBlock + 'NX' + #32 + 'NXDOMAIN1-' + S + '-A' + #32 + 'NXDOMAIN1-' + S + '-B' + #32 + 'NXDOMAIN1-' + S + '-C' + #13#10;
+
+      HostsStream.WriteString('NX' + #32 + 'NXDOMAIN1-' + GetRandomString + '-' + H + '-A' + #32 + 'NXDOMAIN1-' + GetRandomString + '-' + H + '-B' + #32 + 'NXDOMAIN1-' + GetRandomString + '-' + H + '-C' + #13#10);
 
     end;
-
-    HostsStream.Write(HostsBlock[1], Length(HostsBlock));
 
   end;
 
   // IPv4 entries (2)
-  S := '127.0.0.1 >IPV4DOMAIN2-127-0-0-1' + #13#10; HostsStream.Write(S[1], Length(S));
+
+  HostsStream.WriteString('127.0.0.1 >IPV4DOMAIN2-127-0-0-1' + #13#10);
 
   // IPv6 entries (2)
-  S := '::1 >IPV6DOMAIN2-LOCALHOST' + #13#10; HostsStream.Write(S[1], Length(S));
+
+  HostsStream.WriteString('::1 >IPV6DOMAIN2-LOCALHOST' + #13#10);
 
   // FW entries (2)
-  S := 'FW >FWDOMAIN2' + #13#10; HostsStream.Write(S[1], Length(S));
+
+  HostsStream.WriteString('FW >FWDOMAIN2' + #13#10);
 
   // NX entries (2)
-  S := 'NX >NXDOMAIN2' + #13#10; HostsStream.Write(S[1], Length(S));
+
+  HostsStream.WriteString('NX >NXDOMAIN2' + #13#10);
 
   // IPv4 entries (3)
-  S := '127.0.0.1 >IPV4DOMAIN3-127-0-0-1.*' + #13#10; HostsStream.Write(S[1], Length(S));
+
+  HostsStream.WriteString('127.0.0.1 >IPV4DOMAIN3-127-0-0-1.*' + #13#10);
 
   // IPv6 entries (3)
-  S := '::1 >IPV6DOMAIN3-LOCALHOST.*' + #13#10; HostsStream.Write(S[1], Length(S));
+
+  HostsStream.WriteString('::1 >IPV6DOMAIN3-LOCALHOST.*' + #13#10);
 
   // FW entries (3)
-  S := 'FW >FWDOMAIN3.*' + #13#10; HostsStream.Write(S[1], Length(S));
+
+  HostsStream.WriteString('FW >FWDOMAIN3.*' + #13#10);
 
   // NX entries (3)
-  S := 'NX >NXDOMAIN3.*' + #13#10; HostsStream.Write(S[1], Length(S));
+
+  HostsStream.WriteString('NX >NXDOMAIN3.*' + #13#10);
 
   // IPv4 entries (4)
-  S := '127.0.0.1 *.IPV4DOMAIN4-127-0-0-1.*' + #13#10; HostsStream.Write(S[1], Length(S));
+
+  HostsStream.WriteString('127.0.0.1 *.IPV4DOMAIN4-127-0-0-1.*' + #13#10);
 
   // IPv6 entries (4)
-  S := '::1 *.IPV6DOMAIN4-LOCALHOST.*' + #13#10; HostsStream.Write(S[1], Length(S));
+
+  HostsStream.WriteString('::1 *.IPV6DOMAIN4-LOCALHOST.*' + #13#10);
 
   // FW entries (4)
-  S := 'FW *.FWDOMAIN4.*' + #13#10; HostsStream.Write(S[1], Length(S));
+
+  HostsStream.WriteString('FW *.FWDOMAIN4.*' + #13#10);
 
   // NX entries (4)
-  S := 'NX *.NXDOMAIN4.*' + #13#10; HostsStream.Write(S[1], Length(S));
+
+  HostsStream.WriteString('NX *.NXDOMAIN4.*' + #13#10);
 
   // IPv4 entries (5)
-  S := '127.0.0.1 /^.*\.IPV4DOMAIN5-127-0-0-1\..*$' + #13#10; HostsStream.Write(S[1], Length(S));
+
+  HostsStream.WriteString('127.0.0.1 /^.*\.IPV4DOMAIN5-127-0-0-1\..*$' + #13#10);
 
   // IPv6 entries (5)
-  S := '::1 /^.*\.IPV6DOMAIN5-LOCALHOST\..*$' + #13#10; HostsStream.Write(S[1], Length(S));
+
+  HostsStream.WriteString('::1 /^.*\.IPV6DOMAIN5-LOCALHOST\..*$' + #13#10);
 
   // FW entries (5)
-  S := 'FW /^.*\.FWDOMAIN5\..*$' + #13#10; HostsStream.Write(S[1], Length(S));
+
+  HostsStream.WriteString('FW /^.*\.FWDOMAIN5\..*$' + #13#10);
 
   // NX entries (5)
-  S := 'NX /^.*\.NXDOMAIN5\..*$' + #13#10; HostsStream.Write(S[1], Length(S));
+
+  HostsStream.WriteString('NX /^.*\.NXDOMAIN5\..*$' + #13#10);
+
+  HostsStream.Flush;
 
   HostsStream.Free;
 
@@ -129,7 +186,9 @@ begin
 
   TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Done.');
 
-  TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Starting searching items...');
+  TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Starting massive search...');
+
+  RandSeed := InitSeed;
 
   for i := 0 to (THostsCacheUnitTest_KHostsItems - 1) do begin
 
@@ -137,13 +196,15 @@ begin
 
       k := (1000 * i) + j;
 
-      S := FormatCurr('000000000', k);
+      H := FormatCurr('000000000', k);
 
-      IPv4Address := k;
+      // IPv4 address
+
+      IPv4Address := Random(256) or (Random(256) shl 8) or (Random(256) shl 16) or (Random(128) shl 24);
 
       // IPv4 entries (1)
 
-      if not(THostsCache.FindIPv4AddressHostsEntry('IPV4DOMAIN1-' + S + '-A', HostsEntryIPv4Address)) then begin
+      if not(THostsCache.FindIPv4HostsEntry('IPV4DOMAIN1-' + GetRandomString + '-' + H + '-A', HostsEntryIPv4Address)) then begin
         raise FailedUnitTestException.Create;
       end;
 
@@ -151,7 +212,7 @@ begin
         raise FailedUnitTestException.Create;
       end;
 
-      if not(THostsCache.FindIPv4AddressHostsEntry('IPV4DOMAIN1-' + S + '-B', HostsEntryIPv4Address)) then begin
+      if not(THostsCache.FindIPv4HostsEntry('IPV4DOMAIN1-' + GetRandomString + '-' + H + '-B', HostsEntryIPv4Address)) then begin
         raise FailedUnitTestException.Create;
       end;
 
@@ -159,19 +220,36 @@ begin
         raise FailedUnitTestException.Create;
       end;
 
-      if not(THostsCache.FindIPv4AddressHostsEntry('IPV4DOMAIN1-' + S + '-C', HostsEntryIPv4Address)) then begin
+      if not(THostsCache.FindIPv4HostsEntry('IPV4DOMAIN1-' + GetRandomString + '-' + H + '-C', HostsEntryIPv4Address)) then begin
         raise FailedUnitTestException.Create;
       end;
 
       if not(TIPv4AddressUtility.AreEqual(HostsEntryIPv4Address, IPv4Address)) then begin
         raise FailedUnitTestException.Create;
       end;
+
+      // IPv6 address
+
+      IPv6Address[00] := Random(256);
+      IPv6Address[01] := Random(256);
+      IPv6Address[02] := Random(256);
+      IPv6Address[03] := Random(256);
+      IPv6Address[04] := Random(256);
+      IPv6Address[05] := Random(256);
+      IPv6Address[06] := Random(256);
+      IPv6Address[07] := Random(256);
+      IPv6Address[08] := Random(256);
+      IPv6Address[09] := Random(256);
+      IPv6Address[10] := Random(256);
+      IPv6Address[11] := Random(256);
+      IPv6Address[12] := Random(256);
+      IPv6Address[13] := Random(256);
+      IPv6Address[14] := Random(256);
+      IPv6Address[15] := Random(256);
 
       // IPv6 entries (1)
 
-      IPv6Address[0] := 0; IPv6Address[1] := k and $ff; IPv6Address[2] := 0; IPv6Address[3] := k and $ff; IPv6Address[4] := 0; IPv6Address[5] := k and $ff; IPv6Address[6] := 0; IPv6Address[7] := k and $ff; IPv6Address[8] := 0; IPv6Address[9] := k and $ff; IPv6Address[10] := 0; IPv6Address[11] := k and $ff; IPv6Address[12] := 0; IPv6Address[13] := k and $ff; IPv6Address[14] := 0; IPv6Address[15] := k and $ff;
-
-      if not(THostsCache.FindIPv6AddressHostsEntry('IPV6DOMAIN1-' + S + '-A', HostsEntryIPv6Address)) then begin
+      if not(THostsCache.FindIPv6HostsEntry('IPV6DOMAIN1-' + GetRandomString + '-' + H + '-A', HostsEntryIPv6Address)) then begin
         raise FailedUnitTestException.Create;
       end;
 
@@ -179,7 +257,7 @@ begin
         raise FailedUnitTestException.Create;
       end;
 
-      if not(THostsCache.FindIPv6AddressHostsEntry('IPV6DOMAIN1-' + S + '-B', HostsEntryIPv6Address)) then begin
+      if not(THostsCache.FindIPv6HostsEntry('IPV6DOMAIN1-' + GetRandomString + '-' + H + '-B', HostsEntryIPv6Address)) then begin
         raise FailedUnitTestException.Create;
       end;
 
@@ -187,7 +265,7 @@ begin
         raise FailedUnitTestException.Create;
       end;
 
-      if not(THostsCache.FindIPv6AddressHostsEntry('IPV6DOMAIN1-' + S + '-C', HostsEntryIPv6Address)) then begin
+      if not(THostsCache.FindIPv6HostsEntry('IPV6DOMAIN1-' + GetRandomString + '-' + H + '-C', HostsEntryIPv6Address)) then begin
         raise FailedUnitTestException.Create;
       end;
 
@@ -197,29 +275,29 @@ begin
 
       // FW entries (1)
 
-      if not(THostsCache.FindFWHostsEntry('FWDOMAIN1-' + S + '-A')) then begin
+      if not(THostsCache.FindFWHostsEntry('FWDOMAIN1-' + GetRandomString + '-' + H + '-A')) then begin
         raise FailedUnitTestException.Create;
       end;
 
-      if not(THostsCache.FindFWHostsEntry('FWDOMAIN1-' + S + '-B')) then begin
+      if not(THostsCache.FindFWHostsEntry('FWDOMAIN1-' + GetRandomString + '-' + H + '-B')) then begin
         raise FailedUnitTestException.Create;
       end;
 
-      if not(THostsCache.FindFWHostsEntry('FWDOMAIN1-' + S + '-C')) then begin
+      if not(THostsCache.FindFWHostsEntry('FWDOMAIN1-' + GetRandomString + '-' + H + '-C')) then begin
         raise FailedUnitTestException.Create;
       end;
 
       // NX entries (1)
 
-      if not(THostsCache.FindNXHostsEntry('NXDOMAIN1-' + S + '-A')) then begin
+      if not(THostsCache.FindNXHostsEntry('NXDOMAIN1-' + GetRandomString + '-' + H + '-A')) then begin
         raise FailedUnitTestException.Create;
       end;
 
-      if not(THostsCache.FindNXHostsEntry('NXDOMAIN1-' + S + '-B')) then begin
+      if not(THostsCache.FindNXHostsEntry('NXDOMAIN1-' + GetRandomString + '-' + H + '-B')) then begin
         raise FailedUnitTestException.Create;
       end;
 
-      if not(THostsCache.FindNXHostsEntry('NXDOMAIN1-' + S + '-C')) then begin
+      if not(THostsCache.FindNXHostsEntry('NXDOMAIN1-' + GetRandomString + '-' + H + '-C')) then begin
         raise FailedUnitTestException.Create;
       end;
 
@@ -229,7 +307,7 @@ begin
 
   // IPv4 entries (2)
 
-  if not(THostsCache.FindIPv4AddressHostsEntry('IPV4DOMAIN2-127-0-0-1', HostsEntryIPv4Address)) then begin
+  if not(THostsCache.FindIPv4HostsEntry('IPV4DOMAIN2-127-0-0-1', HostsEntryIPv4Address)) then begin
     raise FailedUnitTestException.Create;
   end;
 
@@ -237,7 +315,7 @@ begin
     raise FailedUnitTestException.Create;
   end;
 
-  if not(THostsCache.FindIPv4AddressHostsEntry('ipv4domain2-127-0-0-1', HostsEntryIPv4Address)) then begin
+  if not(THostsCache.FindIPv4HostsEntry('ipv4domain2-127-0-0-1', HostsEntryIPv4Address)) then begin
     raise FailedUnitTestException.Create;
   end;
 
@@ -245,7 +323,7 @@ begin
     raise FailedUnitTestException.Create;
   end;
 
-  if not(THostsCache.FindIPv4AddressHostsEntry('MATCH.IPV4DOMAIN2-127-0-0-1', HostsEntryIPv4Address)) then begin
+  if not(THostsCache.FindIPv4HostsEntry('MATCH.IPV4DOMAIN2-127-0-0-1', HostsEntryIPv4Address)) then begin
     raise FailedUnitTestException.Create;
   end;
 
@@ -253,7 +331,7 @@ begin
     raise FailedUnitTestException.Create;
   end;
 
-  if not(THostsCache.FindIPv4AddressHostsEntry('match.ipv4domain2-127-0-0-1', HostsEntryIPv4Address)) then begin
+  if not(THostsCache.FindIPv4HostsEntry('match.ipv4domain2-127-0-0-1', HostsEntryIPv4Address)) then begin
     raise FailedUnitTestException.Create;
   end;
 
@@ -263,7 +341,7 @@ begin
 
   // IPv6 entries (2)
 
-  if not(THostsCache.FindIPv6AddressHostsEntry('IPV6DOMAIN2-LOCALHOST', HostsEntryIPv6Address)) then begin
+  if not(THostsCache.FindIPv6HostsEntry('IPV6DOMAIN2-LOCALHOST', HostsEntryIPv6Address)) then begin
     raise FailedUnitTestException.Create;
   end;
 
@@ -271,7 +349,7 @@ begin
     raise FailedUnitTestException.Create;
   end;
 
-  if not(THostsCache.FindIPv6AddressHostsEntry('ipv6domain2-LOCALHOST', HostsEntryIPv6Address)) then begin
+  if not(THostsCache.FindIPv6HostsEntry('ipv6domain2-LOCALHOST', HostsEntryIPv6Address)) then begin
     raise FailedUnitTestException.Create;
   end;
 
@@ -279,7 +357,7 @@ begin
     raise FailedUnitTestException.Create;
   end;
 
-  if not(THostsCache.FindIPv6AddressHostsEntry('MATCH.IPV6DOMAIN2-LOCALHOST', HostsEntryIPv6Address)) then begin
+  if not(THostsCache.FindIPv6HostsEntry('MATCH.IPV6DOMAIN2-LOCALHOST', HostsEntryIPv6Address)) then begin
     raise FailedUnitTestException.Create;
   end;
 
@@ -287,7 +365,7 @@ begin
     raise FailedUnitTestException.Create;
   end;
 
-  if not(THostsCache.FindIPv6AddressHostsEntry('match.ipv6domain2-LOCALHOST', HostsEntryIPv6Address)) then begin
+  if not(THostsCache.FindIPv6HostsEntry('match.ipv6domain2-LOCALHOST', HostsEntryIPv6Address)) then begin
     raise FailedUnitTestException.Create;
   end;
 
@@ -333,7 +411,7 @@ begin
 
   // IPv4 entries (3)
 
-  if not(THostsCache.FindIPv4AddressHostsEntry('IPV4DOMAIN3-127-0-0-1.TEST', HostsEntryIPv4Address)) then begin
+  if not(THostsCache.FindIPv4HostsEntry('IPV4DOMAIN3-127-0-0-1.TEST', HostsEntryIPv4Address)) then begin
     raise FailedUnitTestException.Create;
   end;
 
@@ -341,7 +419,7 @@ begin
     raise FailedUnitTestException.Create;
   end;
 
-  if not(THostsCache.FindIPv4AddressHostsEntry('ipv4domain3-127-0-0-1.test', HostsEntryIPv4Address)) then begin
+  if not(THostsCache.FindIPv4HostsEntry('ipv4domain3-127-0-0-1.test', HostsEntryIPv4Address)) then begin
     raise FailedUnitTestException.Create;
   end;
 
@@ -349,7 +427,7 @@ begin
     raise FailedUnitTestException.Create;
   end;
 
-  if not(THostsCache.FindIPv4AddressHostsEntry('MATCH.IPV4DOMAIN3-127-0-0-1.TEST', HostsEntryIPv4Address)) then begin
+  if not(THostsCache.FindIPv4HostsEntry('MATCH.IPV4DOMAIN3-127-0-0-1.TEST', HostsEntryIPv4Address)) then begin
     raise FailedUnitTestException.Create;
   end;
 
@@ -357,7 +435,7 @@ begin
     raise FailedUnitTestException.Create;
   end;
 
-  if not(THostsCache.FindIPv4AddressHostsEntry('match.ipv4domain3-127-0-0-1.test', HostsEntryIPv4Address)) then begin
+  if not(THostsCache.FindIPv4HostsEntry('match.ipv4domain3-127-0-0-1.test', HostsEntryIPv4Address)) then begin
     raise FailedUnitTestException.Create;
   end;
 
@@ -367,7 +445,7 @@ begin
 
   // IPv6 entries (3)
 
-  if not(THostsCache.FindIPv6AddressHostsEntry('IPV6DOMAIN3-LOCALHOST.TEST', HostsEntryIPv6Address)) then begin
+  if not(THostsCache.FindIPv6HostsEntry('IPV6DOMAIN3-LOCALHOST.TEST', HostsEntryIPv6Address)) then begin
     raise FailedUnitTestException.Create;
   end;
 
@@ -375,7 +453,7 @@ begin
     raise FailedUnitTestException.Create;
   end;
 
-  if not(THostsCache.FindIPv6AddressHostsEntry('ipv6domain3-LOCALHOST.test', HostsEntryIPv6Address)) then begin
+  if not(THostsCache.FindIPv6HostsEntry('ipv6domain3-LOCALHOST.test', HostsEntryIPv6Address)) then begin
     raise FailedUnitTestException.Create;
   end;
 
@@ -383,7 +461,7 @@ begin
     raise FailedUnitTestException.Create;
   end;
 
-  if not(THostsCache.FindIPv6AddressHostsEntry('MATCH.IPV6DOMAIN3-LOCALHOST.TEST', HostsEntryIPv6Address)) then begin
+  if not(THostsCache.FindIPv6HostsEntry('MATCH.IPV6DOMAIN3-LOCALHOST.TEST', HostsEntryIPv6Address)) then begin
     raise FailedUnitTestException.Create;
   end;
 
@@ -391,7 +469,7 @@ begin
     raise FailedUnitTestException.Create;
   end;
 
-  if not(THostsCache.FindIPv6AddressHostsEntry('match.ipv6domain3-LOCALHOST.test', HostsEntryIPv6Address)) then begin
+  if not(THostsCache.FindIPv6HostsEntry('match.ipv6domain3-LOCALHOST.test', HostsEntryIPv6Address)) then begin
     raise FailedUnitTestException.Create;
   end;
 
@@ -437,7 +515,7 @@ begin
 
   // IPv4 entries (4)
 
-  if not(THostsCache.FindIPv4AddressHostsEntry('MATCH.IPV4DOMAIN4-127-0-0-1.TEST', HostsEntryIPv4Address)) then begin
+  if not(THostsCache.FindIPv4HostsEntry('MATCH.IPV4DOMAIN4-127-0-0-1.TEST', HostsEntryIPv4Address)) then begin
     raise FailedUnitTestException.Create;
   end;
 
@@ -445,7 +523,7 @@ begin
     raise FailedUnitTestException.Create;
   end;
 
-  if not(THostsCache.FindIPv4AddressHostsEntry('match.ipv4domain4-127-0-0-1.test', HostsEntryIPv4Address)) then begin
+  if not(THostsCache.FindIPv4HostsEntry('match.ipv4domain4-127-0-0-1.test', HostsEntryIPv4Address)) then begin
     raise FailedUnitTestException.Create;
   end;
 
@@ -455,7 +533,7 @@ begin
 
   // IPv6 entries (4)
 
-  if not(THostsCache.FindIPv6AddressHostsEntry('MATCH.IPV6DOMAIN4-LOCALHOST.TEST', HostsEntryIPv6Address)) then begin
+  if not(THostsCache.FindIPv6HostsEntry('MATCH.IPV6DOMAIN4-LOCALHOST.TEST', HostsEntryIPv6Address)) then begin
     raise FailedUnitTestException.Create;
   end;
 
@@ -463,7 +541,7 @@ begin
     raise FailedUnitTestException.Create;
   end;
 
-  if not(THostsCache.FindIPv6AddressHostsEntry('match.ipv6domain4-LOCALHOST.test', HostsEntryIPv6Address)) then begin
+  if not(THostsCache.FindIPv6HostsEntry('match.ipv6domain4-LOCALHOST.test', HostsEntryIPv6Address)) then begin
     raise FailedUnitTestException.Create;
   end;
 
@@ -493,7 +571,7 @@ begin
 
   // IPv4 entries (5)
 
-  if not(THostsCache.FindIPv4AddressHostsEntry('MATCH.IPV4DOMAIN5-127-0-0-1.TEST', HostsEntryIPv4Address)) then begin
+  if not(THostsCache.FindIPv4HostsEntry('MATCH.IPV4DOMAIN5-127-0-0-1.TEST', HostsEntryIPv4Address)) then begin
     raise FailedUnitTestException.Create;
   end;
 
@@ -501,7 +579,7 @@ begin
     raise FailedUnitTestException.Create;
   end;
 
-  if not(THostsCache.FindIPv4AddressHostsEntry('match.ipv4domain5-127-0-0-1.test', HostsEntryIPv4Address)) then begin
+  if not(THostsCache.FindIPv4HostsEntry('match.ipv4domain5-127-0-0-1.test', HostsEntryIPv4Address)) then begin
     raise FailedUnitTestException.Create;
   end;
 
@@ -511,7 +589,7 @@ begin
 
   // IPv6 entries (5)
 
-  if not(THostsCache.FindIPv6AddressHostsEntry('MATCH.IPV6DOMAIN5-LOCALHOST.TEST', HostsEntryIPv6Address)) then begin
+  if not(THostsCache.FindIPv6HostsEntry('MATCH.IPV6DOMAIN5-LOCALHOST.TEST', HostsEntryIPv6Address)) then begin
     raise FailedUnitTestException.Create;
   end;
 
@@ -519,7 +597,7 @@ begin
     raise FailedUnitTestException.Create;
   end;
 
-  if not(THostsCache.FindIPv6AddressHostsEntry('match.ipv6domain5-LOCALHOST.test', HostsEntryIPv6Address)) then begin
+  if not(THostsCache.FindIPv6HostsEntry('match.ipv6domain5-LOCALHOST.test', HostsEntryIPv6Address)) then begin
     raise FailedUnitTestException.Create;
   end;
 
@@ -549,13 +627,13 @@ begin
 
   // IPv4 nonexistant entry
 
-  if THostsCache.FindIPv4AddressHostsEntry('IPV4NONEXISTANTDOMAIN', HostsEntryIPv4Address) then begin
+  if THostsCache.FindIPv4HostsEntry('IPV4NONEXISTANTDOMAIN', HostsEntryIPv4Address) then begin
     raise FailedUnitTestException.Create;
   end;
 
   // IPv6 nonexistant entry
 
-  if THostsCache.FindIPv6AddressHostsEntry('IPV6NONEXISTANTDOMAIN', HostsEntryIPv6Address) then begin
+  if THostsCache.FindIPv6HostsEntry('IPV6NONEXISTANTDOMAIN', HostsEntryIPv6Address) then begin
     raise FailedUnitTestException.Create;
   end;
 

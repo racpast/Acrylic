@@ -1,6 +1,6 @@
-================================================================================
-Acrylic DNS Proxy
-================================================================================
+========================================================================================================================
+ACRYLIC DNS PROXY
+========================================================================================================================
 
 Acrylic is a local DNS proxy for Windows which improves the performance of your computer by actively caching the responses coming from your DNS servers and helps you fight unwanted ads through the use of a custom HOSTS file (optimized for handling hundreds of thousands of domain names) with support for wildcards and regular expressions.
 
@@ -15,19 +15,42 @@ For more informations please use the "Acrylic Home Page" shortcut available from
 https://mayakron.altervista.org/acrylic.php
 
 Installed version is:
-0.9.39 released on June 25, 2018.
+1.0.0 released on January 31, 2019.
 
-================================================================================
-Acrylic DNS Proxy UI
-================================================================================
+========================================================================================================================
+ACRYLIC DNS PROXY UI
+========================================================================================================================
 
-Acrylic DNS Proxy UI's icon has been designed by:
+The Acrylic DNS Proxy UI desktop application understands the following command line options:
+
+  InstallAcrylicService
+    Performs all the necessary operations to install Acrylic as a Windows service on your computer.
+  UninstallAcrylicService
+    Performs all the necessary operations to uninstall Acrylic as a Windows service from your computer.
+  StartAcrylicService
+    Starts the Acrylic Windows service.
+  StopAcrylicService
+    Stops the Acrylic Windows service.
+  RestartAcrylicService
+    Restarts the Acrylic Windows service.
+  PurgeAcrylicCacheData
+    Purges Acrylic cache data, restarting the Acrylic Windows service if needed.
+  ActivateAcrylicDebugLog
+    Activates the Acrylic debug log, restarting the Acrylic Windows service if needed.
+  DeactivateAcrylicDebugLog
+    Deactivates the Acrylic debug log, restarting the Acrylic Windows service if needed.
+  OpenAcrylicConfigurationFile
+    Opens the Acrylic configuration file right after the application's startup.
+  OpenAcrylicHostsFile
+    Opens the Acrylic HOSTS file right after the application's startup.
+
+The Acrylic DNS Proxy UI desktop application icon has been designed by:
 
 http://www.aha-soft.com/
 
-================================================================================
-Acrylic DNS Proxy Console
-================================================================================
+========================================================================================================================
+ACRYLIC DNS PROXY CONSOLE
+========================================================================================================================
 
 The console version (AcrylicConsole.exe) and the Windows service version of Acrylic (AcrylicService.exe) are functionally identical, as they share the same code.
 
@@ -44,4 +67,4 @@ The console version of Acrylic currently understands the following command line 
   /NoLog
     Does not write the application log to the console while running.
 
-================================================================================
+========================================================================================================================

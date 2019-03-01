@@ -65,9 +65,8 @@ type
     public
       class function Parse(Text: String): Integer;
       class function ToString(Address: TIPv4Address): String;
-      class function AreEqual(Address1, Address2: TIPv4Address): Boolean;
-    public
       class function IsLocalHost(Address: TIPv4Address): Boolean;
+      class function AreEqual(Address1, Address2: TIPv4Address): Boolean;
   end;
 
 // --------------------------------------------------------------------------
@@ -79,9 +78,8 @@ type
     public
       class function Parse(Text: String): TIPv6Address;
       class function ToString(Address: TIPv6Address): String;
-      class function AreEqual(Address1, Address2: TIPv6Address): Boolean;
-    public
       class function IsLocalHost(Address: TIPv6Address): Boolean;
+      class function AreEqual(Address1, Address2: TIPv6Address): Boolean;
   end;
 
 // --------------------------------------------------------------------------
@@ -93,13 +91,10 @@ type
     public
       class function Parse(Text: String): TDualIPAddress;
       class function ToString(Address: TDualIPAddress): String;
-    public
+      class function IsLocalHost(Address: TDualIPAddress): Boolean;
+      class function AreEqual(Address1, Address2: TDualIPAddress): Boolean;
       class function CreateFromIPv4Address(Address: TIPv4Address): TDualIPAddress;
       class function CreateFromIPv6Address(Address: TIPv6Address): TDualIPAddress;
-    public
-      class function AreEqual(Address1, Address2: TDualIPAddress): Boolean;
-    public
-      class function IsLocalHost(Address: TDualIPAddress): Boolean;
   end;
 
 // --------------------------------------------------------------------------
@@ -118,13 +113,12 @@ type
 // --------------------------------------------------------------------------
 
 type
-  TIPv4UdpCommunicationChannel = class
+  TIPv4UdpClientCommunicationChannel = class
     private
       SocketHandle: Integer;
     public
       constructor Create;
-      procedure   Bind(BindingAddress: TIPv4Address; BindingPort: Word);
-      procedure   BindToRandomUnregisteredPort(BindingAddress: TIPv4Address; MaxBindRetries: Integer);
+      procedure   BindToDynamicPort(BindingAddress: TIPv4Address);
       procedure   SendTo(Buffer: Pointer; BufferLen: Integer; DestinationAddress: TIPv4Address; DestinationPort: Word);
       function    ReceiveFrom(Timeout: Integer; MaxBufferLen: Integer; Buffer: Pointer; var BufferLen: Integer; var RemoteAddress: TIPv4Address; var RemotePort: Word): Boolean;
       destructor  Destroy; override;
@@ -135,13 +129,12 @@ type
 // --------------------------------------------------------------------------
 
 type
-  TIPv6UdpCommunicationChannel = class
+  TIPv6UdpClientCommunicationChannel = class
     private
       SocketHandle: Integer;
     public
       constructor Create;
-      procedure   Bind(BindingAddress: TIPv6Address; BindingPort: Word);
-      procedure   BindToRandomUnregisteredPort(BindingAddress: TIPv6Address; MaxBindRetries: Integer);
+      procedure   BindToDynamicPort(BindingAddress: TIPv6Address);
       procedure   SendTo(Buffer: Pointer; BufferLen: Integer; DestinationAddress: TIPv6Address; DestinationPort: Word);
       function    ReceiveFrom(Timeout: Integer; MaxBufferLen: Integer; Buffer: Pointer; var BufferLen: Integer; var RemoteAddress: TIPv6Address; var RemotePort: Word): Boolean;
       destructor  Destroy; override;
@@ -152,7 +145,7 @@ type
 // --------------------------------------------------------------------------
 
 type
-  TDualUdpCommunicationChannel = class
+  TDualUdpServerCommunicationChannel = class
     private
       IPv4SocketHandle: Integer;
       IPv6SocketHandle: Integer;
@@ -169,21 +162,22 @@ type
 // --------------------------------------------------------------------------
 
 type
-  TIPv4TcpCommunicationChannel = class
+  TIPv4TcpClientCommunicationChannel = class
     private
       SocketHandle: Integer;
     public
-      RemoteAddress: TIPv4Address; RemotePort: Word;
+      RemoteAddress: TIPv4Address; RemotePort: Word; Connected: Boolean; LastConnectTime: TDateTime;
+    private
+      procedure   Send(Buffer: Pointer; BufferLen: Integer);
+      procedure   ContinueSend(Buffer: Pointer; BufferLen: Integer; BytesSent: Integer);
+      function    Receive(FirstByteTimeout: Integer; OtherBytesTimeout: Integer; Buffer: Pointer; BufferLen: Integer): Boolean;
+      function    ContinueReceive(FirstByteTimeout: Integer; OtherBytesTimeout: Integer; Buffer: Pointer; BufferLen: Integer; BytesReceived: Integer): Boolean;
     public
       constructor Create; overload;
-      constructor Create(SocketHandle: Integer; RemoteAddress: TIPv4Address; RemotePort: Word); overload;
-      procedure   Bind(BindingAddress: TIPv4Address; BindingPort: Word);
-      procedure   Listen;
-      function    Accept: TIPv4TcpCommunicationChannel; overload;
-      function    Accept(Timeout: Integer): TIPv4TcpCommunicationChannel; overload;
       procedure   Connect(RemoteAddress: TIPv4Address; RemotePort: Word);
-      procedure   Send(Buffer: Pointer; BufferLen: Integer);
-      function    Receive(Timeout: Integer; MaxBufferLen: Integer; Buffer: Pointer; var BufferLen: Integer): Boolean;
+      procedure   SendWrappedDnsPacket(Buffer: Pointer; BufferLen: Integer);
+      function    ReceiveWrappedDnsPacket(FirstByteTimeout: Integer; OtherBytesTimeout: Integer; MaxBufferLen: Integer; Buffer: Pointer; var BufferLen: Integer): Boolean;
+      function    PerformSocks5Handshake(ProxyFirstByteTimeout: Integer; ProxyOtherBytesTimeout: Integer; ProxyRemoteConnectTimeout: Integer; RemoteAddress: TDualIPAddress; RemotePort: Word): Boolean;
       destructor  Destroy; override;
   end;
 
@@ -192,22 +186,49 @@ type
 // --------------------------------------------------------------------------
 
 type
-  TIPv6TcpCommunicationChannel = class
+  TIPv6TcpClientCommunicationChannel = class
     private
       SocketHandle: Integer;
     public
-      RemoteAddress: TIPv6Address; RemotePort: Word;
+      RemoteAddress: TIPv6Address; RemotePort: Word; Connected: Boolean; LastConnectTime: TDateTime;
+    private
+      procedure   Send(Buffer: Pointer; BufferLen: Integer);
+      procedure   ContinueSend(Buffer: Pointer; BufferLen: Integer; BytesSent: Integer);
+      function    Receive(FirstByteTimeout: Integer; OtherBytesTimeout: Integer; Buffer: Pointer; BufferLen: Integer): Boolean;
+      function    ContinueReceive(FirstByteTimeout: Integer; OtherBytesTimeout: Integer; Buffer: Pointer; BufferLen: Integer; BytesReceived: Integer): Boolean;
     public
       constructor Create; overload;
-      constructor Create(SocketHandle: Integer; RemoteAddress: TIPv6Address; RemotePort: Word); overload;
-      procedure   Bind(BindingAddress: TIPv6Address; BindingPort: Word);
-      procedure   Listen;
-      function    Accept: TIPv6TcpCommunicationChannel; overload;
-      function    Accept(Timeout: Integer): TIPv6TcpCommunicationChannel; overload;
       procedure   Connect(RemoteAddress: TIPv6Address; RemotePort: Word);
-      procedure   Send(Buffer: Pointer; BufferLen: Integer);
-      function    Receive(Timeout: Integer; MaxBufferLen: Integer; Buffer: Pointer; var BufferLen: Integer): Boolean;
+      procedure   SendWrappedDnsPacket(Buffer: Pointer; BufferLen: Integer);
+      function    ReceiveWrappedDnsPacket(FirstByteTimeout: Integer; OtherBytesTimeout: Integer; MaxBufferLen: Integer; Buffer: Pointer; var BufferLen: Integer): Boolean;
+      function    PerformSocks5Handshake(ProxyFirstByteTimeout: Integer; ProxyOtherBytesTimeout: Integer; ProxyRemoteConnectTimeout: Integer; RemoteAddress: TDualIPAddress; RemotePort: Word): Boolean;
       destructor  Destroy; override;
+  end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+type
+  TIPv4TcpClientCommunicationManager = class
+    public
+      class procedure Initialize;
+      class function  AcquireCommunicationChannel(ReferenceTime: TDateTime; PoolIndex: Integer): TIPv4TcpClientCommunicationChannel;
+      class procedure ReleaseCommunicationChannel(ReferenceTime: TDateTime; PoolIndex: Integer; CommunicationChannel: TIPv4TcpClientCommunicationChannel; ExchangeSucceeded: Boolean);
+      class procedure Finalize;
+  end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+type
+  TIPv6TcpClientCommunicationManager = class
+    public
+      class procedure Initialize;
+      class function  AcquireCommunicationChannel(ReferenceTime: TDateTime; PoolIndex: Integer): TIPv6TcpClientCommunicationChannel;
+      class procedure ReleaseCommunicationChannel(ReferenceTime: TDateTime; PoolIndex: Integer; CommunicationChannel: TIPv6TcpClientCommunicationChannel; ExchangeSucceeded: Boolean);
+      class procedure Finalize;
   end;
 
 // --------------------------------------------------------------------------
@@ -221,7 +242,11 @@ implementation
 // --------------------------------------------------------------------------
 
 uses
-  SysUtils;
+  Classes,
+  Contnrs,
+  SyncObjs,
+  SysUtils,
+  Configuration;
 
 // --------------------------------------------------------------------------
 //
@@ -299,6 +324,8 @@ function IPv4Send(S: Integer; var Buf; Len, Flags: Integer): Integer; stdcall; e
 function IPv6Send(S: Integer; var Buf; Len, Flags: Integer): Integer; stdcall; external WINDOWS_SOCKETS_DLL name 'send';
 function IPv4SendTo(S: Integer; var Buf; Len, Flags: Integer; var Addr: TIPv4SocketAddress; AddrLen: Integer): Integer; stdcall; external WINDOWS_SOCKETS_DLL name 'sendto';
 function IPv6SendTo(S: Integer; var Buf; Len, Flags: Integer; var Addr: TIPv6SocketAddress; AddrLen: Integer): Integer; stdcall; external WINDOWS_SOCKETS_DLL name 'sendto';
+function IPv4Shutdown(S: Integer; How: Integer): Integer; stdcall; external WINDOWS_SOCKETS_DLL name 'shutdown';
+function IPv6Shutdown(S: Integer; How: Integer): Integer; stdcall; external WINDOWS_SOCKETS_DLL name 'shutdown';
 function CloseSocket(S: Integer): Integer; stdcall; external WINDOWS_SOCKETS_DLL name 'closesocket';
 
 function WSAGetLastError: Integer; stdcall; external WINDOWS_SOCKETS_DLL name 'WSAGetLastError';
@@ -320,6 +347,10 @@ const
 const
   IPPROTO_TCP = 6;
   IPPROTO_UDP = 17;
+
+const
+  SD_SEND = 1;
+  SD_BOTH = 2;
 
 const
   SOCKET_ERROR = -1;
@@ -489,11 +520,11 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class function TIPv4AddressUtility.AreEqual(Address1, Address2: TIPv4Address): Boolean;
+class function TIPv4AddressUtility.IsLocalHost(Address: TIPv4Address): Boolean;
 
 begin
 
-  Result := (Address1 = Address2);
+  Result := TIPv4AddressUtility.AreEqual(Address, LOCALHOST_IPV4_ADDRESS);
 
 end;
 
@@ -501,11 +532,11 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class function TIPv4AddressUtility.IsLocalHost(Address: TIPv4Address): Boolean;
+class function TIPv4AddressUtility.AreEqual(Address1, Address2: TIPv4Address): Boolean;
 
 begin
 
-  Result := TIPv4AddressUtility.AreEqual(Address, LOCALHOST_IPV4_ADDRESS);
+  Result := (Address1 = Address2);
 
 end;
 
@@ -540,11 +571,11 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class function TIPv6AddressUtility.AreEqual(Address1, Address2: TIPv6Address): Boolean;
+class function TIPv6AddressUtility.IsLocalHost(Address: TIPv6Address): Boolean;
 
 begin
 
-  Result := (Address1[0] = Address2[0]) and (Address1[1] = Address2[1]) and (Address1[2] = Address2[2]) and (Address1[3] = Address2[3]) and (Address1[4] = Address2[4]) and (Address1[5] = Address2[5]) and (Address1[6] = Address2[6]) and (Address1[7] = Address2[7]) and (Address1[8] = Address2[8]) and (Address1[9] = Address2[9]) and (Address1[10] = Address2[10]) and (Address1[11] = Address2[11]) and (Address1[12] = Address2[12]) and (Address1[13] = Address2[13]) and (Address1[14] = Address2[14]) and (Address1[15] = Address2[15]);
+  Result := TIPv6AddressUtility.AreEqual(Address, LOCALHOST_IPV6_ADDRESS);
 
 end;
 
@@ -552,11 +583,11 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class function TIPv6AddressUtility.IsLocalHost(Address: TIPv6Address): Boolean;
+class function TIPv6AddressUtility.AreEqual(Address1, Address2: TIPv6Address): Boolean;
 
 begin
 
-  Result := TIPv6AddressUtility.AreEqual(Address, LOCALHOST_IPV6_ADDRESS);
+  Result := (Address1[0] = Address2[0]) and (Address1[1] = Address2[1]) and (Address1[2] = Address2[2]) and (Address1[3] = Address2[3]) and (Address1[4] = Address2[4]) and (Address1[5] = Address2[5]) and (Address1[6] = Address2[6]) and (Address1[7] = Address2[7]) and (Address1[8] = Address2[8]) and (Address1[9] = Address2[9]) and (Address1[10] = Address2[10]) and (Address1[11] = Address2[11]) and (Address1[12] = Address2[12]) and (Address1[13] = Address2[13]) and (Address1[14] = Address2[14]) and (Address1[15] = Address2[15]);
 
 end;
 
@@ -584,6 +615,18 @@ class function TDualIPAddressUtility.ToString(Address: TDualIPAddress): String;
 begin
 
   if Address.IsIPv6Address then Result := TIPv6AddressUtility.ToString(Address.IPv6Address) else Result := TIPv4AddressUtility.ToString(Address.IPv4Address);
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class function TDualIPAddressUtility.IsLocalHost(Address: TDualIPAddress): Boolean;
+
+begin
+
+  Result := (Address.IsIPv6Address and TIPv6AddressUtility.IsLocalHost(Address.IPv6Address)) or (not Address.IsIPv6Address and TIPv4AddressUtility.IsLocalHost(Address.IPv4Address));
 
 end;
 
@@ -633,18 +676,6 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class function TDualIPAddressUtility.IsLocalHost(Address: TDualIPAddress): Boolean;
-
-begin
-
-  Result := (Address.IsIPv6Address and TIPv6AddressUtility.IsLocalHost(Address.IPv6Address)) or (not Address.IsIPv6Address and TIPv4AddressUtility.IsLocalHost(Address.IPv4Address));
-
-end;
-
-// --------------------------------------------------------------------------
-//
-// --------------------------------------------------------------------------
-
 class procedure TCommunicationChannel.Initialize;
 
 var
@@ -653,6 +684,9 @@ var
 begin
 
   if not((WSAStartup(WINDOWS_SOCKETS_VERSION, WSAData) = 0)) then raise Exception.Create('TCommunicationChannel.Initialize: WSAStartup function failed.');
+
+  TIPv6TcpClientCommunicationManager.Initialize;
+  TIPv4TcpClientCommunicationManager.Initialize;
 
 end;
 
@@ -664,6 +698,9 @@ class procedure TCommunicationChannel.Finalize;
 
 begin
 
+  TIPv6TcpClientCommunicationManager.Finalize;
+  TIPv4TcpClientCommunicationManager.Finalize;
+
   WSACleanup;
 
 end;
@@ -672,13 +709,13 @@ end;
 //
 // --------------------------------------------------------------------------
 
-constructor TIPv4UdpCommunicationChannel.Create;
+constructor TIPv4UdpClientCommunicationChannel.Create;
 
 begin
 
   Self.SocketHandle := Socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
-  if not(IsValidSocketHandle(Self.SocketHandle)) then raise Exception.Create('TIPv4UdpCommunicationChannel.Create: Socket allocation failed.');
+  if not(IsValidSocketHandle(Self.SocketHandle)) then raise Exception.Create('TIPv4UdpClientCommunicationChannel.Create: Socket allocation failed.');
 
 end;
 
@@ -686,7 +723,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-procedure TIPv4UdpCommunicationChannel.Bind(BindingAddress: TIPv4Address; BindingPort: Word);
+procedure TIPv4UdpClientCommunicationChannel.BindToDynamicPort(BindingAddress: TIPv4Address);
 
 var
   IPv4SocketAddress: TIPv4SocketAddress;
@@ -695,36 +732,9 @@ begin
 
   FillChar(IPv4SocketAddress, SizeOf(TIPv4SocketAddress), 0);
 
-  IPv4SocketAddress.sin_family := AF_INET; IPv4SocketAddress.sin_addr := BindingAddress; IPv4SocketAddress.sin_port := HTONS(BindingPort);
-
-  if not(IsValidSocketResult(IPv4Bind(Self.SocketHandle, IPv4SocketAddress, SizeOf(TIPv4SocketAddress)))) then raise Exception.Create('TIPv4UdpCommunicationChannel.Bind: Binding to address ' + TIPv4AddressUtility.ToString(BindingAddress) + ' and port ' + IntToStr(BindingPort) + ' failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
-
-end;
-
-// --------------------------------------------------------------------------
-//
-// --------------------------------------------------------------------------
-
-procedure TIPv4UdpCommunicationChannel.BindToRandomUnregisteredPort(BindingAddress: TIPv4Address; MaxBindRetries: Integer);
-
-var
-  IPv4SocketAddress: TIPv4SocketAddress; BindRetryIndex: Integer;
-
-begin
-
-  FillChar(IPv4SocketAddress, SizeOf(TIPv4SocketAddress), 0);
-
   IPv4SocketAddress.sin_family := AF_INET; IPv4SocketAddress.sin_addr := BindingAddress;
 
-  for BindRetryIndex := 1 to MaxBindRetries do begin
-
-    IPv4SocketAddress.sin_port := HTONS(49152 + Random(16384));
-
-    if IsValidSocketResult(IPv4Bind(Self.SocketHandle, IPv4SocketAddress, SizeOf(TIPv4SocketAddress))) then Exit;
-
-  end;
-
-  raise Exception.Create('TIPv4UdpCommunicationChannel.BindToRandomUnregisteredPort: Binding to address ' + TIPv4AddressUtility.ToString(BindingAddress) + ' and a random unregistered port failed after ' + IntToStr(MaxBindRetries) + ' retries.');
+  if not(IsValidSocketResult(IPv4Bind(Self.SocketHandle, IPv4SocketAddress, SizeOf(TIPv4SocketAddress)))) then raise Exception.Create('TIPv4UdpClientCommunicationChannel.BindToDynamicPort: Binding failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
 
 end;
 
@@ -732,7 +742,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-procedure TIPv4UdpCommunicationChannel.SendTo(Buffer: Pointer; BufferLen: Integer; DestinationAddress: TIPv4Address; DestinationPort: Word);
+procedure TIPv4UdpClientCommunicationChannel.SendTo(Buffer: Pointer; BufferLen: Integer; DestinationAddress: TIPv4Address; DestinationPort: Word);
 
 var
   IPv4SocketAddress: TIPv4SocketAddress;
@@ -743,7 +753,7 @@ begin
 
   IPv4SocketAddress.sin_family := AF_INET; IPv4SocketAddress.sin_addr := DestinationAddress; IPv4SocketAddress.sin_port := HTONS(DestinationPort);
 
-  if not(IsValidSocketResult(IPv4SendTo(Self.SocketHandle, Buffer^, BufferLen, 0, IPv4SocketAddress, SizeOf(TIPv4SocketAddress)))) then raise Exception.Create('TIPv4UdpCommunicationChannel.SendTo: Sending to address ' + TIPv4AddressUtility.ToString(DestinationAddress) + ' and port ' + IntToStr(DestinationPort) + ' failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
+  if not(IsValidSocketResult(IPv4SendTo(Self.SocketHandle, Buffer^, BufferLen, 0, IPv4SocketAddress, SizeOf(TIPv4SocketAddress)))) then raise Exception.Create('TIPv4UdpClientCommunicationChannel.SendTo: Sending failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
 
 end;
 
@@ -751,7 +761,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-function TIPv4UdpCommunicationChannel.ReceiveFrom(Timeout: Integer; MaxBufferLen: Integer; Buffer: Pointer; var BufferLen: Integer; var RemoteAddress: TIPv4Address; var RemotePort: Word): Boolean;
+function TIPv4UdpClientCommunicationChannel.ReceiveFrom(Timeout: Integer; MaxBufferLen: Integer; Buffer: Pointer; var BufferLen: Integer; var RemoteAddress: TIPv4Address; var RemotePort: Word): Boolean;
 
 var
   TimeVal: TTimeVal; ReadFDSet: TFDSet; SelectResult: Integer; IPv4SocketAddress: TIPv4SocketAddress; IPv4SocketAddressSize: Integer;
@@ -783,7 +793,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-destructor TIPv4UdpCommunicationChannel.Destroy;
+destructor TIPv4UdpClientCommunicationChannel.Destroy;
 
 begin
 
@@ -797,13 +807,13 @@ end;
 //
 // --------------------------------------------------------------------------
 
-constructor TIPv6UdpCommunicationChannel.Create;
+constructor TIPv6UdpClientCommunicationChannel.Create;
 
 begin
 
   Self.SocketHandle := Socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
 
-  if not(IsValidSocketHandle(Self.SocketHandle)) then raise Exception.Create('TIPv6UdpCommunicationChannel.Create: Socket allocation failed.');
+  if not(IsValidSocketHandle(Self.SocketHandle)) then raise Exception.Create('TIPv6UdpClientCommunicationChannel.Create: Socket allocation failed.');
 
 end;
 
@@ -811,7 +821,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-procedure TIPv6UdpCommunicationChannel.Bind(BindingAddress: TIPv6Address; BindingPort: Word);
+procedure TIPv6UdpClientCommunicationChannel.BindToDynamicPort(BindingAddress: TIPv6Address);
 
 var
   IPv6SocketAddress: TIPv6SocketAddress;
@@ -820,36 +830,9 @@ begin
 
   FillChar(IPv6SocketAddress, SizeOf(TIPv6SocketAddress), 0);
 
-  IPv6SocketAddress.sin_family := AF_INET6; IPv6SocketAddress.sin_addr := BindingAddress; IPv6SocketAddress.sin_port := HTONS(BindingPort);
-
-  if not(IsValidSocketResult(IPv6Bind(Self.SocketHandle, IPv6SocketAddress, SizeOf(TIPv6SocketAddress)))) then raise Exception.Create('TIPv6UdpCommunicationChannel.Bind: Binding to address ' + TIPv6AddressUtility.ToString(BindingAddress) + ' and port ' + IntToStr(BindingPort) + ' failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
-
-end;
-
-// --------------------------------------------------------------------------
-//
-// --------------------------------------------------------------------------
-
-procedure TIPv6UdpCommunicationChannel.BindToRandomUnregisteredPort(BindingAddress: TIPv6Address; MaxBindRetries: Integer);
-
-var
-  IPv6SocketAddress: TIPv6SocketAddress; BindRetryIndex: Integer;
-
-begin
-
-  FillChar(IPv6SocketAddress, SizeOf(TIPv6SocketAddress), 0);
-
   IPv6SocketAddress.sin_family := AF_INET6; IPv6SocketAddress.sin_addr := BindingAddress;
 
-  for BindRetryIndex := 1 to MaxBindRetries do begin
-
-    IPv6SocketAddress.sin_port := HTONS(49152 + Random(16384));
-
-    if IsValidSocketResult(IPv6Bind(Self.SocketHandle, IPv6SocketAddress, SizeOf(TIPv6SocketAddress))) then Exit;
-
-  end;
-
-  raise Exception.Create('TIPv6UdpCommunicationChannel.BindToRandomUnregisteredPort: Binding to address ' + TIPv6AddressUtility.ToString(BindingAddress) + ' and a random unregistered port failed after ' + IntToStr(MaxBindRetries) + ' retries.');
+  if not(IsValidSocketResult(IPv6Bind(Self.SocketHandle, IPv6SocketAddress, SizeOf(TIPv6SocketAddress)))) then raise Exception.Create('TIPv6UdpClientCommunicationChannel.BindToDynamicPort: Binding failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
 
 end;
 
@@ -857,7 +840,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-procedure TIPv6UdpCommunicationChannel.SendTo(Buffer: Pointer; BufferLen: Integer; DestinationAddress: TIPv6Address; DestinationPort: Word);
+procedure TIPv6UdpClientCommunicationChannel.SendTo(Buffer: Pointer; BufferLen: Integer; DestinationAddress: TIPv6Address; DestinationPort: Word);
 
 var
   IPv6SocketAddress: TIPv6SocketAddress;
@@ -868,7 +851,7 @@ begin
 
   IPv6SocketAddress.sin_family := AF_INET6; IPv6SocketAddress.sin_addr := DestinationAddress; IPv6SocketAddress.sin_port := HTONS(DestinationPort);
 
-  if not(IsValidSocketResult(IPv6SendTo(Self.SocketHandle, Buffer^, BufferLen, 0, IPv6SocketAddress, SizeOf(TIPv6SocketAddress)))) then raise Exception.Create('TIPv6UdpCommunicationChannel.SendTo: Sending to address ' + TIPv6AddressUtility.ToString(DestinationAddress) + ' and port ' + IntToStr(DestinationPort) + ' failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
+  if not(IsValidSocketResult(IPv6SendTo(Self.SocketHandle, Buffer^, BufferLen, 0, IPv6SocketAddress, SizeOf(TIPv6SocketAddress)))) then raise Exception.Create('TIPv6UdpClientCommunicationChannel.SendTo: Sending failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
 
 end;
 
@@ -876,7 +859,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-function TIPv6UdpCommunicationChannel.ReceiveFrom(Timeout: Integer; MaxBufferLen: Integer; Buffer: Pointer; var BufferLen: Integer; var RemoteAddress: TIPv6Address; var RemotePort: Word): Boolean;
+function TIPv6UdpClientCommunicationChannel.ReceiveFrom(Timeout: Integer; MaxBufferLen: Integer; Buffer: Pointer; var BufferLen: Integer; var RemoteAddress: TIPv6Address; var RemotePort: Word): Boolean;
 
 var
   TimeVal: TTimeVal; ReadFDSet: TFDSet; SelectResult: Integer; IPv6SocketAddress: TIPv6SocketAddress; IPv6SocketAddressSize: Integer;
@@ -908,7 +891,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-destructor TIPv6UdpCommunicationChannel.Destroy;
+destructor TIPv6UdpClientCommunicationChannel.Destroy;
 
 begin
 
@@ -922,7 +905,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-constructor TDualUdpCommunicationChannel.Create;
+constructor TDualUdpServerCommunicationChannel.Create;
 
 begin
 
@@ -935,7 +918,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-procedure TDualUdpCommunicationChannel.Bind(IPv4Binding: Boolean; IPv4BindingAddress: TIPv4Address; IPv4BindingPort: Word; IPv6Binding: Boolean; IPv6BindingAddress: TIPv6Address; IPv6BindingPort: Word);
+procedure TDualUdpServerCommunicationChannel.Bind(IPv4Binding: Boolean; IPv4BindingAddress: TIPv4Address; IPv4BindingPort: Word; IPv6Binding: Boolean; IPv6BindingAddress: TIPv6Address; IPv6BindingPort: Word);
 
 var
   IPv4SocketAddress: TIPv4SocketAddress; IPv6SocketAddress: TIPv6SocketAddress;
@@ -946,13 +929,13 @@ begin
 
     Self.IPv6SocketHandle := Socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
 
-    if not(IsValidSocketHandle(Self.IPv6SocketHandle)) then raise Exception.Create('TDualUdpCommunicationChannel.Bind: IPv6 socket allocation failed.');
+    if not(IsValidSocketHandle(Self.IPv6SocketHandle)) then raise Exception.Create('TDualUdpServerCommunicationChannel.Bind: IPv6 socket allocation failed.');
 
     FillChar(IPv6SocketAddress, SizeOf(TIPv6SocketAddress), 0);
 
     IPv6SocketAddress.sin_family := AF_INET6; IPv6SocketAddress.sin_addr := IPv6BindingAddress; IPv6SocketAddress.sin_port := HTONS(IPv6BindingPort);
 
-    if not(IsValidSocketResult(IPv6Bind(Self.IPv6SocketHandle, IPv6SocketAddress, SizeOf(TIPv6SocketAddress)))) then raise Exception.Create('TDualUdpCommunicationChannel.Bind: Binding to IPv6 address ' + TIPv6AddressUtility.ToString(IPv6BindingAddress) + ' and port ' + IntToStr(IPv6BindingPort) + ' failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
+    if not(IsValidSocketResult(IPv6Bind(Self.IPv6SocketHandle, IPv6SocketAddress, SizeOf(TIPv6SocketAddress)))) then raise Exception.Create('TDualUdpServerCommunicationChannel.Bind: Binding to IPv6 address failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
 
   end;
 
@@ -960,13 +943,13 @@ begin
 
     Self.IPv4SocketHandle := Socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 
-    if not(IsValidSocketHandle(Self.IPv4SocketHandle)) then raise Exception.Create('TDualUdpCommunicationChannel.Bind: IPv4 socket allocation failed.');
+    if not(IsValidSocketHandle(Self.IPv4SocketHandle)) then raise Exception.Create('TDualUdpServerCommunicationChannel.Bind: IPv4 socket allocation failed.');
 
     FillChar(IPv4SocketAddress, SizeOf(TIPv4SocketAddress), 0);
 
     IPv4SocketAddress.sin_family := AF_INET; IPv4SocketAddress.sin_addr := IPv4BindingAddress; IPv4SocketAddress.sin_port := HTONS(IPv4BindingPort);
 
-    if not(IsValidSocketResult(IPv4Bind(Self.IPv4SocketHandle, IPv4SocketAddress, SizeOf(TIPv4SocketAddress)))) then raise Exception.Create('TDualUdpCommunicationChannel.Bind: Binding to IPv4 address ' + TIPv4AddressUtility.ToString(IPv4BindingAddress) + ' and port ' + IntToStr(IPv4BindingPort) + ' failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
+    if not(IsValidSocketResult(IPv4Bind(Self.IPv4SocketHandle, IPv4SocketAddress, SizeOf(TIPv4SocketAddress)))) then raise Exception.Create('TDualUdpServerCommunicationChannel.Bind: Binding to IPv4 address failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
 
   end;
 
@@ -976,7 +959,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-procedure TDualUdpCommunicationChannel.SendTo(Buffer: Pointer; BufferLen: Integer; DestinationAddress: TDualIPAddress; DestinationPort: Word);
+procedure TDualUdpServerCommunicationChannel.SendTo(Buffer: Pointer; BufferLen: Integer; DestinationAddress: TDualIPAddress; DestinationPort: Word);
 
 var
   IPv4SocketAddress: TIPv4SocketAddress; IPv6SocketAddress: TIPv6SocketAddress;
@@ -991,7 +974,11 @@ begin
 
       IPv6SocketAddress.sin_family := AF_INET6; IPv6SocketAddress.sin_addr := DestinationAddress.IPv6Address; IPv6SocketAddress.sin_port := HTONS(DestinationPort);
 
-      if not(IsValidSocketResult(IPv6SendTo(Self.IPv6SocketHandle, Buffer^, BufferLen, 0, IPv6SocketAddress, SizeOf(TIPv6SocketAddress)))) then raise Exception.Create('TDualUdpCommunicationChannel.SendTo: Sending to IPv6 address ' + TIPv6AddressUtility.ToString(DestinationAddress.IPv6Address) + ' and port ' + IntToStr(DestinationPort) + ' failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
+      if not(IsValidSocketResult(IPv6SendTo(Self.IPv6SocketHandle, Buffer^, BufferLen, 0, IPv6SocketAddress, SizeOf(TIPv6SocketAddress)))) then raise Exception.Create('TDualUdpServerCommunicationChannel.SendTo: Sending to IPv6 address failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
+
+    end else begin
+
+      raise Exception.Create('TDualUdpServerCommunicationChannel.SendTo: Sending to IPv6 address failed because the IPv6 socket is uninitialized.');
 
     end;
 
@@ -1003,7 +990,11 @@ begin
 
       IPv4SocketAddress.sin_family := AF_INET; IPv4SocketAddress.sin_addr := DestinationAddress.IPv4Address; IPv4SocketAddress.sin_port := HTONS(DestinationPort);
 
-      if not(IsValidSocketResult(IPv4SendTo(Self.IPv4SocketHandle, Buffer^, BufferLen, 0, IPv4SocketAddress, SizeOf(TIPv4SocketAddress)))) then raise Exception.Create('TDualUdpCommunicationChannel.SendTo: Sending to IPv4 address ' + TIPv4AddressUtility.ToString(DestinationAddress.IPv4Address) + ' and port ' + IntToStr(DestinationPort) + ' failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
+      if not(IsValidSocketResult(IPv4SendTo(Self.IPv4SocketHandle, Buffer^, BufferLen, 0, IPv4SocketAddress, SizeOf(TIPv4SocketAddress)))) then raise Exception.Create('TDualUdpServerCommunicationChannel.SendTo: Sending to IPv4 address failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
+
+    end else begin
+
+      raise Exception.Create('TDualUdpServerCommunicationChannel.SendTo: Sending to IPv4 address failed because the IPv4 socket is uninitialized.');
 
     end;
 
@@ -1015,7 +1006,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-function TDualUdpCommunicationChannel.ReceiveFrom(Timeout: Integer; MaxBufferLen: Integer; Buffer: Pointer; var BufferLen: Integer; var RemoteAddress: TDualIPAddress; var RemotePort: Word): Boolean;
+function TDualUdpServerCommunicationChannel.ReceiveFrom(Timeout: Integer; MaxBufferLen: Integer; Buffer: Pointer; var BufferLen: Integer; var RemoteAddress: TDualIPAddress; var RemotePort: Word): Boolean;
 
 var
   TimeVal: TTimeVal; ReadFDSet: TFDSet; SelectResult: Integer; IPv4SocketAddress: TIPv4SocketAddress; IPv4SocketAddressSize: Integer; IPv6SocketAddress: TIPv6SocketAddress; IPv6SocketAddressSize: Integer;
@@ -1115,7 +1106,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-destructor TDualUdpCommunicationChannel.Destroy;
+destructor TDualUdpServerCommunicationChannel.Destroy;
 
 begin
 
@@ -1130,13 +1121,13 @@ end;
 //
 // --------------------------------------------------------------------------
 
-constructor TIPv4TcpCommunicationChannel.Create;
+constructor TIPv4TcpClientCommunicationChannel.Create;
 
 begin
 
   Self.SocketHandle := Socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
 
-  if not(IsValidSocketHandle(Self.SocketHandle)) then raise Exception.Create('TIPv4TcpCommunicationChannel.Create: Socket allocation failed.');
+  if not(IsValidSocketHandle(Self.SocketHandle)) then raise Exception.Create('TIPv4TcpClientCommunicationChannel.Create: Socket allocation failed.');
 
 end;
 
@@ -1144,97 +1135,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-constructor TIPv4TcpCommunicationChannel.Create(SocketHandle: Integer; RemoteAddress: TIPv4Address; RemotePort: Word);
-
-begin
-
-  Self.SocketHandle := SocketHandle; Self.RemoteAddress := RemoteAddress; Self.RemotePort := RemotePort;
-
-end;
-
-// --------------------------------------------------------------------------
-//
-// --------------------------------------------------------------------------
-
-procedure TIPv4TcpCommunicationChannel.Bind(BindingAddress: TIPv4Address; BindingPort: Word);
-
-var
-  IPv4SocketAddress: TIPv4SocketAddress;
-
-begin
-
-  FillChar(IPv4SocketAddress, SizeOf(TIPv4SocketAddress), 0);
-
-  IPv4SocketAddress.sin_family := AF_INET; IPv4SocketAddress.sin_addr := BindingAddress; IPv4SocketAddress.sin_port := HTONS(BindingPort);
-
-  if not(IsValidSocketResult(IPv4Bind(Self.SocketHandle, IPv4SocketAddress, SizeOf(TIPv4SocketAddress)))) then raise Exception.Create('TIPv4TcpCommunicationChannel.Bind: Binding to address ' + TIPv4AddressUtility.ToString(BindingAddress) + ' and port ' + IntToStr(BindingPort) + ' failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
-
-end;
-
-// --------------------------------------------------------------------------
-//
-// --------------------------------------------------------------------------
-
-procedure TIPv4TcpCommunicationChannel.Listen;
-
-begin
-
-  if not(IsValidSocketResult(CommunicationChannels.Listen(Self.SocketHandle, 0))) then raise Exception.Create('TIPv4TcpCommunicationChannel.Listen: Listening failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
-
-end;
-
-// --------------------------------------------------------------------------
-//
-// --------------------------------------------------------------------------
-
-function TIPv4TcpCommunicationChannel.Accept: TIPv4TcpCommunicationChannel;
-
-var
-  IncomingConnectionSocketHandle: Integer; IPv4SocketAddress: TIPv4SocketAddress; IPv4SocketAddressLen: Integer;
-
-begin
-
-  IPv4SocketAddressLen := SizeOf(TIPv4SocketAddress); FillChar(IPv4SocketAddress, IPv4SocketAddressLen, 0);
-
-  IncomingConnectionSocketHandle := IPv4Accept(Self.SocketHandle, IPv4SocketAddress, IPv4SocketAddressLen); if not(IsValidSocketHandle(IncomingConnectionSocketHandle)) then raise Exception.Create('TIPv4TcpCommunicationChannel.Accept: Accepting socket failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.'); Result := TIPv4TcpCommunicationChannel.Create(IncomingConnectionSocketHandle, IPv4SocketAddress.sin_addr, HTONS(IPv4SocketAddress.sin_port));
-
-end;
-
-// --------------------------------------------------------------------------
-//
-// --------------------------------------------------------------------------
-
-function TIPv4TcpCommunicationChannel.Accept(Timeout: Integer): TIPv4TcpCommunicationChannel;
-
-var
-  TimeVal: TTimeVal; ReadFDSet: TFDSet; SelectResult: Integer; IncomingConnectionSocketHandle: Integer; IPv4SocketAddress: TIPv4SocketAddress; IPv4SocketAddressLen: Integer;
-
-begin
-
-  TimeVal.tv_sec := Timeout div 1000;
-  TimeVal.tv_usec := 1000 * (Timeout mod 1000);
-
-  ReadFDSet.fd_count := 1; ReadFDSet.fd_array[0] := Self.SocketHandle;
-
-  SelectResult := Select(0, @ReadFDSet, nil, nil, @TimeVal); if IsValidSocketResult(SelectResult) and (SelectResult > 0) then begin
-
-    IPv4SocketAddressLen := SizeOf(TIPv4SocketAddress); FillChar(IPv4SocketAddress, IPv4SocketAddressLen, 0);
-
-    IncomingConnectionSocketHandle := IPv4Accept(Self.SocketHandle, IPv4SocketAddress, IPv4SocketAddressLen); if not(IsValidSocketHandle(IncomingConnectionSocketHandle)) then raise Exception.Create('TIPv4TcpCommunicationChannel.Accept: Accepting socket failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.'); Result := TIPv4TcpCommunicationChannel.Create(IncomingConnectionSocketHandle, IPv4SocketAddress.sin_addr, HTONS(IPv4SocketAddress.sin_port));
-
-  end else begin
-
-    Result := nil;
-
-  end;
-
-end;
-
-// --------------------------------------------------------------------------
-//
-// --------------------------------------------------------------------------
-
-procedure TIPv4TcpCommunicationChannel.Connect(RemoteAddress: TIPv4Address; RemotePort: Word);
+procedure TIPv4TcpClientCommunicationChannel.Connect(RemoteAddress: TIPv4Address; RemotePort: Word);
 
 var
   IPv4SocketAddress: TIPv4SocketAddress;
@@ -1245,21 +1146,9 @@ begin
 
   IPv4SocketAddress.sin_family := AF_INET; IPv4SocketAddress.sin_addr := RemoteAddress; IPv4SocketAddress.sin_port := HTONS(RemotePort);
 
-  if not(IsValidSocketResult(IPv4Connect(Self.SocketHandle, IPv4SocketAddress, SizeOf(TIPv4SocketAddress)))) then raise Exception.Create('TIPv4TcpCommunicationChannel.Connect: Connection to address ' + TIPv4AddressUtility.ToString(RemoteAddress) + ' and port ' + IntToStr(RemotePort) + ' failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
+  if not(IsValidSocketResult(IPv4Connect(Self.SocketHandle, IPv4SocketAddress, SizeOf(TIPv4SocketAddress)))) then raise Exception.Create('TIPv4TcpClientCommunicationChannel.Connect: Connection failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
 
-  Self.RemoteAddress := RemoteAddress; Self.RemotePort := RemotePort;
-
-end;
-
-// --------------------------------------------------------------------------
-//
-// --------------------------------------------------------------------------
-
-procedure TIPv4TcpCommunicationChannel.Send(Buffer: Pointer; BufferLen: Integer);
-
-begin
-
-  if not(IsValidSocketResult(IPv4Send(Self.SocketHandle, Buffer^, BufferLen, 0))) then raise Exception.Create('TIPv4TcpCommunicationChannel.Send: Sending to address ' + TIPv4AddressUtility.ToString(Self.RemoteAddress) + ' and port ' + IntToStr(Self.RemotePort) + ' failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
+  Self.RemoteAddress := RemoteAddress; Self.RemotePort := RemotePort; Self.Connected := True; Self.LastConnectTime := Now;
 
 end;
 
@@ -1267,27 +1156,31 @@ end;
 //
 // --------------------------------------------------------------------------
 
-function TIPv4TcpCommunicationChannel.Receive(Timeout: Integer; MaxBufferLen: Integer; Buffer: Pointer; var BufferLen: Integer): Boolean;
+procedure TIPv4TcpClientCommunicationChannel.Send(Buffer: Pointer; BufferLen: Integer);
 
 var
-  TimeVal: TTimeVal; ReadFDSet: TFDSet; SelectResult: Integer;
+  IPv4SendResult: Integer;
 
 begin
 
-  TimeVal.tv_sec := Timeout div 1000;
-  TimeVal.tv_usec := 1000 * (Timeout mod 1000);
+  IPv4SendResult := IPv4Send(Self.SocketHandle, Buffer^, BufferLen, 0); if not(IsValidSocketResult(IPv4SendResult)) then raise Exception.Create('TIPv4TcpClientCommunicationChannel.Send: Sending failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.'); if (IPv4SendResult = 0) then raise Exception.Create('TIPv4TcpClientCommunicationChannel.Send: Sending failed with Windows Sockets reporting 0 bytes sent.'); if (IPv4SendResult < BufferLen) then Self.ContinueSend(Buffer, BufferLen, IPv4SendResult);
 
-  ReadFDSet.fd_count := 1; ReadFDSet.fd_array[0] := Self.SocketHandle;
+end;
 
-  SelectResult := Select(0, @ReadFDSet, nil, nil, @TimeVal); if IsValidSocketResult(SelectResult) and (SelectResult > 0) then begin
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
 
-    BufferLen := IPv4Recv(Self.SocketHandle, Buffer^, MaxBufferLen, 0);
+procedure TIPv4TcpClientCommunicationChannel.ContinueSend(Buffer: Pointer; BufferLen: Integer; BytesSent: Integer);
 
-    Result := BufferLen > 0;
+var
+  BytesRemaining: Integer; IPv4SendResult: Integer;
 
-  end else begin
+begin
 
-    Result := False;
+  BytesRemaining := BufferLen - BytesSent; IPv4SendResult := IPv4Send(Self.SocketHandle, Pointer(Integer(Buffer) + BytesSent)^, BytesRemaining, 0); if not(IsValidSocketResult(IPv4SendResult)) then raise Exception.Create('TIPv4TcpClientCommunicationChannel.ContinueSend: Sending failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.'); if (IPv4SendResult = 0) then raise Exception.Create('TIPv4TcpClientCommunicationChannel.ContinueSend: Sending failed with Windows Sockets reporting 0 bytes sent.'); while (IPv4SendResult < BytesRemaining) do begin
+
+    BytesSent := BytesSent + IPv4SendResult; BytesRemaining := BytesRemaining - IPv4SendResult; IPv4SendResult := IPv4Send(Self.SocketHandle, Pointer(Integer(Buffer) + BytesSent)^, BytesRemaining, 0); if not(IsValidSocketResult(IPv4SendResult)) then raise Exception.Create('TIPv4TcpClientCommunicationChannel.ContinueSend: Sending failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.'); if (IPv4SendResult = 0) then raise Exception.Create('TIPv4TcpClientCommunicationChannel.ContinueSend: Sending failed with Windows Sockets reporting 0 bytes sent.');
 
   end;
 
@@ -1297,7 +1190,200 @@ end;
 //
 // --------------------------------------------------------------------------
 
-destructor TIPv4TcpCommunicationChannel.Destroy;
+function TIPv4TcpClientCommunicationChannel.Receive(FirstByteTimeout: Integer; OtherBytesTimeout: Integer; Buffer: Pointer; BufferLen: Integer): Boolean;
+
+var
+  TimeVal: TTimeVal; ReadFDSet: TFDSet; SelectResult: Integer; IPv4RecvResult: Integer;
+
+begin
+
+  Result := False;
+
+  TimeVal.tv_sec := FirstByteTimeout div 1000;
+  TimeVal.tv_usec := 1000 * (FirstByteTimeout mod 1000);
+
+  ReadFDSet.fd_count := 1; ReadFDSet.fd_array[0] := Self.SocketHandle;
+
+  SelectResult := Select(0, @ReadFDSet, nil, nil, @TimeVal); if IsValidSocketResult(SelectResult) and (SelectResult > 0) then begin
+
+    IPv4RecvResult := IPv4Recv(Self.SocketHandle, Buffer^, BufferLen, 0); if not(IsValidSocketResult(IPv4RecvResult)) then raise Exception.Create('TIPv4TcpClientCommunicationChannel.Receive: Receiving failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.'); if (IPv4RecvResult = 0) then raise Exception.Create('TIPv4TcpClientCommunicationChannel.Receive: Receiving failed with Windows Sockets reporting 0 bytes received.'); if (IPv4RecvResult < BufferLen) then Result := Self.ContinueReceive(FirstByteTimeout, OtherBytesTimeout, Buffer, BufferLen, IPv4RecvResult) else Result := True;
+
+  end;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+function TIPv4TcpClientCommunicationChannel.ContinueReceive(FirstByteTimeout: Integer; OtherBytesTimeout: Integer; Buffer: Pointer; BufferLen: Integer; BytesReceived: Integer): Boolean;
+
+var
+  TimeVal: TTimeVal; ReadFDSet: TFDSet; SelectResult: Integer; BytesRemaining: Integer; IPv4RecvResult: Integer;
+
+begin
+
+  Result := False;
+
+  TimeVal.tv_sec := OtherBytesTimeout div 1000;
+  TimeVal.tv_usec := 1000 * (OtherBytesTimeout mod 1000);
+
+  ReadFDSet.fd_count := 1; ReadFDSet.fd_array[0] := Self.SocketHandle;
+
+  SelectResult := Select(0, @ReadFDSet, nil, nil, @TimeVal); if IsValidSocketResult(SelectResult) and (SelectResult > 0) then begin
+
+    BytesRemaining := BufferLen - BytesReceived; IPv4RecvResult := IPv4Recv(Self.SocketHandle, Pointer(Integer(Buffer) + BytesReceived)^, BytesRemaining, 0); if not(IsValidSocketResult(IPv4RecvResult)) then raise Exception.Create('TIPv4TcpClientCommunicationChannel.ContinueReceive: Receiving failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.'); if (IPv4RecvResult = 0) then raise Exception.Create('TIPv4TcpClientCommunicationChannel.ContinueReceive: Receiving failed with Windows Sockets reporting 0 bytes received.'); while (IPv4RecvResult < BytesRemaining) do begin
+
+      SelectResult := Select(0, @ReadFDSet, nil, nil, @TimeVal); if IsValidSocketResult(SelectResult) and (SelectResult > 0) then begin
+
+        BytesReceived := BytesReceived + IPv4RecvResult; BytesRemaining := BytesRemaining - IPv4RecvResult; IPv4RecvResult := IPv4Recv(Self.SocketHandle, Pointer(Integer(Buffer) + BytesReceived)^, BytesRemaining, 0); if not(IsValidSocketResult(IPv4RecvResult)) then raise Exception.Create('TIPv4TcpClientCommunicationChannel.ContinueReceive: Receiving failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.'); if (IPv4RecvResult = 0) then raise Exception.Create('TIPv4TcpClientCommunicationChannel.ContinueReceive: Receiving failed with Windows Sockets reporting 0 bytes received.');
+
+      end else begin
+
+        Exit;
+
+      end;
+
+    end;
+
+    Result := True;
+
+  end;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+procedure TIPv4TcpClientCommunicationChannel.SendWrappedDnsPacket(Buffer: Pointer; BufferLen: Integer);
+
+var
+  DnsPacketLen: Word;
+
+begin
+
+  DnsPacketLen := HTONS(Word(BufferLen)); Self.Send(@DnsPacketLen, SizeOf(Word)); Self.Send(Buffer, BufferLen);
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+function TIPv4TcpClientCommunicationChannel.ReceiveWrappedDnsPacket(FirstByteTimeout: Integer; OtherBytesTimeout: Integer; MaxBufferLen: Integer; Buffer: Pointer; var BufferLen: Integer): Boolean;
+
+var
+  DnsPacketLen: Word;
+
+begin
+
+  Result := False;
+
+  if Self.Receive(FirstByteTimeout, OtherBytesTimeout, @DnsPacketLen, SizeOf(Word)) then begin
+
+    DnsPacketLen := HTONS(DnsPacketLen); if (DnsPacketLen > MaxBufferLen) then DnsPacketLen := MaxBufferLen;
+
+    if Self.Receive(OtherBytesTimeout, OtherBytesTimeout, Buffer, DnsPacketLen) then begin
+
+      BufferLen := DnsPacketLen; Result := True;
+
+    end;
+
+  end;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+function TIPv4TcpClientCommunicationChannel.PerformSocks5Handshake(ProxyFirstByteTimeout: Integer; ProxyOtherBytesTimeout: Integer; ProxyRemoteConnectTimeout: Integer; RemoteAddress: TDualIPAddress; RemotePort: Word): Boolean;
+
+var
+  Socks5Buffer: Array [0..1023] of Byte;
+
+begin
+
+  Socks5Buffer[00] := $05;
+  Socks5Buffer[01] := $01;
+  Socks5Buffer[02] := $00;
+
+  Self.Send(@Socks5Buffer, 3); if Self.Receive(ProxyFirstByteTimeout, ProxyOtherBytesTimeout, @Socks5Buffer, 2) then begin
+
+    if RemoteAddress.IsIPv6Address then begin
+
+      Socks5Buffer[00] := $05;
+      Socks5Buffer[01] := $01;
+      Socks5Buffer[02] := $00;
+      Socks5Buffer[03] := $04;
+
+      Move(RemoteAddress.IPv6Address, Socks5Buffer[04], SizeOf(TIPv6Address));
+
+      Socks5Buffer[20] := RemotePort shr $08;
+      Socks5Buffer[21] := RemotePort and $ff;
+
+      Self.Send(@Socks5Buffer, 22); if Self.Receive(ProxyRemoteConnectTimeout, ProxyOtherBytesTimeout, @Socks5Buffer, 22) then begin
+
+        if (Socks5Buffer[01] <> 0) then begin
+
+          raise Exception.Create('TIPv4TcpClientCommunicationChannel.PerformSocks5Handshake: Handshake failed on phase 3 with reply ' + IntToStr(Socks5Buffer[01]) + '.');
+
+        end;
+
+        Result := True;
+
+      end else begin
+
+        raise Exception.Create('TIPv4TcpClientCommunicationChannel.PerformSocks5Handshake: Handshake failed on phase 2.');
+
+      end;
+
+    end else begin
+
+      Socks5Buffer[00] := $05;
+      Socks5Buffer[01] := $01;
+      Socks5Buffer[02] := $00;
+      Socks5Buffer[03] := $01;
+
+      Move(RemoteAddress.IPv4Address, Socks5Buffer[04], SizeOf(TIPv4Address));
+
+      Socks5Buffer[08] := RemotePort shr $08;
+      Socks5Buffer[09] := RemotePort and $ff;
+
+      Self.Send(@Socks5Buffer, 10);
+
+      if Self.Receive(ProxyRemoteConnectTimeout, ProxyOtherBytesTimeout, @Socks5Buffer, 10) then begin
+
+        if (Socks5Buffer[01] <> 0) then begin
+
+          raise Exception.Create('TIPv4TcpClientCommunicationChannel.PerformSocks5Handshake: Handshake failed on phase 3 with reply ' + IntToStr(Socks5Buffer[01]) + '.');
+
+        end;
+
+        Result := True;
+
+      end else begin
+
+        raise Exception.Create('TIPv4TcpClientCommunicationChannel.PerformSocks5Handshake: Handshake failed on phase 2.');
+
+      end;
+
+    end;
+
+  end else begin
+
+    raise Exception.Create('TIPv4TcpClientCommunicationChannel.PerformSocks5Handshake: Handshake failed on phase 1.');
+
+  end;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+destructor TIPv4TcpClientCommunicationChannel.Destroy;
 
 begin
 
@@ -1311,13 +1397,13 @@ end;
 //
 // --------------------------------------------------------------------------
 
-constructor TIPv6TcpCommunicationChannel.Create;
+constructor TIPv6TcpClientCommunicationChannel.Create;
 
 begin
 
   Self.SocketHandle := Socket(AF_INET6, SOCK_STREAM, IPPROTO_TCP);
 
-  if not(IsValidSocketHandle(Self.SocketHandle)) then raise Exception.Create('TIPv6TcpCommunicationChannel.Create: Socket allocation failed.');
+  if not(IsValidSocketHandle(Self.SocketHandle)) then raise Exception.Create('TIPv6TcpClientCommunicationChannel.Create: Socket allocation failed.');
 
 end;
 
@@ -1325,97 +1411,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-constructor TIPv6TcpCommunicationChannel.Create(SocketHandle: Integer; RemoteAddress: TIPv6Address; RemotePort: Word);
-
-begin
-
-  Self.SocketHandle := SocketHandle; Self.RemoteAddress := RemoteAddress; Self.RemotePort := RemotePort;
-
-end;
-
-// --------------------------------------------------------------------------
-//
-// --------------------------------------------------------------------------
-
-procedure TIPv6TcpCommunicationChannel.Bind(BindingAddress: TIPv6Address; BindingPort: Word);
-
-var
-  IPv6SocketAddress: TIPv6SocketAddress;
-
-begin
-
-  FillChar(IPv6SocketAddress, SizeOf(TIPv6SocketAddress), 0);
-
-  IPv6SocketAddress.sin_family := AF_INET6; IPv6SocketAddress.sin_addr := BindingAddress; IPv6SocketAddress.sin_port := HTONS(BindingPort);
-
-  if not(IsValidSocketResult(IPv6Bind(Self.SocketHandle, IPv6SocketAddress, SizeOf(TIPv6SocketAddress)))) then raise Exception.Create('TIPv6TcpCommunicationChannel.Bind: Binding to address ' + TIPv6AddressUtility.ToString(BindingAddress) + ' and port ' + IntToStr(BindingPort) + ' failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
-
-end;
-
-// --------------------------------------------------------------------------
-//
-// --------------------------------------------------------------------------
-
-procedure TIPv6TcpCommunicationChannel.Listen;
-
-begin
-
-  if not(IsValidSocketResult(CommunicationChannels.Listen(Self.SocketHandle, 0))) then raise Exception.Create('TIPv6TcpCommunicationChannel.Listen: Listening failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
-
-end;
-
-// --------------------------------------------------------------------------
-//
-// --------------------------------------------------------------------------
-
-function TIPv6TcpCommunicationChannel.Accept: TIPv6TcpCommunicationChannel;
-
-var
-  IncomingConnectionSocketHandle: Integer; IPv6SocketAddress: TIPv6SocketAddress; IPv6SocketAddressLen: Integer;
-
-begin
-
-  IPv6SocketAddressLen := SizeOf(TIPv6SocketAddress); FillChar(IPv6SocketAddress, IPv6SocketAddressLen, 0);
-
-  IncomingConnectionSocketHandle := IPv6Accept(Self.SocketHandle, IPv6SocketAddress, IPv6SocketAddressLen); if not(IsValidSocketHandle(IncomingConnectionSocketHandle)) then raise Exception.Create('TIPv6TcpCommunicationChannel.Accept: Accepting socket failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.'); Result := TIPv6TcpCommunicationChannel.Create(IncomingConnectionSocketHandle, IPv6SocketAddress.sin_addr, HTONS(IPv6SocketAddress.sin_port));
-
-end;
-
-// --------------------------------------------------------------------------
-//
-// --------------------------------------------------------------------------
-
-function TIPv6TcpCommunicationChannel.Accept(Timeout: Integer): TIPv6TcpCommunicationChannel;
-
-var
-  TimeVal: TTimeVal; ReadFDSet: TFDSet; SelectResult: Integer; IncomingConnectionSocketHandle: Integer; IPv6SocketAddress: TIPv6SocketAddress; IPv6SocketAddressLen: Integer;
-
-begin
-
-  TimeVal.tv_sec := Timeout div 1000;
-  TimeVal.tv_usec := 1000 * (Timeout mod 1000);
-
-  ReadFDSet.fd_count := 1; ReadFDSet.fd_array[0] := Self.SocketHandle;
-
-  SelectResult := Select(0, @ReadFDSet, nil, nil, @TimeVal); if IsValidSocketResult(SelectResult) and (SelectResult > 0) then begin
-
-    IPv6SocketAddressLen := SizeOf(TIPv6SocketAddress); FillChar(IPv6SocketAddress, IPv6SocketAddressLen, 0);
-
-    IncomingConnectionSocketHandle := IPv6Accept(Self.SocketHandle, IPv6SocketAddress, IPv6SocketAddressLen); if not(IsValidSocketHandle(IncomingConnectionSocketHandle)) then raise Exception.Create('TIPv6TcpCommunicationChannel.Accept: Accepting socket failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.'); Result := TIPv6TcpCommunicationChannel.Create(IncomingConnectionSocketHandle, IPv6SocketAddress.sin_addr, HTONS(IPv6SocketAddress.sin_port));
-
-  end else begin
-
-    Result := nil;
-
-  end;
-
-end;
-
-// --------------------------------------------------------------------------
-//
-// --------------------------------------------------------------------------
-
-procedure TIPv6TcpCommunicationChannel.Connect(RemoteAddress: TIPv6Address; RemotePort: Word);
+procedure TIPv6TcpClientCommunicationChannel.Connect(RemoteAddress: TIPv6Address; RemotePort: Word);
 
 var
   IPv6SocketAddress: TIPv6SocketAddress;
@@ -1426,21 +1422,9 @@ begin
 
   IPv6SocketAddress.sin_family := AF_INET6; IPv6SocketAddress.sin_addr := RemoteAddress; IPv6SocketAddress.sin_port := HTONS(RemotePort);
 
-  if not(IsValidSocketResult(IPv6Connect(Self.SocketHandle, IPv6SocketAddress, SizeOf(TIPv6SocketAddress)))) then raise Exception.Create('TIPv6TcpCommunicationChannel.Connect: Connection to address ' + TIPv6AddressUtility.ToString(RemoteAddress) + ' and port ' + IntToStr(RemotePort) + ' failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
+  if not(IsValidSocketResult(IPv6Connect(Self.SocketHandle, IPv6SocketAddress, SizeOf(TIPv6SocketAddress)))) then raise Exception.Create('TIPv6TcpClientCommunicationChannel.Connect: Connection to address ' + TIPv6AddressUtility.ToString(RemoteAddress) + ' and port ' + IntToStr(RemotePort) + ' failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
 
-  Self.RemoteAddress := RemoteAddress; Self.RemotePort := RemotePort;
-
-end;
-
-// --------------------------------------------------------------------------
-//
-// --------------------------------------------------------------------------
-
-procedure TIPv6TcpCommunicationChannel.Send(Buffer: Pointer; BufferLen: Integer);
-
-begin
-
-  if not(IsValidSocketResult(IPv6Send(Self.SocketHandle, Buffer^, BufferLen, 0))) then raise Exception.Create('TIPv6TcpCommunicationChannel.Send: Sending to address ' + TIPv6AddressUtility.ToString(Self.RemoteAddress) + ' and port ' + IntToStr(Self.RemotePort) + ' failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.');
+  Self.RemoteAddress := RemoteAddress; Self.RemotePort := RemotePort; Self.Connected := True; Self.LastConnectTime := Now;
 
 end;
 
@@ -1448,27 +1432,31 @@ end;
 //
 // --------------------------------------------------------------------------
 
-function TIPv6TcpCommunicationChannel.Receive(Timeout: Integer; MaxBufferLen: Integer; Buffer: Pointer; var BufferLen: Integer): Boolean;
+procedure TIPv6TcpClientCommunicationChannel.Send(Buffer: Pointer; BufferLen: Integer);
 
 var
-  TimeVal: TTimeVal; ReadFDSet: TFDSet; SelectResult: Integer;
+  IPv6SendResult: Integer;
 
 begin
 
-  TimeVal.tv_sec := Timeout div 1000;
-  TimeVal.tv_usec := 1000 * (Timeout mod 1000);
+  IPv6SendResult := IPv6Send(Self.SocketHandle, Buffer^, BufferLen, 0); if not(IsValidSocketResult(IPv6SendResult)) then raise Exception.Create('TIPv6TcpClientCommunicationChannel.Send: Sending failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.'); if (IPv6SendResult = 0) then raise Exception.Create('TIPv6TcpClientCommunicationChannel.Send: Sending failed with Windows Sockets reporting 0 bytes sent.'); if (IPv6SendResult < BufferLen) then Self.ContinueSend(Buffer, BufferLen, IPv6SendResult);
 
-  ReadFDSet.fd_count := 1; ReadFDSet.fd_array[0] := Self.SocketHandle;
+end;
 
-  SelectResult := Select(0, @ReadFDSet, nil, nil, @TimeVal); if IsValidSocketResult(SelectResult) and (SelectResult > 0) then begin
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
 
-    BufferLen := IPv6Recv(Self.SocketHandle, Buffer^, MaxBufferLen, 0);
+procedure TIPv6TcpClientCommunicationChannel.ContinueSend(Buffer: Pointer; BufferLen: Integer; BytesSent: Integer);
 
-    Result := BufferLen > 0;
+var
+  BytesRemaining: Integer; IPv6SendResult: Integer;
 
-  end else begin
+begin
 
-    Result := False;
+  BytesRemaining := BufferLen - BytesSent; IPv6SendResult := IPv6Send(Self.SocketHandle, Pointer(Integer(Buffer) + BytesSent)^, BytesRemaining, 0); if not(IsValidSocketResult(IPv6SendResult)) then raise Exception.Create('TIPv6TcpClientCommunicationChannel.ContinueSend: Sending failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.'); if (IPv6SendResult = 0) then raise Exception.Create('TIPv6TcpClientCommunicationChannel.ContinueSend: Sending failed with Windows Sockets reporting 0 bytes sent.'); while (IPv6SendResult < BytesRemaining) do begin
+
+    BytesSent := BytesSent + IPv6SendResult; BytesRemaining := BytesRemaining - IPv6SendResult; IPv6SendResult := IPv6Send(Self.SocketHandle, Pointer(Integer(Buffer) + BytesSent)^, BytesRemaining, 0); if not(IsValidSocketResult(IPv6SendResult)) then raise Exception.Create('TIPv6TcpClientCommunicationChannel.ContinueSend: Sending failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.'); if (IPv6SendResult = 0) then raise Exception.Create('TIPv6TcpClientCommunicationChannel.ContinueSend: Sending failed with Windows Sockets reporting 0 bytes sent.');
 
   end;
 
@@ -1478,13 +1466,492 @@ end;
 //
 // --------------------------------------------------------------------------
 
-destructor TIPv6TcpCommunicationChannel.Destroy;
+function TIPv6TcpClientCommunicationChannel.Receive(FirstByteTimeout: Integer; OtherBytesTimeout: Integer; Buffer: Pointer; BufferLen: Integer): Boolean;
+
+var
+  TimeVal: TTimeVal; ReadFDSet: TFDSet; SelectResult: Integer; IPv6RecvResult: Integer;
+
+begin
+
+  Result := False;
+
+  TimeVal.tv_sec := FirstByteTimeout div 1000;
+  TimeVal.tv_usec := 1000 * (FirstByteTimeout mod 1000);
+
+  ReadFDSet.fd_count := 1; ReadFDSet.fd_array[0] := Self.SocketHandle;
+
+  SelectResult := Select(0, @ReadFDSet, nil, nil, @TimeVal); if IsValidSocketResult(SelectResult) and (SelectResult > 0) then begin
+
+    IPv6RecvResult := IPv6Recv(Self.SocketHandle, Buffer^, BufferLen, 0); if not(IsValidSocketResult(IPv6RecvResult)) then raise Exception.Create('TIPv6TcpClientCommunicationChannel.Receive: Receiving failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.'); if (IPv6RecvResult = 0) then raise Exception.Create('TIPv6TcpClientCommunicationChannel.Receive: Receiving failed with Windows Sockets reporting 0 bytes received.'); if (IPv6RecvResult < BufferLen) then Result := Self.ContinueReceive(FirstByteTimeout, OtherBytesTimeout, Buffer, BufferLen, IPv6RecvResult) else Result := True;
+
+  end;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+function TIPv6TcpClientCommunicationChannel.ContinueReceive(FirstByteTimeout: Integer; OtherBytesTimeout: Integer; Buffer: Pointer; BufferLen: Integer; BytesReceived: Integer): Boolean;
+
+var
+  TimeVal: TTimeVal; ReadFDSet: TFDSet; SelectResult: Integer; BytesRemaining: Integer; IPv6RecvResult: Integer;
+
+begin
+
+  Result := False;
+
+  TimeVal.tv_sec := OtherBytesTimeout div 1000;
+  TimeVal.tv_usec := 1000 * (OtherBytesTimeout mod 1000);
+
+  ReadFDSet.fd_count := 1; ReadFDSet.fd_array[0] := Self.SocketHandle;
+
+  SelectResult := Select(0, @ReadFDSet, nil, nil, @TimeVal); if IsValidSocketResult(SelectResult) and (SelectResult > 0) then begin
+
+    BytesRemaining := BufferLen - BytesReceived; IPv6RecvResult := IPv6Recv(Self.SocketHandle, Pointer(Integer(Buffer) + BytesReceived)^, BytesRemaining, 0); if not(IsValidSocketResult(IPv6RecvResult)) then raise Exception.Create('TIPv6TcpClientCommunicationChannel.ContinueReceive: Receiving failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.'); if (IPv6RecvResult = 0) then raise Exception.Create('TIPv6TcpClientCommunicationChannel.ContinueReceive: Receiving failed with Windows Sockets reporting 0 bytes received.'); while (IPv6RecvResult < BytesRemaining) do begin
+
+      SelectResult := Select(0, @ReadFDSet, nil, nil, @TimeVal); if IsValidSocketResult(SelectResult) and (SelectResult > 0) then begin
+
+        BytesReceived := BytesReceived + IPv6RecvResult; BytesRemaining := BytesRemaining - IPv6RecvResult; IPv6RecvResult := IPv6Recv(Self.SocketHandle, Pointer(Integer(Buffer) + BytesReceived)^, BytesRemaining, 0); if not(IsValidSocketResult(IPv6RecvResult)) then raise Exception.Create('TIPv6TcpClientCommunicationChannel.ContinueReceive: Receiving failed with Windows Sockets error code ' + IntToStr(WSAGetLastError) + '.'); if (IPv6RecvResult = 0) then raise Exception.Create('TIPv6TcpClientCommunicationChannel.ContinueReceive: Receiving failed with Windows Sockets reporting 0 bytes received.');
+
+      end else begin
+
+        Exit;
+
+      end;
+
+    end;
+
+    Result := True;
+
+  end;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+procedure TIPv6TcpClientCommunicationChannel.SendWrappedDnsPacket(Buffer: Pointer; BufferLen: Integer);
+
+var
+  DnsPacketLen: Word;
+
+begin
+
+  DnsPacketLen := HTONS(Word(BufferLen)); Self.Send(@DnsPacketLen, SizeOf(Word)); Self.Send(Buffer, BufferLen);
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+function TIPv6TcpClientCommunicationChannel.ReceiveWrappedDnsPacket(FirstByteTimeout: Integer; OtherBytesTimeout: Integer; MaxBufferLen: Integer; Buffer: Pointer; var BufferLen: Integer): Boolean;
+
+var
+  DnsPacketLen: Word;
+
+begin
+
+  Result := False;
+
+  if Self.Receive(FirstByteTimeout, OtherBytesTimeout, @DnsPacketLen, SizeOf(Word)) then begin
+
+    DnsPacketLen := HTONS(DnsPacketLen); if (DnsPacketLen > MaxBufferLen) then DnsPacketLen := MaxBufferLen;
+
+    if Self.Receive(OtherBytesTimeout, OtherBytesTimeout, Buffer, DnsPacketLen) then begin
+
+      BufferLen := DnsPacketLen; Result := True;
+
+    end;
+
+  end;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+function TIPv6TcpClientCommunicationChannel.PerformSocks5Handshake(ProxyFirstByteTimeout: Integer; ProxyOtherBytesTimeout: Integer; ProxyRemoteConnectTimeout: Integer; RemoteAddress: TDualIPAddress; RemotePort: Word): Boolean;
+
+var
+  Socks5Buffer: Array [0..1023] of Byte;
+
+begin
+
+  Socks5Buffer[00] := $05;
+  Socks5Buffer[01] := $01;
+  Socks5Buffer[02] := $00;
+
+  Self.Send(@Socks5Buffer, 3); if Self.Receive(ProxyFirstByteTimeout, ProxyOtherBytesTimeout, @Socks5Buffer, 2) then begin
+
+    if RemoteAddress.IsIPv6Address then begin
+
+      Socks5Buffer[00] := $05;
+      Socks5Buffer[01] := $01;
+      Socks5Buffer[02] := $00;
+      Socks5Buffer[03] := $04;
+
+      Move(RemoteAddress.IPv6Address, Socks5Buffer[04], SizeOf(TIPv6Address));
+
+      Socks5Buffer[20] := RemotePort shr $08;
+      Socks5Buffer[21] := RemotePort and $ff;
+
+      Self.Send(@Socks5Buffer, 22); if Self.Receive(ProxyRemoteConnectTimeout, ProxyOtherBytesTimeout, @Socks5Buffer, 22) then begin
+
+        if (Socks5Buffer[01] <> 0) then begin
+
+          raise Exception.Create('TIPv6TcpClientCommunicationChannel.PerformSocks5Handshake: Handshake failed on phase 3 with reply ' + IntToStr(Socks5Buffer[01]) + '.');
+
+        end;
+
+        Result := True;
+
+      end else begin
+
+        raise Exception.Create('TIPv6TcpClientCommunicationChannel.PerformSocks5Handshake: Handshake failed on phase 2.');
+
+      end;
+
+    end else begin
+
+      Socks5Buffer[00] := $05;
+      Socks5Buffer[01] := $01;
+      Socks5Buffer[02] := $00;
+      Socks5Buffer[03] := $01;
+
+      Move(RemoteAddress.IPv6Address, Socks5Buffer[04], SizeOf(TIPv6Address));
+
+      Socks5Buffer[08] := RemotePort shr $08;
+      Socks5Buffer[09] := RemotePort and $ff;
+
+      Self.Send(@Socks5Buffer, 10);
+
+      if Self.Receive(ProxyRemoteConnectTimeout, ProxyOtherBytesTimeout, @Socks5Buffer, 10) then begin
+
+        if (Socks5Buffer[01] <> 0) then begin
+
+          raise Exception.Create('TIPv6TcpClientCommunicationChannel.PerformSocks5Handshake: Handshake failed on phase 3 with reply ' + IntToStr(Socks5Buffer[01]) + '.');
+
+        end;
+
+        Result := True;
+
+      end else begin
+
+        raise Exception.Create('TIPv6TcpClientCommunicationChannel.PerformSocks5Handshake: Handshake failed on phase 2.');
+
+      end;
+
+    end;
+
+  end else begin
+
+    raise Exception.Create('TIPv6TcpClientCommunicationChannel.PerformSocks5Handshake: Handshake failed on phase 1.');
+
+  end;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+destructor TIPv6TcpClientCommunicationChannel.Destroy;
 
 begin
 
   if IsValidSocketHandle(Self.SocketHandle) then CloseSocket(Self.SocketHandle);
 
   inherited Destroy;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+var
+  TIPv4TcpClientCommunicationManager_Lock: TCriticalSection;
+  TIPv4TcpClientCommunicationManager_Pool: Array [0..(Configuration.MAX_NUM_DNS_SERVERS - 1)] of TObjectQueue;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class procedure TIPv4TcpClientCommunicationManager.Initialize;
+
+begin
+
+  TIPv4TcpClientCommunicationManager_Lock := TCriticalSection.Create;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class function TIPv4TcpClientCommunicationManager.AcquireCommunicationChannel(ReferenceTime: TDateTime; PoolIndex: Integer): TIPv4TcpClientCommunicationChannel;
+
+var
+  CommunicationManagerPool: TObjectQueue; CommunicationChannel: TIPv4TcpClientCommunicationChannel;
+
+begin
+
+  if TConfiguration.GetServerTcpProtocolPipeliningDisabled then begin
+
+    CommunicationChannel := TIPv4TcpClientCommunicationChannel.Create; Result := CommunicationChannel; Exit;
+
+  end;
+
+  TIPv4TcpClientCommunicationManager_Lock.Acquire;
+
+  try
+
+    CommunicationManagerPool := TIPv4TcpClientCommunicationManager_Pool[PoolIndex]; if (CommunicationManagerPool <> nil) then begin
+
+      while (CommunicationManagerPool.Count > 0) do begin
+
+        CommunicationChannel := TIPv4TcpClientCommunicationChannel(CommunicationManagerPool.Pop);
+
+        if ((ReferenceTime - CommunicationChannel.LastConnectTime) <= (TConfiguration.GetServerTcpProtocolPipeliningSessionLifetime / 86400.0)) then begin
+
+          Result := CommunicationChannel; Exit;
+
+        end else begin
+
+          CommunicationChannel.Free;
+
+        end;
+
+      end;
+
+    end;
+
+  finally
+
+    TIPv4TcpClientCommunicationManager_Lock.Release;
+
+  end;
+
+  CommunicationChannel := TIPv4TcpClientCommunicationChannel.Create; Result := CommunicationChannel;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class procedure TIPv4TcpClientCommunicationManager.ReleaseCommunicationChannel(ReferenceTime: TDateTime; PoolIndex: Integer; CommunicationChannel: TIPv4TcpClientCommunicationChannel; ExchangeSucceeded: Boolean);
+
+var
+  CommunicationManagerPool: TObjectQueue;
+
+begin
+
+  if TConfiguration.GetServerTcpProtocolPipeliningDisabled then begin
+
+    CommunicationChannel.Free; Exit;
+
+  end;
+
+  if ExchangeSucceeded then begin
+
+    TIPv4TcpClientCommunicationManager_Lock.Acquire;
+
+    try
+
+      CommunicationManagerPool := TIPv4TcpClientCommunicationManager_Pool[PoolIndex];
+
+      if (CommunicationManagerPool = nil) then begin CommunicationManagerPool := TObjectQueue.Create; TIPv4TcpClientCommunicationManager_Pool[PoolIndex] := CommunicationManagerPool; end; CommunicationManagerPool.Push(TObject(CommunicationChannel));
+
+    finally
+
+      TIPv4TcpClientCommunicationManager_Lock.Release;
+
+    end;
+
+  end else begin
+
+    CommunicationChannel.Free;
+
+  end;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class procedure TIPv4TcpClientCommunicationManager.Finalize;
+
+var
+  PoolIndex: Integer; CommunicationManagerPool: TObjectQueue; CommunicationChannel: TIPv4TcpClientCommunicationChannel;
+
+begin
+
+  for PoolIndex := 0 to (Configuration.MAX_NUM_DNS_SERVERS - 1) do begin
+
+    CommunicationManagerPool := TIPv4TcpClientCommunicationManager_Pool[PoolIndex]; if (CommunicationManagerPool <> nil) then begin
+
+      while (CommunicationManagerPool.Count > 0) do begin
+
+        CommunicationChannel := TIPv4TcpClientCommunicationChannel(CommunicationManagerPool.Pop); CommunicationChannel.Free;
+
+      end;
+
+      CommunicationManagerPool.Free;
+
+    end;
+
+  end;
+
+  TIPv4TcpClientCommunicationManager_Lock.Free;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+var
+  TIPv6TcpClientCommunicationManager_Lock: TCriticalSection;
+  TIPv6TcpClientCommunicationManager_Pool: Array [0..(Configuration.MAX_NUM_DNS_SERVERS - 1)] of TObjectQueue;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class procedure TIPv6TcpClientCommunicationManager.Initialize;
+
+begin
+
+  TIPv6TcpClientCommunicationManager_Lock := TCriticalSection.Create;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class function TIPv6TcpClientCommunicationManager.AcquireCommunicationChannel(ReferenceTime: TDateTime; PoolIndex: Integer): TIPv6TcpClientCommunicationChannel;
+
+var
+  CommunicationManagerPool: TObjectQueue; CommunicationChannel: TIPv6TcpClientCommunicationChannel;
+
+begin
+
+  if TConfiguration.GetServerTcpProtocolPipeliningDisabled then begin
+
+    CommunicationChannel := TIPv6TcpClientCommunicationChannel.Create; Result := CommunicationChannel; Exit;
+
+  end;
+
+  TIPv6TcpClientCommunicationManager_Lock.Acquire;
+
+  try
+
+    CommunicationManagerPool := TIPv6TcpClientCommunicationManager_Pool[PoolIndex]; if (CommunicationManagerPool <> nil) then begin
+
+      while (CommunicationManagerPool.Count > 0) do begin
+
+        CommunicationChannel := TIPv6TcpClientCommunicationChannel(CommunicationManagerPool.Pop);
+
+        if ((ReferenceTime - CommunicationChannel.LastConnectTime) <= (TConfiguration.GetServerTcpProtocolPipeliningSessionLifetime / 86400.0)) then begin
+
+          Result := CommunicationChannel; Exit;
+
+        end else begin
+
+          CommunicationChannel.Free;
+
+        end;
+
+      end;
+
+    end;
+
+  finally
+
+    TIPv6TcpClientCommunicationManager_Lock.Release;
+
+  end;
+
+  CommunicationChannel := TIPv6TcpClientCommunicationChannel.Create; Result := CommunicationChannel;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class procedure TIPv6TcpClientCommunicationManager.ReleaseCommunicationChannel(ReferenceTime: TDateTime; PoolIndex: Integer; CommunicationChannel: TIPv6TcpClientCommunicationChannel; ExchangeSucceeded: Boolean);
+
+var
+  CommunicationManagerPool: TObjectQueue;
+
+begin
+
+  if TConfiguration.GetServerTcpProtocolPipeliningDisabled then begin
+
+    CommunicationChannel.Free; Exit;
+
+  end;
+
+  if ExchangeSucceeded then begin
+
+    TIPv6TcpClientCommunicationManager_Lock.Acquire;
+
+    try
+
+      CommunicationManagerPool := TIPv6TcpClientCommunicationManager_Pool[PoolIndex];
+
+      if (CommunicationManagerPool = nil) then begin CommunicationManagerPool := TObjectQueue.Create; TIPv6TcpClientCommunicationManager_Pool[PoolIndex] := CommunicationManagerPool; end; CommunicationManagerPool.Push(TObject(CommunicationChannel));
+
+    finally
+
+      TIPv6TcpClientCommunicationManager_Lock.Release;
+
+    end;
+
+  end else begin
+
+    CommunicationChannel.Free;
+
+  end;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class procedure TIPv6TcpClientCommunicationManager.Finalize;
+
+var
+  PoolIndex: Integer; CommunicationManagerPool: TObjectQueue; CommunicationChannel: TIPv6TcpClientCommunicationChannel;
+
+begin
+
+  for PoolIndex := 0 to (Configuration.MAX_NUM_DNS_SERVERS - 1) do begin
+
+    CommunicationManagerPool := TIPv6TcpClientCommunicationManager_Pool[PoolIndex]; if (CommunicationManagerPool <> nil) then begin
+
+      while (CommunicationManagerPool.Count > 0) do begin
+
+        CommunicationChannel := TIPv6TcpClientCommunicationChannel(CommunicationManagerPool.Pop); CommunicationChannel.Free;
+
+      end;
+
+      CommunicationManagerPool.Free;
+
+    end;
+
+  end;
+
+  TIPv6TcpClientCommunicationManager_Lock.Free;
 
 end;
 

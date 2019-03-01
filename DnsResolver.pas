@@ -26,24 +26,22 @@ uses
 
 type
   TDnsResolver = class(TThread)
-    private
-      Lock: TCriticalSection;
-    private
-      CommunicationChannel: TDualUdpCommunicationChannel;
     public
       class function  GetInstance: TDnsResolver;
       class procedure StartInstance;
       class procedure StopInstance;
+    private
+      Lock: TCriticalSection;
+    private
+      CommunicationChannel: TDualUdpServerCommunicationChannel;
     public
       constructor Create;
-      destructor  Destroy; override;
       procedure   Execute; override;
-    public
       procedure   HandleDnsRequest(Buffer: Pointer; BufferLen: Integer; var Output: Pointer; var OutputLen: Integer; Address: TDualIPAddress; Port: Word);
-      procedure   HandleDnsResponse(Buffer: Pointer; BufferLen: Integer; Address: TDualIPAddress; Port: Word);
-    public
+      procedure   HandleDnsResponse(Buffer: Pointer; BufferLen: Integer; DnsServerIndex: Integer);
       procedure   HandleIdleTimeOperations;
       procedure   HandleTerminalOperations;
+      destructor  Destroy; override;
   end;
 
 // --------------------------------------------------------------------------
@@ -60,15 +58,13 @@ uses
   SysUtils,
   AddressCache,
   Configuration,
-  Digest,
   DnsForwarder,
   DnsProtocol,
   HitLogger,
   HostsCache,
+  MD5,
   MemoryManager,
   SessionCache,
-  Statistics,
-  Stopwatch,
   Tracer;
 
 // --------------------------------------------------------------------------
@@ -140,11 +136,10 @@ end;
 procedure TDnsResolver.HandleDnsRequest(Buffer: Pointer; BufferLen: Integer; var Output: Pointer; var OutputLen: Integer; Address: TDualIPAddress; Port: Word);
 
 var
-  ArrivalTick: Double; ArrivalTime: TDateTime; SessionId: Word; RequestHash: Int64; QueryType: Word; DomainName: String; IPv4Address: TIPv4Address; IPv6Address: TIPv6Address; DnsServerIndex: Integer; DnsServerConfiguration: TDnsServerConfiguration; Forwarded: Boolean;
+  ArrivalTime: TDateTime; OriginalSessionId: Word; RequestHash: TMD5Digest; QueryType: Word; DomainName: String; IPv4Address: TIPv4Address; IPv6Address: TIPv6Address; RemappedSessionId: Word; DnsServerIndex: Integer; DnsServerConfiguration: TDnsServerConfiguration; Forwarded: Boolean;
 
 begin
 
-  ArrivalTick := TStopwatch.GetInstantValue;
   ArrivalTime := Now;
 
   Self.Lock.Acquire;
@@ -155,11 +150,9 @@ begin
 
       if TDualIPAddressUtility.IsLocalHost(Address) or TConfiguration.IsAllowedAddress(TDualIPAddressUtility.ToString(Address)) then begin
 
-        SessionId := TDnsProtocolUtility.GetIdFromPacket(Buffer);
+        OriginalSessionId := TDnsProtocolUtility.GetIdFromPacket(Buffer);
 
-        if TStatistics.IsEnabled then TStatistics.IncTotalRequestsReceived;
-
-        if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Request ID ' + FormatCurr('00000', SessionId) + ' received from client ' + TDualIPAddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' [' + TDnsProtocolUtility.PrintRequestPacketDescriptionAsNormalStringFromPacket(Buffer, BufferLen, True) + '].');
+        if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Request ID ' + FormatCurr('00000', OriginalSessionId) + ' received from client ' + TDualIPAddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' [' + TDnsProtocolUtility.PrintRequestPacketDescriptionAsNormalStringFromPacket(Buffer, BufferLen, True) + '].');
 
         TDnsProtocolUtility.GetDomainNameAndQueryTypeFromRequestPacket(Buffer, BufferLen, DomainName, QueryType);
 
@@ -173,39 +166,33 @@ begin
 
             TDnsProtocolUtility.BuildNegativeResponsePacket(DomainName, QueryType, Output, OutputLen);
 
-            TDnsProtocolUtility.SetIdIntoPacket(SessionId, Output); Self.CommunicationChannel.SendTo(Output, OutputLen, Address, Port);
+            TDnsProtocolUtility.SetIdIntoPacket(OriginalSessionId, Output); Self.CommunicationChannel.SendTo(Output, OutputLen, Address, Port);
 
-            if TStatistics.IsEnabled then TStatistics.IncTotalRequestsResolvedThroughHostsFile;
-
-            if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' sent to client ' + TDualIPAddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' from hosts cache.');
+            if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', OriginalSessionId) + ' sent to client ' + TDualIPAddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' from hosts cache.');
 
             if THitLogger.IsEnabled and (Pos('H', TConfiguration.GetHitLogFileWhat) > 0) then begin if (TConfiguration.GetHitLogFileMode = 'Legacy') then THitLogger.AddHit(ArrivalTime, 'H', Address, TDnsProtocolUtility.PrintRequestPacketDescriptionAsLegacyStringFromPacket(Buffer, BufferLen, False)) else THitLogger.AddHit(ArrivalTime, 'H', Address, TDnsProtocolUtility.PrintRequestPacketDescriptionAsNormalStringFromPacket(Buffer, BufferLen, False)); end;
 
             Exit;
 
-          end else if THostsCache.FindIPv4AddressHostsEntry(DomainName, IPv4Address) then begin
+          end else if THostsCache.FindIPv4HostsEntry(DomainName, IPv4Address) then begin
 
             TDnsProtocolUtility.BuildPositiveIPv4ResponsePacket(DomainName, QueryType, IPv4Address, TConfiguration.GetGeneratedDnsResponseTimeToLive, Output, OutputLen);
 
-            TDnsProtocolUtility.SetIdIntoPacket(SessionId, Output); Self.CommunicationChannel.SendTo(Output, OutputLen, Address, Port);
+            TDnsProtocolUtility.SetIdIntoPacket(OriginalSessionId, Output); Self.CommunicationChannel.SendTo(Output, OutputLen, Address, Port);
 
-            if TStatistics.IsEnabled then TStatistics.IncTotalRequestsResolvedThroughHostsFile;
-
-            if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' sent to client ' + TDualIPAddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' from hosts cache.');
+            if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', OriginalSessionId) + ' sent to client ' + TDualIPAddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' from hosts cache.');
 
             if THitLogger.IsEnabled and (Pos('H', TConfiguration.GetHitLogFileWhat) > 0) then begin if (TConfiguration.GetHitLogFileMode = 'Legacy') then THitLogger.AddHit(ArrivalTime, 'H', Address, TDnsProtocolUtility.PrintRequestPacketDescriptionAsLegacyStringFromPacket(Buffer, BufferLen, False)) else THitLogger.AddHit(ArrivalTime, 'H', Address, TDnsProtocolUtility.PrintRequestPacketDescriptionAsNormalStringFromPacket(Buffer, BufferLen, False)); end;
 
             Exit;
 
-          end else if THostsCache.FindIPv6AddressHostsEntry(DomainName, IPv6Address) then begin
+          end else if THostsCache.FindIPv6HostsEntry(DomainName, IPv6Address) then begin
 
             TDnsProtocolUtility.BuildPositiveResponsePacket(DomainName, QueryType, Output, OutputLen);
 
-            TDnsProtocolUtility.SetIdIntoPacket(SessionId, Output); Self.CommunicationChannel.SendTo(Output, OutputLen, Address, Port);
+            TDnsProtocolUtility.SetIdIntoPacket(OriginalSessionId, Output); Self.CommunicationChannel.SendTo(Output, OutputLen, Address, Port);
 
-            if TStatistics.IsEnabled then TStatistics.IncTotalRequestsResolvedThroughHostsFile;
-
-            if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' sent to client ' + TDualIPAddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' from hosts cache.');
+            if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', OriginalSessionId) + ' sent to client ' + TDualIPAddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' from hosts cache.');
 
             if THitLogger.IsEnabled and (Pos('H', TConfiguration.GetHitLogFileWhat) > 0) then begin if (TConfiguration.GetHitLogFileMode = 'Legacy') then THitLogger.AddHit(ArrivalTime, 'H', Address, TDnsProtocolUtility.PrintRequestPacketDescriptionAsLegacyStringFromPacket(Buffer, BufferLen, False)) else THitLogger.AddHit(ArrivalTime, 'H', Address, TDnsProtocolUtility.PrintRequestPacketDescriptionAsNormalStringFromPacket(Buffer, BufferLen, False)); end;
 
@@ -223,39 +210,33 @@ begin
 
             TDnsProtocolUtility.BuildNegativeResponsePacket(DomainName, QueryType, Output, OutputLen);
 
-            TDnsProtocolUtility.SetIdIntoPacket(SessionId, Output); Self.CommunicationChannel.SendTo(Output, OutputLen, Address, Port);
+            TDnsProtocolUtility.SetIdIntoPacket(OriginalSessionId, Output); Self.CommunicationChannel.SendTo(Output, OutputLen, Address, Port);
 
-            if TStatistics.IsEnabled then TStatistics.IncTotalRequestsResolvedThroughHostsFile;
-
-            if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' sent to client ' + TDualIPAddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' from hosts cache.');
+            if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', OriginalSessionId) + ' sent to client ' + TDualIPAddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' from hosts cache.');
 
             if THitLogger.IsEnabled and (Pos('H', TConfiguration.GetHitLogFileWhat) > 0) then begin if (TConfiguration.GetHitLogFileMode = 'Legacy') then THitLogger.AddHit(ArrivalTime, 'H', Address, TDnsProtocolUtility.PrintRequestPacketDescriptionAsLegacyStringFromPacket(Buffer, BufferLen, False)) else THitLogger.AddHit(ArrivalTime, 'H', Address, TDnsProtocolUtility.PrintRequestPacketDescriptionAsNormalStringFromPacket(Buffer, BufferLen, False)); end;
 
             Exit;
 
-          end else if THostsCache.FindIPv6AddressHostsEntry(DomainName, IPv6Address) then begin
+          end else if THostsCache.FindIPv6HostsEntry(DomainName, IPv6Address) then begin
 
             TDnsProtocolUtility.BuildPositiveIPv6ResponsePacket(DomainName, QueryType, IPv6Address, TConfiguration.GetGeneratedDnsResponseTimeToLive, Output, OutputLen);
 
-            TDnsProtocolUtility.SetIdIntoPacket(SessionId, Output); Self.CommunicationChannel.SendTo(Output, OutputLen, Address, Port);
+            TDnsProtocolUtility.SetIdIntoPacket(OriginalSessionId, Output); Self.CommunicationChannel.SendTo(Output, OutputLen, Address, Port);
 
-            if TStatistics.IsEnabled then TStatistics.IncTotalRequestsResolvedThroughHostsFile;
-
-            if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' sent to client ' + TDualIPAddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' from hosts cache.');
+            if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', OriginalSessionId) + ' sent to client ' + TDualIPAddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' from hosts cache.');
 
             if THitLogger.IsEnabled and (Pos('H', TConfiguration.GetHitLogFileWhat) > 0) then begin if (TConfiguration.GetHitLogFileMode = 'Legacy') then THitLogger.AddHit(ArrivalTime, 'H', Address, TDnsProtocolUtility.PrintRequestPacketDescriptionAsLegacyStringFromPacket(Buffer, BufferLen, False)) else THitLogger.AddHit(ArrivalTime, 'H', Address, TDnsProtocolUtility.PrintRequestPacketDescriptionAsNormalStringFromPacket(Buffer, BufferLen, False)); end;
 
             Exit;
 
-          end else if THostsCache.FindIPv4AddressHostsEntry(DomainName, IPv4Address) then begin
+          end else if THostsCache.FindIPv4HostsEntry(DomainName, IPv4Address) then begin
 
             TDnsProtocolUtility.BuildPositiveResponsePacket(DomainName, QueryType, Output, OutputLen);
 
-            TDnsProtocolUtility.SetIdIntoPacket(SessionId, Output); Self.CommunicationChannel.SendTo(Output, OutputLen, Address, Port);
+            TDnsProtocolUtility.SetIdIntoPacket(OriginalSessionId, Output); Self.CommunicationChannel.SendTo(Output, OutputLen, Address, Port);
 
-            if TStatistics.IsEnabled then TStatistics.IncTotalRequestsResolvedThroughHostsFile;
-
-            if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' sent to client ' + TDualIPAddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' from hosts cache.');
+            if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', OriginalSessionId) + ' sent to client ' + TDualIPAddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' from hosts cache.');
 
             if THitLogger.IsEnabled and (Pos('H', TConfiguration.GetHitLogFileWhat) > 0) then begin if (TConfiguration.GetHitLogFileMode = 'Legacy') then THitLogger.AddHit(ArrivalTime, 'H', Address, TDnsProtocolUtility.PrintRequestPacketDescriptionAsLegacyStringFromPacket(Buffer, BufferLen, False)) else THitLogger.AddHit(ArrivalTime, 'H', Address, TDnsProtocolUtility.PrintRequestPacketDescriptionAsNormalStringFromPacket(Buffer, BufferLen, False)); end;
 
@@ -265,7 +246,13 @@ begin
 
         end;
 
+        TDnsProtocolUtility.SetIdIntoPacket(0, Buffer); RequestHash := TMD5.Compute(Buffer, BufferLen); TDnsProtocolUtility.SetIdIntoPacket(OriginalSessionId, Buffer);
+
         if TConfiguration.IsCacheException(DomainName) then begin
+
+          TSessionCache.Reserve(ArrivalTime, OriginalSessionId, RemappedSessionId);
+
+          TDnsProtocolUtility.SetIdIntoPacket(RemappedSessionId, Buffer);
 
           Forwarded := False;
 
@@ -277,17 +264,15 @@ begin
 
               if TConfiguration.IsDomainNameAffinityMatch(DomainName, DnsServerConfiguration.DomainNameAffinityMask) and TConfiguration.IsQueryTypeAffinityMatch(QueryType, DnsServerConfiguration.QueryTypeAffinityMask) then begin
 
-                if TDnsForwarder.ForwardDnsRequest(DnsServerConfiguration, Buffer, BufferLen, SessionId) then begin
+                if TDnsForwarder.ForwardDnsRequest(ArrivalTime, DnsServerIndex, DnsServerConfiguration, Buffer, BufferLen, RemappedSessionId) then begin
 
                   Forwarded := True;
 
-                  if TStatistics.IsEnabled then TStatistics.IncTotalResponsesAndMeasureFlyTime(ArrivalTick, False, DnsServerIndex, SessionId);
-
-                  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Request ID ' + FormatCurr('00000', SessionId) + ' forwarded to server ' + TDualIPAddressUtility.ToString(DnsServerConfiguration.Address) + ':' + IntToStr(DnsServerConfiguration.Port) + ' as cache exception.');
+                  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Request ID ' + FormatCurr('00000', OriginalSessionId) + '>' + FormatCurr('00000', RemappedSessionId) + ' forwarded to server ' + IntToStr(DnsServerIndex + 1) + ' as cache exception.');
 
                 end else begin
 
-                  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Request ID ' + FormatCurr('00000', SessionId) + ' failed to be forwarded to server ' + TDualIPAddressUtility.ToString(DnsServerConfiguration.Address) + ':' + IntToStr(DnsServerConfiguration.Port) + ' as cache exception.');
+                  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Request ID ' + FormatCurr('00000', OriginalSessionId) + '>' + FormatCurr('00000', RemappedSessionId) + ' failed to be forwarded to server ' + IntToStr(DnsServerIndex + 1) + ' as cache exception.');
 
                 end;
 
@@ -299,9 +284,7 @@ begin
 
           if Forwarded then begin
 
-            TDnsProtocolUtility.SetIdIntoPacket(0, Buffer); RequestHash := TDigest.ComputeCRC64(Buffer, BufferLen); TSessionCache.Insert(SessionId, RequestHash, Address, Port, False, True);
-
-            if TStatistics.IsEnabled then TStatistics.IncTotalRequestsForwarded;
+            TSessionCache.Insert(ArrivalTime, OriginalSessionId, RemappedSessionId, RequestHash, Address, Port, False, True);
 
             if THitLogger.IsEnabled and (Pos('F', TConfiguration.GetHitLogFileWhat) > 0) then begin if (TConfiguration.GetHitLogFileMode = 'Legacy') then THitLogger.AddHit(ArrivalTime, 'F', Address, TDnsProtocolUtility.PrintRequestPacketDescriptionAsLegacyStringFromPacket(Buffer, BufferLen, False)) else THitLogger.AddHit(ArrivalTime, 'F', Address, TDnsProtocolUtility.PrintRequestPacketDescriptionAsNormalStringFromPacket(Buffer, BufferLen, False)); end;
 
@@ -309,9 +292,9 @@ begin
 
             TDnsProtocolUtility.BuildNegativeResponsePacket(DomainName, QueryType, Output, OutputLen);
 
-            TDnsProtocolUtility.SetIdIntoPacket(SessionId, Output); Self.CommunicationChannel.SendTo(Output, OutputLen, Address, Port);
+            TDnsProtocolUtility.SetIdIntoPacket(OriginalSessionId, Output); Self.CommunicationChannel.SendTo(Output, OutputLen, Address, Port);
 
-            if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' sent to client ' + TDualIPAddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' as negative.');
+            if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', OriginalSessionId) + ' sent to client ' + TDualIPAddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' as negative.');
 
           end;
 
@@ -319,17 +302,15 @@ begin
 
           if not(TConfiguration.GetAddressCacheDisabled) then begin
 
-            TDnsProtocolUtility.SetIdIntoPacket(0, Buffer); RequestHash := TDigest.ComputeCRC64(Buffer, BufferLen); TDnsProtocolUtility.SetIdIntoPacket(SessionId, Buffer); case TAddressCache.Find(ArrivalTime, RequestHash, Output, OutputLen) of
+            case TAddressCache.Find(ArrivalTime, RequestHash, Output, OutputLen) of
 
               RecentEnough:
 
               begin
 
-                TDnsProtocolUtility.SetIdIntoPacket(SessionId, Output); Self.CommunicationChannel.SendTo(Output, OutputLen, Address, Port);
+                TDnsProtocolUtility.SetIdIntoPacket(OriginalSessionId, Output); Self.CommunicationChannel.SendTo(Output, OutputLen, Address, Port);
 
-                if TStatistics.IsEnabled then TStatistics.IncTotalRequestsResolvedThroughCache;
-
-                if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' sent to client ' + TDualIPAddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' from address cache [' + TDnsProtocolUtility.PrintResponsePacketDescriptionAsNormalStringFromPacket(Output, OutputLen, True) + '].');
+                if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', OriginalSessionId) + ' sent to client ' + TDualIPAddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' from address cache [' + TDnsProtocolUtility.PrintResponsePacketDescriptionAsNormalStringFromPacket(Output, OutputLen, True) + '].');
 
                 if THitLogger.IsEnabled and (Pos('C', TConfiguration.GetHitLogFileWhat) > 0) then begin if (TConfiguration.GetHitLogFileMode = 'Legacy') then THitLogger.AddHit(ArrivalTime, 'C', Address, TDnsProtocolUtility.PrintRequestPacketDescriptionAsLegacyStringFromPacket(Buffer, BufferLen, False)) else THitLogger.AddHit(ArrivalTime, 'C', Address, TDnsProtocolUtility.PrintRequestPacketDescriptionAsNormalStringFromPacket(Buffer, BufferLen, False)); end;
 
@@ -339,9 +320,13 @@ begin
 
               begin
 
-                TDnsProtocolUtility.SetIdIntoPacket(SessionId, Output); Self.CommunicationChannel.SendTo(Output, OutputLen, Address, Port);
+                TDnsProtocolUtility.SetIdIntoPacket(OriginalSessionId, Output); Self.CommunicationChannel.SendTo(Output, OutputLen, Address, Port);
 
-                if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' sent to client ' + TDualIPAddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' from address cache [' + TDnsProtocolUtility.PrintResponsePacketDescriptionAsNormalStringFromPacket(Output, OutputLen, True) + '].');
+                if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', OriginalSessionId) + ' sent to client ' + TDualIPAddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' from address cache [' + TDnsProtocolUtility.PrintResponsePacketDescriptionAsNormalStringFromPacket(Output, OutputLen, True) + '].');
+
+                TSessionCache.Reserve(ArrivalTime, OriginalSessionId, RemappedSessionId);
+
+                TDnsProtocolUtility.SetIdIntoPacket(RemappedSessionId, Buffer);
 
                 Forwarded := False;
 
@@ -353,17 +338,15 @@ begin
 
                     if TConfiguration.IsDomainNameAffinityMatch(DomainName, DnsServerConfiguration.DomainNameAffinityMask) and TConfiguration.IsQueryTypeAffinityMatch(QueryType, DnsServerConfiguration.QueryTypeAffinityMask) then begin
 
-                      if TDnsForwarder.ForwardDnsRequest(DnsServerConfiguration, Buffer, BufferLen, SessionId) then begin
+                      if TDnsForwarder.ForwardDnsRequest(ArrivalTime, DnsServerIndex, DnsServerConfiguration, Buffer, BufferLen, RemappedSessionId) then begin
 
                         Forwarded := True;
 
-                        if TStatistics.IsEnabled then TStatistics.IncTotalResponsesAndMeasureFlyTime(ArrivalTick, False, DnsServerIndex, SessionId);
-
-                        if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Request ID ' + FormatCurr('00000', SessionId) + ' forwarded to server ' + TDualIPAddressUtility.ToString(DnsServerConfiguration.Address) + ':' + IntToStr(DnsServerConfiguration.Port) + ' as silent update.');
+                        if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Request ID ' + FormatCurr('00000', OriginalSessionId) + '>' + FormatCurr('00000', RemappedSessionId) + ' forwarded to server ' + IntToStr(DnsServerIndex + 1) + ' as silent update.');
 
                       end else begin
 
-                        if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Request ID ' + FormatCurr('00000', SessionId) + ' failed to be forwarded to server ' + TDualIPAddressUtility.ToString(DnsServerConfiguration.Address) + ':' + IntToStr(DnsServerConfiguration.Port) + ' as silent update.');
+                        if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Request ID ' + FormatCurr('00000', OriginalSessionId) + '>' + FormatCurr('00000', RemappedSessionId) + ' failed to be forwarded to server ' + IntToStr(DnsServerIndex + 1) + ' as silent update.');
 
                       end;
 
@@ -375,9 +358,7 @@ begin
 
                 if Forwarded then begin
 
-                  TDnsProtocolUtility.SetIdIntoPacket(0, Buffer); TSessionCache.Insert(SessionId, RequestHash, Address, Port, True, False);
-
-                  if TStatistics.IsEnabled then TStatistics.IncTotalRequestsResolvedThroughCache;
+                  TSessionCache.Insert(ArrivalTime, OriginalSessionId, RemappedSessionId, RequestHash, Address, Port, True, False);
 
                   if THitLogger.IsEnabled and (Pos('C', TConfiguration.GetHitLogFileWhat) > 0) then begin if (TConfiguration.GetHitLogFileMode = 'Legacy') then THitLogger.AddHit(ArrivalTime, 'C', Address, TDnsProtocolUtility.PrintRequestPacketDescriptionAsLegacyStringFromPacket(Buffer, BufferLen, False)) else THitLogger.AddHit(ArrivalTime, 'C', Address, TDnsProtocolUtility.PrintRequestPacketDescriptionAsNormalStringFromPacket(Buffer, BufferLen, False)); end;
 
@@ -389,6 +370,10 @@ begin
 
               begin
 
+                TSessionCache.Reserve(ArrivalTime, OriginalSessionId, RemappedSessionId);
+
+                TDnsProtocolUtility.SetIdIntoPacket(RemappedSessionId, Buffer);
+
                 Forwarded := False;
 
                 for DnsServerIndex := 0 to (Configuration.MAX_NUM_DNS_SERVERS - 1) do begin
@@ -399,17 +384,15 @@ begin
 
                     if TConfiguration.IsDomainNameAffinityMatch(DomainName, DnsServerConfiguration.DomainNameAffinityMask) and TConfiguration.IsQueryTypeAffinityMatch(QueryType, DnsServerConfiguration.QueryTypeAffinityMask) then begin
 
-                      if TDnsForwarder.ForwardDnsRequest(DnsServerConfiguration, Buffer, BufferLen, SessionId) then begin
+                      if TDnsForwarder.ForwardDnsRequest(ArrivalTime, DnsServerIndex, DnsServerConfiguration, Buffer, BufferLen, RemappedSessionId) then begin
 
                         Forwarded := True;
 
-                        if TStatistics.IsEnabled then TStatistics.IncTotalResponsesAndMeasureFlyTime(ArrivalTick, False, DnsServerIndex, SessionId);
-
-                        if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Request ID ' + FormatCurr('00000', SessionId) + ' forwarded to server ' + TDualIPAddressUtility.ToString(DnsServerConfiguration.Address) + ':' + IntToStr(DnsServerConfiguration.Port) + '.');
+                        if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Request ID ' + FormatCurr('00000', OriginalSessionId) + '>' + FormatCurr('00000', RemappedSessionId) + ' forwarded to server ' + IntToStr(DnsServerIndex + 1) + '.');
 
                       end else begin
 
-                        if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Request ID ' + FormatCurr('00000', SessionId) + ' failed to be forwarded to server ' + TDualIPAddressUtility.ToString(DnsServerConfiguration.Address) + ':' + IntToStr(DnsServerConfiguration.Port) + '.');
+                        if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Request ID ' + FormatCurr('00000', OriginalSessionId) + '>' + FormatCurr('00000', RemappedSessionId) + ' failed to be forwarded to server ' + IntToStr(DnsServerIndex + 1) + '.');
 
                       end;
 
@@ -421,9 +404,7 @@ begin
 
                 if Forwarded then begin
 
-                  TDnsProtocolUtility.SetIdIntoPacket(0, Buffer); TSessionCache.Insert(SessionId, RequestHash, Address, Port, False, False);
-
-                  if TStatistics.IsEnabled then TStatistics.IncTotalRequestsForwarded;
+                  TSessionCache.Insert(ArrivalTime, OriginalSessionId, RemappedSessionId, RequestHash, Address, Port, False, False);
 
                   if THitLogger.IsEnabled and (Pos('F', TConfiguration.GetHitLogFileWhat) > 0) then begin if (TConfiguration.GetHitLogFileMode = 'Legacy') then THitLogger.AddHit(ArrivalTime, 'F', Address, TDnsProtocolUtility.PrintRequestPacketDescriptionAsLegacyStringFromPacket(Buffer, BufferLen, False)) else THitLogger.AddHit(ArrivalTime, 'F', Address, TDnsProtocolUtility.PrintRequestPacketDescriptionAsNormalStringFromPacket(Buffer, BufferLen, False)); end;
 
@@ -431,9 +412,9 @@ begin
 
                   TDnsProtocolUtility.BuildNegativeResponsePacket(DomainName, QueryType, Output, OutputLen);
 
-                  TDnsProtocolUtility.SetIdIntoPacket(SessionId, Output); Self.CommunicationChannel.SendTo(Output, OutputLen, Address, Port);
+                  TDnsProtocolUtility.SetIdIntoPacket(OriginalSessionId, Output); Self.CommunicationChannel.SendTo(Output, OutputLen, Address, Port);
 
-                  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' sent to client ' + TDualIPAddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' as negative.');
+                  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', OriginalSessionId) + ' sent to client ' + TDualIPAddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' as negative.');
 
                 end;
 
@@ -443,6 +424,10 @@ begin
 
           end else begin
 
+            TSessionCache.Reserve(ArrivalTime, OriginalSessionId, RemappedSessionId);
+
+            TDnsProtocolUtility.SetIdIntoPacket(RemappedSessionId, Buffer);
+
             Forwarded := False;
 
             for DnsServerIndex := 0 to (Configuration.MAX_NUM_DNS_SERVERS - 1) do begin
@@ -450,19 +435,18 @@ begin
               DnsServerConfiguration := TConfiguration.GetDnsServerConfiguration(DnsServerIndex);
 
               if DnsServerConfiguration.IsEnabled then begin
+
                 if TConfiguration.IsDomainNameAffinityMatch(DomainName, DnsServerConfiguration.DomainNameAffinityMask) and TConfiguration.IsQueryTypeAffinityMatch(QueryType, DnsServerConfiguration.QueryTypeAffinityMask) then begin
 
-                  if TDnsForwarder.ForwardDnsRequest(DnsServerConfiguration, Buffer, BufferLen, SessionId) then begin
+                  if TDnsForwarder.ForwardDnsRequest(ArrivalTime, DnsServerIndex, DnsServerConfiguration, Buffer, BufferLen, RemappedSessionId) then begin
 
                     Forwarded := True;
 
-                    if TStatistics.IsEnabled then TStatistics.IncTotalResponsesAndMeasureFlyTime(ArrivalTick, False, DnsServerIndex, SessionId);
-
-                    if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Request ID ' + FormatCurr('00000', SessionId) + ' forwarded to server ' + TDualIPAddressUtility.ToString(DnsServerConfiguration.Address) + ':' + IntToStr(DnsServerConfiguration.Port) + '.');
+                    if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Request ID ' + FormatCurr('00000', OriginalSessionId) + '>' + FormatCurr('00000', RemappedSessionId) + ' forwarded to server ' + IntToStr(DnsServerIndex + 1) + '.');
 
                   end else begin
 
-                    if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Request ID ' + FormatCurr('00000', SessionId) + ' failed to be forwarded to server ' + TDualIPAddressUtility.ToString(DnsServerConfiguration.Address) + ':' + IntToStr(DnsServerConfiguration.Port) + '.');
+                    if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Request ID ' + FormatCurr('00000', OriginalSessionId) + '>' + FormatCurr('00000', RemappedSessionId) + ' failed to be forwarded to server ' + IntToStr(DnsServerIndex + 1) + '.');
 
                   end;
 
@@ -474,9 +458,7 @@ begin
 
             if Forwarded then begin
 
-              TDnsProtocolUtility.SetIdIntoPacket(0, Buffer); RequestHash := TDigest.ComputeCRC64(Buffer, BufferLen); TSessionCache.Insert(SessionId, RequestHash, Address, Port, False, False);
-
-              if TStatistics.IsEnabled then TStatistics.IncTotalRequestsForwarded;
+              TSessionCache.Insert(ArrivalTime, OriginalSessionId, RemappedSessionId, RequestHash, Address, Port, False, False);
 
               if THitLogger.IsEnabled and (Pos('F', TConfiguration.GetHitLogFileWhat) > 0) then begin if (TConfiguration.GetHitLogFileMode = 'Legacy') then THitLogger.AddHit(ArrivalTime, 'F', Address, TDnsProtocolUtility.PrintRequestPacketDescriptionAsLegacyStringFromPacket(Buffer, BufferLen, False)) else THitLogger.AddHit(ArrivalTime, 'F', Address, TDnsProtocolUtility.PrintRequestPacketDescriptionAsNormalStringFromPacket(Buffer, BufferLen, False)); end;
 
@@ -484,9 +466,9 @@ begin
 
               TDnsProtocolUtility.BuildNegativeResponsePacket(DomainName, QueryType, Output, OutputLen);
 
-              TDnsProtocolUtility.SetIdIntoPacket(SessionId, Output); Self.CommunicationChannel.SendTo(Output, OutputLen, Address, Port);
+              TDnsProtocolUtility.SetIdIntoPacket(OriginalSessionId, Output); Self.CommunicationChannel.SendTo(Output, OutputLen, Address, Port);
 
-              if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' sent to client ' + TDualIPAddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' as negative.');
+              if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', OriginalSessionId) + ' sent to client ' + TDualIPAddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' as negative.');
 
             end;
 
@@ -496,15 +478,11 @@ begin
 
       end else begin
 
-        if TStatistics.IsEnabled then TStatistics.IncTotalPacketsDiscarded;
-
         if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Unexpected packet received from address ' + TDualIPAddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' [' + TDnsProtocolUtility.PrintGenericPacketBytesAsStringFromPacket(Buffer, BufferLen) + '].');
 
       end;
 
     end else begin
-
-      if TStatistics.IsEnabled then TStatistics.IncTotalPacketsDiscarded;
 
       if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Malformed packet received from address ' + TDualIPAddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' [' + TDnsProtocolUtility.PrintGenericPacketBytesAsStringFromPacket(Buffer, BufferLen) + '].');
 
@@ -522,14 +500,13 @@ end;
 //
 // --------------------------------------------------------------------------
 
-procedure TDnsResolver.HandleDnsResponse(Buffer: Pointer; BufferLen: Integer; Address: TDualIPAddress; Port: Word);
+procedure TDnsResolver.HandleDnsResponse(Buffer: Pointer; BufferLen: Integer; DnsServerIndex: Integer);
 
 var
-  ArrivalTick: Double; ArrivalTime: TDateTime; DnsServerIndex: Integer; DnsServerConfiguration: TDnsServerConfiguration; SessionId: Word; AltAddress: TDualIPAddress; AltPort: Word; RequestHash: Int64; IsSilentUpdate: Boolean; IsCacheException: Boolean;
+  ArrivalTime: TDateTime; DnsServerConfiguration: TDnsServerConfiguration; RemappedSessionId: Word; OriginalSessionId: Word; Address: TDualIPAddress; Port: Word; RequestHash: TMD5Digest; IsSilentUpdate: Boolean; IsCacheException: Boolean;
 
 begin
 
-  ArrivalTick := TStopwatch.GetInstantValue;
   ArrivalTime := Now;
 
   Self.Lock.Acquire;
@@ -538,123 +515,43 @@ begin
 
     if (BufferLen >= MIN_DNS_PACKET_LEN) and (BufferLen <= MAX_DNS_PACKET_LEN) then begin
 
-      DnsServerIndex := TConfiguration.FindDnsServerConfiguration(Address, Port); if (DnsServerIndex > -1) then begin
+      DnsServerConfiguration := TConfiguration.GetDnsServerConfiguration(DnsServerIndex);
 
-        DnsServerConfiguration := TConfiguration.GetDnsServerConfiguration(DnsServerIndex);
+      RemappedSessionId := TDnsProtocolUtility.GetIdFromPacket(Buffer);
 
-        SessionId := TDnsProtocolUtility.GetIdFromPacket(Buffer);
+      if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', RemappedSessionId) + ' received from server ' + IntToStr(DnsServerIndex + 1) + ' [' + TDnsProtocolUtility.PrintResponsePacketDescriptionAsNormalStringFromPacket(Buffer, BufferLen, True) + '].');
 
-        if TStatistics.IsEnabled then TStatistics.IncTotalResponsesAndMeasureFlyTime(ArrivalTick, True, DnsServerIndex, SessionId);
+      if TSessionCache.Extract(ArrivalTime, OriginalSessionId, RemappedSessionId, RequestHash, Address, Port, IsSilentUpdate, IsCacheException) then begin
 
-        if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' received from server ' + TDualIPAddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' [' + TDnsProtocolUtility.PrintResponsePacketDescriptionAsNormalStringFromPacket(Buffer, BufferLen, True) + '].');
+        if IsCacheException then begin
 
-        if not(TDnsProtocolUtility.IsFailureResponsePacket(Buffer, BufferLen)) then begin
+          if not(TDnsProtocolUtility.IsFailureResponsePacket(Buffer, BufferLen)) then begin
 
-          if TSessionCache.Extract(SessionId, RequestHash, AltAddress, AltPort, IsSilentUpdate, IsCacheException) then begin
+            if not(TDnsProtocolUtility.IsNegativeResponsePacket(Buffer, BufferLen)) then begin
 
-            if IsCacheException then begin
+              TSessionCache.Delete(RemappedSessionId);
 
-              if not(TDnsProtocolUtility.IsNegativeResponsePacket(Buffer, BufferLen)) then begin
+              TDnsProtocolUtility.SetIdIntoPacket(OriginalSessionId, Buffer); Self.CommunicationChannel.SendTo(Buffer, BufferLen, Address, Port);
 
-                TSessionCache.Delete(SessionId);
+              if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', RemappedSessionId) + '>' + FormatCurr('00000', OriginalSessionId) + ' sent to client ' + TDualIPAddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' as positive.');
 
-                Self.CommunicationChannel.SendTo(Buffer, BufferLen, AltAddress, AltPort);
-
-                if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' sent to client ' + TDualIPAddressUtility.ToString(AltAddress) + ':' + IntToStr(AltPort) + ' as positive.');
-
-                if THitLogger.IsEnabled and (Pos('R', TConfiguration.GetHitLogFileWhat) > 0) then begin if (TConfiguration.GetHitLogFileMode = 'Legacy') then THitLogger.AddHit(ArrivalTime, 'R', Address, TDnsProtocolUtility.PrintResponsePacketDescriptionAsLegacyStringFromPacket(Buffer, BufferLen, False)) else THitLogger.AddHit(ArrivalTime, 'R', Address, TDnsProtocolUtility.PrintResponsePacketDescriptionAsNormalStringFromPacket(Buffer, BufferLen, False)); end;
-
-              end else begin
-
-                if not(DnsServerConfiguration.IgnoreNegativeResponsesFromServer) then begin
-
-                  TSessionCache.Delete(SessionId);
-
-                  Self.CommunicationChannel.SendTo(Buffer, BufferLen, AltAddress, AltPort);
-
-                  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' sent to client ' + TDualIPAddressUtility.ToString(AltAddress) + ':' + IntToStr(AltPort) + ' as negative.');
-
-                  if THitLogger.IsEnabled and (Pos('R', TConfiguration.GetHitLogFileWhat) > 0) then begin if (TConfiguration.GetHitLogFileMode = 'Legacy') then THitLogger.AddHit(ArrivalTime, 'R', Address, TDnsProtocolUtility.PrintResponsePacketDescriptionAsLegacyStringFromPacket(Buffer, BufferLen, False)) else THitLogger.AddHit(ArrivalTime, 'R', Address, TDnsProtocolUtility.PrintResponsePacketDescriptionAsNormalStringFromPacket(Buffer, BufferLen, False)); end;
-
-                end else begin
-
-                  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' discarded as negative.');
-
-                end;
-
-              end;
-
-            end else if IsSilentUpdate then begin
-
-              if not(TDnsProtocolUtility.IsNegativeResponsePacket(Buffer, BufferLen)) then begin
-
-                TSessionCache.Delete(SessionId);
-
-                if not(TConfiguration.GetAddressCacheDisabled) then begin
-
-                  TDnsProtocolUtility.SetIdIntoPacket(0, Buffer); TAddressCache.Add(ArrivalTime, RequestHash, Buffer, BufferLen, False);
-
-                  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' put into the address cache as positive silent update.');
-
-                end;
-
-                if THitLogger.IsEnabled and (Pos('U', TConfiguration.GetHitLogFileWhat) > 0) then begin if (TConfiguration.GetHitLogFileMode = 'Legacy') then THitLogger.AddHit(ArrivalTime, 'U', Address, TDnsProtocolUtility.PrintResponsePacketDescriptionAsLegacyStringFromPacket(Buffer, BufferLen, False)) else THitLogger.AddHit(ArrivalTime, 'U', Address, TDnsProtocolUtility.PrintResponsePacketDescriptionAsNormalStringFromPacket(Buffer, BufferLen, False)); end;
-
-              end else begin
-
-                if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + ' discarded as negative silent update.');
-
-              end;
+              if THitLogger.IsEnabled and (Pos('R', TConfiguration.GetHitLogFileWhat) > 0) then begin if (TConfiguration.GetHitLogFileMode = 'Legacy') then THitLogger.AddHit(ArrivalTime, 'R', Address, TDnsProtocolUtility.PrintResponsePacketDescriptionAsLegacyStringFromPacket(Buffer, BufferLen, False)) else THitLogger.AddHit(ArrivalTime, 'R', Address, TDnsProtocolUtility.PrintResponsePacketDescriptionAsNormalStringFromPacket(Buffer, BufferLen, False)); end;
 
             end else begin
 
-              if not(TDnsProtocolUtility.IsNegativeResponsePacket(Buffer, BufferLen)) then begin
+              if not(DnsServerConfiguration.IgnoreNegativeResponsesFromServer) then begin
 
-                TSessionCache.Delete(SessionId);
+                TSessionCache.Delete(RemappedSessionId);
 
-                Self.CommunicationChannel.SendTo(Buffer, BufferLen, AltAddress, AltPort);
+                TDnsProtocolUtility.SetIdIntoPacket(OriginalSessionId, Buffer); Self.CommunicationChannel.SendTo(Buffer, BufferLen, Address, Port);
 
-                if not(TConfiguration.GetAddressCacheDisabled) then begin
-
-                  TDnsProtocolUtility.SetIdIntoPacket(0, Buffer); TAddressCache.Add(ArrivalTime, RequestHash, Buffer, BufferLen, False);
-
-                  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' sent to client ' + TDualIPAddressUtility.ToString(AltAddress) + ':' + IntToStr(AltPort) + ' and put into the address cache as positive.');
-
-                end else begin
-
-                  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' sent to client ' + TDualIPAddressUtility.ToString(AltAddress) + ':' + IntToStr(AltPort) + ' as positive.');
-
-                end;
+                if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', RemappedSessionId) + '>' + FormatCurr('00000', OriginalSessionId) + ' sent to client ' + TDualIPAddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' as negative.');
 
                 if THitLogger.IsEnabled and (Pos('R', TConfiguration.GetHitLogFileWhat) > 0) then begin if (TConfiguration.GetHitLogFileMode = 'Legacy') then THitLogger.AddHit(ArrivalTime, 'R', Address, TDnsProtocolUtility.PrintResponsePacketDescriptionAsLegacyStringFromPacket(Buffer, BufferLen, False)) else THitLogger.AddHit(ArrivalTime, 'R', Address, TDnsProtocolUtility.PrintResponsePacketDescriptionAsNormalStringFromPacket(Buffer, BufferLen, False)); end;
 
               end else begin
 
-                if not(DnsServerConfiguration.IgnoreNegativeResponsesFromServer) then begin
-
-                  TSessionCache.Delete(SessionId);
-
-                  Self.CommunicationChannel.SendTo(Buffer, BufferLen, AltAddress, AltPort);
-
-                  if not(TConfiguration.GetAddressCacheDisabled) then begin
-
-                    TDnsProtocolUtility.SetIdIntoPacket(0, Buffer); TAddressCache.Add(ArrivalTime, RequestHash, Buffer, BufferLen, True);
-
-                    if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' sent to client ' + TDualIPAddressUtility.ToString(AltAddress) + ':' + IntToStr(AltPort) + ' and put into the address cache as negative.');
-
-                  end else begin
-
-                    if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' sent to client ' + TDualIPAddressUtility.ToString(AltAddress) + ':' + IntToStr(AltPort) + ' as negative.');
-
-                  end;
-
-                  if THitLogger.IsEnabled and (Pos('R', TConfiguration.GetHitLogFileWhat) > 0) then begin if (TConfiguration.GetHitLogFileMode = 'Legacy') then THitLogger.AddHit(ArrivalTime, 'R', Address, TDnsProtocolUtility.PrintResponsePacketDescriptionAsLegacyStringFromPacket(Buffer, BufferLen, False)) else THitLogger.AddHit(ArrivalTime, 'R', Address, TDnsProtocolUtility.PrintResponsePacketDescriptionAsNormalStringFromPacket(Buffer, BufferLen, False)); end;
-
-                end else begin
-
-                  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' discarded as negative.');
-
-                end;
+                if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', RemappedSessionId) + '>' + FormatCurr('00000', OriginalSessionId) + ' discarded as negative.');
 
               end;
 
@@ -662,25 +559,149 @@ begin
 
           end else begin
 
-            if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' discarded as redundant.');
+            if not(DnsServerConfiguration.IgnoreFailureResponsesFromServer) then begin
+
+              TSessionCache.Delete(RemappedSessionId);
+
+              TDnsProtocolUtility.SetIdIntoPacket(OriginalSessionId, Buffer); Self.CommunicationChannel.SendTo(Buffer, BufferLen, Address, Port);
+
+              if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', RemappedSessionId) + '>' + FormatCurr('00000', OriginalSessionId) + ' sent to client ' + TDualIPAddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' as failure.');
+
+              if THitLogger.IsEnabled and (Pos('R', TConfiguration.GetHitLogFileWhat) > 0) then begin if (TConfiguration.GetHitLogFileMode = 'Legacy') then THitLogger.AddHit(ArrivalTime, 'R', Address, TDnsProtocolUtility.PrintResponsePacketDescriptionAsLegacyStringFromPacket(Buffer, BufferLen, False)) else THitLogger.AddHit(ArrivalTime, 'R', Address, TDnsProtocolUtility.PrintResponsePacketDescriptionAsNormalStringFromPacket(Buffer, BufferLen, False)); end;
+
+            end else begin
+
+              if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', RemappedSessionId) + '>' + FormatCurr('00000', OriginalSessionId) + ' discarded as failure.');
+
+            end;
+
+          end;
+
+        end else if IsSilentUpdate then begin
+
+          if not(TDnsProtocolUtility.IsFailureResponsePacket(Buffer, BufferLen)) then begin
+
+            if not(TDnsProtocolUtility.IsNegativeResponsePacket(Buffer, BufferLen)) then begin
+
+              TSessionCache.Delete(RemappedSessionId);
+
+              if not(TConfiguration.GetAddressCacheDisabled) and (TConfiguration.GetAddressCacheScavengingTime > 0) then begin
+
+                TDnsProtocolUtility.SetIdIntoPacket(0, Buffer); TAddressCache.Add(ArrivalTime, RequestHash, Buffer, BufferLen, AddressCacheItemOptionsResponseTypeIsPositive);
+
+                if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', RemappedSessionId) + '>' + FormatCurr('00000', OriginalSessionId) + ' put into the address cache as positive silent update.');
+
+              end;
+
+              if THitLogger.IsEnabled and (Pos('U', TConfiguration.GetHitLogFileWhat) > 0) then begin if (TConfiguration.GetHitLogFileMode = 'Legacy') then THitLogger.AddHit(ArrivalTime, 'U', Address, TDnsProtocolUtility.PrintResponsePacketDescriptionAsLegacyStringFromPacket(Buffer, BufferLen, False)) else THitLogger.AddHit(ArrivalTime, 'U', Address, TDnsProtocolUtility.PrintResponsePacketDescriptionAsNormalStringFromPacket(Buffer, BufferLen, False)); end;
+
+            end else begin
+
+              if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', RemappedSessionId) + '>' + FormatCurr('00000', OriginalSessionId) + ' discarded as negative silent update.');
+
+            end;
+
+          end else begin
+
+            if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', RemappedSessionId) + '>' + FormatCurr('00000', OriginalSessionId) + ' discarded as failure silent update.');
 
           end;
 
         end else begin
 
-          if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', SessionId) + ' discarded as failure.');
+          if not(TDnsProtocolUtility.IsFailureResponsePacket(Buffer, BufferLen)) then begin
+
+            if not(TDnsProtocolUtility.IsNegativeResponsePacket(Buffer, BufferLen)) then begin
+
+              TSessionCache.Delete(RemappedSessionId);
+
+              TDnsProtocolUtility.SetIdIntoPacket(OriginalSessionId, Buffer); Self.CommunicationChannel.SendTo(Buffer, BufferLen, Address, Port);
+
+              if not(TConfiguration.GetAddressCacheDisabled) and (TConfiguration.GetAddressCacheScavengingTime > 0) then begin
+
+                TDnsProtocolUtility.SetIdIntoPacket(0, Buffer); TAddressCache.Add(ArrivalTime, RequestHash, Buffer, BufferLen, AddressCacheItemOptionsResponseTypeIsPositive);
+
+                if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', RemappedSessionId) + '>' + FormatCurr('00000', OriginalSessionId) + ' sent to client ' + TDualIPAddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' and put into the address cache as positive.');
+
+              end else begin
+
+                if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', RemappedSessionId) + '>' + FormatCurr('00000', OriginalSessionId) + ' sent to client ' + TDualIPAddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' as positive.');
+
+              end;
+
+              if THitLogger.IsEnabled and (Pos('R', TConfiguration.GetHitLogFileWhat) > 0) then begin if (TConfiguration.GetHitLogFileMode = 'Legacy') then THitLogger.AddHit(ArrivalTime, 'R', Address, TDnsProtocolUtility.PrintResponsePacketDescriptionAsLegacyStringFromPacket(Buffer, BufferLen, False)) else THitLogger.AddHit(ArrivalTime, 'R', Address, TDnsProtocolUtility.PrintResponsePacketDescriptionAsNormalStringFromPacket(Buffer, BufferLen, False)); end;
+
+            end else begin
+
+              if not(DnsServerConfiguration.IgnoreNegativeResponsesFromServer) then begin
+
+                TSessionCache.Delete(RemappedSessionId);
+
+                TDnsProtocolUtility.SetIdIntoPacket(OriginalSessionId, Buffer); Self.CommunicationChannel.SendTo(Buffer, BufferLen, Address, Port);
+
+                if not(TConfiguration.GetAddressCacheDisabled) and (TConfiguration.GetAddressCacheNegativeTime > 0) then begin
+
+                  TDnsProtocolUtility.SetIdIntoPacket(0, Buffer); TAddressCache.Add(ArrivalTime, RequestHash, Buffer, BufferLen, AddressCacheItemOptionsResponseTypeIsNegative);
+
+                  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', RemappedSessionId) + '>' + FormatCurr('00000', OriginalSessionId) + ' sent to client ' + TDualIPAddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' and put into the address cache as negative.');
+
+                end else begin
+
+                  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', RemappedSessionId) + '>' + FormatCurr('00000', OriginalSessionId) + ' sent to client ' + TDualIPAddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' as negative.');
+
+                end;
+
+                if THitLogger.IsEnabled and (Pos('R', TConfiguration.GetHitLogFileWhat) > 0) then begin if (TConfiguration.GetHitLogFileMode = 'Legacy') then THitLogger.AddHit(ArrivalTime, 'R', Address, TDnsProtocolUtility.PrintResponsePacketDescriptionAsLegacyStringFromPacket(Buffer, BufferLen, False)) else THitLogger.AddHit(ArrivalTime, 'R', Address, TDnsProtocolUtility.PrintResponsePacketDescriptionAsNormalStringFromPacket(Buffer, BufferLen, False)); end;
+
+              end else begin
+
+                if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', RemappedSessionId) + '>' + FormatCurr('00000', OriginalSessionId) + ' discarded as negative.');
+
+              end;
+
+            end;
+
+          end else begin
+
+            if not(DnsServerConfiguration.IgnoreFailureResponsesFromServer) then begin
+
+              TSessionCache.Delete(RemappedSessionId);
+
+              TDnsProtocolUtility.SetIdIntoPacket(OriginalSessionId, Buffer); Self.CommunicationChannel.SendTo(Buffer, BufferLen, Address, Port);
+
+              if not(TConfiguration.GetAddressCacheDisabled) and (TConfiguration.GetAddressCacheFailureTime > 0) then begin
+
+                TDnsProtocolUtility.SetIdIntoPacket(0, Buffer); TAddressCache.Add(ArrivalTime, RequestHash, Buffer, BufferLen, AddressCacheItemOptionsResponseTypeIsFailure);
+
+                if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', RemappedSessionId) + '>' + FormatCurr('00000', OriginalSessionId) + ' sent to client ' + TDualIPAddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' and put into the address cache as failure.');
+
+              end else begin
+
+                if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', RemappedSessionId) + '>' + FormatCurr('00000', OriginalSessionId) + ' sent to client ' + TDualIPAddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' as failure.');
+
+              end;
+
+              if THitLogger.IsEnabled and (Pos('R', TConfiguration.GetHitLogFileWhat) > 0) then begin if (TConfiguration.GetHitLogFileMode = 'Legacy') then THitLogger.AddHit(ArrivalTime, 'R', Address, TDnsProtocolUtility.PrintResponsePacketDescriptionAsLegacyStringFromPacket(Buffer, BufferLen, False)) else THitLogger.AddHit(ArrivalTime, 'R', Address, TDnsProtocolUtility.PrintResponsePacketDescriptionAsNormalStringFromPacket(Buffer, BufferLen, False)); end;
+
+            end else begin
+
+              if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', RemappedSessionId) + '>' + FormatCurr('00000', OriginalSessionId) + ' discarded as failure.');
+
+            end;
+
+          end;
 
         end;
 
       end else begin
 
-        if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Unexpected packet received from ' + TDualIPAddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' [' + TDnsProtocolUtility.PrintGenericPacketBytesAsStringFromPacket(Buffer, BufferLen) + '].');
+        if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Response ID ' + FormatCurr('00000', RemappedSessionId) + ' discarded as needless.');
 
       end;
 
     end else begin
 
-      if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Malformed packet received from ' + TDualIPAddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' [' + TDnsProtocolUtility.PrintGenericPacketBytesAsStringFromPacket(Buffer, BufferLen) + '].');
+      if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.Execute: Malformed packet received from server ' + IntToStr(DnsServerIndex + 1) + ' [' + TDnsProtocolUtility.PrintGenericPacketBytesAsStringFromPacket(Buffer, BufferLen) + '].');
 
     end;
 
@@ -700,17 +721,19 @@ procedure TDnsResolver.HandleIdleTimeOperations;
 
 begin
 
-  Self.Lock.Acquire;
+  if THitLogger.IsEnabled then begin
 
-  try
+    Self.Lock.Acquire;
 
-    if TStatistics.IsEnabled then TStatistics.FlushStatisticsToDisk;
+    try
 
-    if THitLogger.IsEnabled then THitLogger.FlushAllPendingHitsToDisk;
+      THitLogger.FlushAllPendingHitsToDisk(False, True);
 
-  finally
+    finally
 
-    Self.Lock.Release;
+      Self.Lock.Release;
+
+    end;
 
   end;
 
@@ -724,17 +747,19 @@ procedure TDnsResolver.HandleTerminalOperations;
 
 begin
 
-  Self.Lock.Acquire;
+  if THitLogger.IsEnabled then begin
 
-  try
+    Self.Lock.Acquire;
 
-    if TStatistics.IsEnabled then TStatistics.FlushStatisticsToDisk;
+    try
 
-    if THitLogger.IsEnabled then THitLogger.FlushAllPendingHitsToDisk;
+      THitLogger.FlushAllPendingHitsToDisk(True, False);
 
-  finally
+    finally
 
-    Self.Lock.Release;
+      Self.Lock.Release;
+
+    end;
 
   end;
 
@@ -757,7 +782,7 @@ begin
 
     try
 
-      Self.CommunicationChannel := TDualUdpCommunicationChannel.Create;
+      Self.CommunicationChannel := TDualUdpServerCommunicationChannel.Create;
 
       try
 
@@ -765,11 +790,11 @@ begin
 
         try
 
-          TMemoryManager.GetMemory(Buffer, MAX_DNS_BUFFER_LEN);
+          Buffer := TMemoryManager.GetMemory(MAX_DNS_BUFFER_LEN);
 
           try
 
-            TMemoryManager.GetMemory(Output, MAX_DNS_BUFFER_LEN);
+            Output := TMemoryManager.GetMemory(MAX_DNS_BUFFER_LEN);
 
             try
 

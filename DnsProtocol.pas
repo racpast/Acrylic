@@ -175,9 +175,6 @@ type
     public
       class function  IsFailureResponsePacket(Buffer: Pointer; BufferLen: Integer): Boolean;
       class function  IsNegativeResponsePacket(Buffer: Pointer; BufferLen: Integer): Boolean;
-    public
-      class procedure WrapUdpRequestPacketOverTcpRequestPacket(Buffer: Pointer; BufferLen: Integer; var Output: Pointer; var OutputLen: Integer);
-      class procedure WrapTcpResponsePacketOverUdpResponsePacket(Buffer: Pointer; BufferLen: Integer; var Output: Pointer; var OutputLen: Integer);
   end;
 
 // --------------------------------------------------------------------------
@@ -492,7 +489,9 @@ begin
           Value := TDnsProtocolUtility.GetStringFromPacket(Value, Buffer, OffsetL1, OffsetLX, Level + 1, BufferLen);
 
         end else begin
+
           if (Level = 1) then Inc(OffsetL1); Inc(OffsetLX);
+
         end;
 
       end else if ((OffsetLX + PByteArray(Buffer)^[OffsetLX] + 1) < BufferLen) then begin
@@ -560,9 +559,13 @@ begin
   for CIndex := 1 to Length(Value) do begin
 
     if (Value[CIndex] <> '.') then begin
+
       PByteArray(Buffer)^[Offset + PIndex + 1] := Byte(Value[CIndex]); Inc(PIndex);
+
     end else begin
+
       PByteArray(Buffer)^[Offset] := PIndex; Inc(Offset, PIndex + 1); PIndex := 0;
+
     end;
 
   end;
@@ -601,31 +604,27 @@ var
 
 begin
 
-  // Header
-  PByteArray(Buffer)^[$00] := $00; // Query ID (LSB)
-  PByteArray(Buffer)^[$01] := $00; // Query ID (LSB)
-  PByteArray(Buffer)^[$02] := $85; // QRESP1=1, OPCODE4=0, AUTH1=1, TRUNC1=0, RECURSD1=1
-  PByteArray(Buffer)^[$03] := $83; // RECURSA1=0, RESERV3=0, RESPCODE4=3
-  PByteArray(Buffer)^[$04] := $00; // NQUESTIONS (MSB)
-  PByteArray(Buffer)^[$05] := $01; // NQUESTIONS (LSB)
-  PByteArray(Buffer)^[$06] := $00; // NANSWERSRR (MSB)
-  PByteArray(Buffer)^[$07] := $00; // NANSWERSRR (LSB)
-  PByteArray(Buffer)^[$08] := $00; // NAUTHORIRR (MSB)
-  PByteArray(Buffer)^[$09] := $00; // NAUTHORIRR (LSB)
-  PByteArray(Buffer)^[$0A] := $00; // NADDITIORR (MSB)
-  PByteArray(Buffer)^[$0B] := $00; // NADDITIORR (LSB)
+  PByteArray(Buffer)^[$00] := $00;
+  PByteArray(Buffer)^[$01] := $00;
+  PByteArray(Buffer)^[$02] := $85;
+  PByteArray(Buffer)^[$03] := $83;
+  PByteArray(Buffer)^[$04] := $00;
+  PByteArray(Buffer)^[$05] := $01;
+  PByteArray(Buffer)^[$06] := $00;
+  PByteArray(Buffer)^[$07] := $00;
+  PByteArray(Buffer)^[$08] := $00;
+  PByteArray(Buffer)^[$09] := $00;
+  PByteArray(Buffer)^[$0A] := $00;
+  PByteArray(Buffer)^[$0B] := $00;
 
-  // Offset
   Offset := $0C;
 
-  // Question name
   TDnsProtocolUtility.SetStringIntoPacket(DomainName, Buffer, Offset, BufferLen);
 
-  // Question properties
-  PByteArray(Buffer)^[Offset] := QueryType shr $08; Inc(Offset); // QUERYTYPE (MSB)
-  PByteArray(Buffer)^[Offset] := QueryType and $ff; Inc(Offset); // QUERYTYPE (LSB)
-  PByteArray(Buffer)^[Offset] := $00; Inc(Offset);               // QUERYCLASS (MSB)
-  PByteArray(Buffer)^[Offset] := $01; Inc(Offset);               // QUERYCLASS (LSB)
+  PByteArray(Buffer)^[Offset] := QueryType shr $08; Inc(Offset);
+  PByteArray(Buffer)^[Offset] := QueryType and $ff; Inc(Offset);
+  PByteArray(Buffer)^[Offset] := $00; Inc(Offset);
+  PByteArray(Buffer)^[Offset] := $01; Inc(Offset);
 
   BufferLen := Offset;
 
@@ -642,31 +641,27 @@ var
 
 begin
 
-  // Header
-  PByteArray(Buffer)^[$00] := $00; // Query ID (LSB)
-  PByteArray(Buffer)^[$01] := $00; // Query ID (LSB)
-  PByteArray(Buffer)^[$02] := $85; // QRESP1=1, OPCODE4=0, AUTH1=1, TRUNC1=0, RECURSD1=1
-  PByteArray(Buffer)^[$03] := $80; // RECURSA1=1, RESERV3=0, RESCODE4=0
-  PByteArray(Buffer)^[$04] := $00; // NQUESTIONS (MSB)
-  PByteArray(Buffer)^[$05] := $01; // NQUESTIONS (LSB)
-  PByteArray(Buffer)^[$06] := $00; // NANSWERSRR (MSB)
-  PByteArray(Buffer)^[$07] := $00; // NANSWERSRR (LSB)
-  PByteArray(Buffer)^[$08] := $00; // NAUTHORIRR (MSB)
-  PByteArray(Buffer)^[$09] := $00; // NAUTHORIRR (LSB)
-  PByteArray(Buffer)^[$0A] := $00; // NADDITIORR (MSB)
-  PByteArray(Buffer)^[$0B] := $00; // NADDITIORR (LSB)
+  PByteArray(Buffer)^[$00] := $00;
+  PByteArray(Buffer)^[$01] := $00;
+  PByteArray(Buffer)^[$02] := $85;
+  PByteArray(Buffer)^[$03] := $80;
+  PByteArray(Buffer)^[$04] := $00;
+  PByteArray(Buffer)^[$05] := $01;
+  PByteArray(Buffer)^[$06] := $00;
+  PByteArray(Buffer)^[$07] := $00;
+  PByteArray(Buffer)^[$08] := $00;
+  PByteArray(Buffer)^[$09] := $00;
+  PByteArray(Buffer)^[$0A] := $00;
+  PByteArray(Buffer)^[$0B] := $00;
 
-  // Offset
   Offset := $0C;
 
-  // Question name
   TDnsProtocolUtility.SetStringIntoPacket(DomainName, Buffer, Offset, BufferLen);
 
-  // Question properties
-  PByteArray(Buffer)^[Offset] := QueryType shr $08; Inc(Offset); // QUERYTYPE (MSB)
-  PByteArray(Buffer)^[Offset] := QueryType and $ff; Inc(Offset); // QUERYTYPE (LSB)
-  PByteArray(Buffer)^[Offset] := $00; Inc(Offset);               // QUERYCLASS (MSB)
-  PByteArray(Buffer)^[Offset] := $01; Inc(Offset);               // QUERYCLASS (LSB)
+  PByteArray(Buffer)^[Offset] := QueryType shr $08; Inc(Offset);
+  PByteArray(Buffer)^[Offset] := QueryType and $ff; Inc(Offset);
+  PByteArray(Buffer)^[Offset] := $00; Inc(Offset);
+  PByteArray(Buffer)^[Offset] := $01; Inc(Offset);
 
   BufferLen := Offset;
 
@@ -683,53 +678,44 @@ var
 
 begin
 
-  // Header
-  PByteArray(Buffer)^[$00] := $00; // Query ID (LSB)
-  PByteArray(Buffer)^[$01] := $00; // Query ID (LSB)
-  PByteArray(Buffer)^[$02] := $85; // QRESP1=1, OPCODE4=0, AUTH1=1, TRUNC1=0, RECURSD1=1
-  PByteArray(Buffer)^[$03] := $80; // RECURSA1=1, RESERV3=0, RESCODE4=0
-  PByteArray(Buffer)^[$04] := $00; // NQUESTIONS (MSB)
-  PByteArray(Buffer)^[$05] := $01; // NQUESTIONS (LSB)
-  PByteArray(Buffer)^[$06] := $00; // NANSWERSRR (MSB)
-  PByteArray(Buffer)^[$07] := $01; // NANSWERSRR (LSB)
-  PByteArray(Buffer)^[$08] := $00; // NAUTHORIRR (MSB)
-  PByteArray(Buffer)^[$09] := $00; // NAUTHORIRR (LSB)
-  PByteArray(Buffer)^[$0A] := $00; // NADDITIORR (MSB)
-  PByteArray(Buffer)^[$0B] := $00; // NADDITIORR (LSB)
+  PByteArray(Buffer)^[$00] := $00;
+  PByteArray(Buffer)^[$01] := $00;
+  PByteArray(Buffer)^[$02] := $85;
+  PByteArray(Buffer)^[$03] := $80;
+  PByteArray(Buffer)^[$04] := $00;
+  PByteArray(Buffer)^[$05] := $01;
+  PByteArray(Buffer)^[$06] := $00;
+  PByteArray(Buffer)^[$07] := $01;
+  PByteArray(Buffer)^[$08] := $00;
+  PByteArray(Buffer)^[$09] := $00;
+  PByteArray(Buffer)^[$0A] := $00;
+  PByteArray(Buffer)^[$0B] := $00;
 
-  // Offset
   Offset := $0C;
 
-  // Question name
   TDnsProtocolUtility.SetStringIntoPacket(DomainName, Buffer, Offset, BufferLen);
 
-  // Question properties
-  PByteArray(Buffer)^[Offset] := QueryType shr $08; Inc(Offset); // QUERYTYPE (MSB)
-  PByteArray(Buffer)^[Offset] := QueryType and $ff; Inc(Offset); // QUERYTYPE (LSB)
-  PByteArray(Buffer)^[Offset] := $00; Inc(Offset);               // QUERYCLASS (MSB)
-  PByteArray(Buffer)^[Offset] := $01; Inc(Offset);               // QUERYCLASS (LSB)
+  PByteArray(Buffer)^[Offset] := QueryType shr $08; Inc(Offset);
+  PByteArray(Buffer)^[Offset] := QueryType and $ff; Inc(Offset);
+  PByteArray(Buffer)^[Offset] := $00; Inc(Offset);
+  PByteArray(Buffer)^[Offset] := $01; Inc(Offset);
 
-  // Answer reference
   PByteArray(Buffer)^[Offset] := $C0; Inc(Offset);
   PByteArray(Buffer)^[Offset] := $0C; Inc(Offset);
 
-  // Answer properties
-  PByteArray(Buffer)^[Offset] := QueryType shr $08; Inc(Offset); // QUERYTYPE (MSB)
-  PByteArray(Buffer)^[Offset] := QueryType and $ff; Inc(Offset); // QUERYTYPE (LSB)
-  PByteArray(Buffer)^[Offset] := $00; Inc(Offset);               // QUERYCLASS (MSB)
-  PByteArray(Buffer)^[Offset] := $01; Inc(Offset);               // QUERYCLASS (LSB)
+  PByteArray(Buffer)^[Offset] := QueryType shr $08; Inc(Offset);
+  PByteArray(Buffer)^[Offset] := QueryType and $ff; Inc(Offset);
+  PByteArray(Buffer)^[Offset] := $00; Inc(Offset);
+  PByteArray(Buffer)^[Offset] := $01; Inc(Offset);
 
-  // Answer properties
-  PByteArray(Buffer)^[Offset] := TimeToLive shr $18;         Inc(Offset); // TTL (MSB)
-  PByteArray(Buffer)^[Offset] := TimeToLive shr $10 and $ff; Inc(Offset); // TTL
-  PByteArray(Buffer)^[Offset] := TimeToLive shr $08 and $ff; Inc(Offset); // TTL
-  PByteArray(Buffer)^[Offset] := TimeToLive and $ff;         Inc(Offset); // TTL (LSB)
+  PByteArray(Buffer)^[Offset] := TimeToLive shr $18; Inc(Offset);
+  PByteArray(Buffer)^[Offset] := TimeToLive shr $10 and $ff; Inc(Offset);
+  PByteArray(Buffer)^[Offset] := TimeToLive shr $08 and $ff; Inc(Offset);
+  PByteArray(Buffer)^[Offset] := TimeToLive and $ff; Inc(Offset);
 
-  // Answer length
-  PByteArray(Buffer)^[Offset] := $00; Inc(Offset); // MSB
-  PByteArray(Buffer)^[Offset] := $04; Inc(Offset); // LSB
+  PByteArray(Buffer)^[Offset] := $00; Inc(Offset);
+  PByteArray(Buffer)^[Offset] := $04; Inc(Offset);
 
-  // Answer contents
   Move(HostAddress, PByteArray(Buffer)^[Offset], 4); Inc(Offset, 4);
 
   BufferLen := Offset;
@@ -747,53 +733,44 @@ var
 
 begin
 
-  // Header
-  PByteArray(Buffer)^[$00] := $00; // Query ID (LSB)
-  PByteArray(Buffer)^[$01] := $00; // Query ID (LSB)
-  PByteArray(Buffer)^[$02] := $85; // QRESP1=1, OPCODE4=0, AUTH1=1, TRUNC1=0, RECURSD1=1
-  PByteArray(Buffer)^[$03] := $80; // RECURSA1=1, RESERV3=0, RESCODE4=0
-  PByteArray(Buffer)^[$04] := $00; // NQUESTIONS (MSB)
-  PByteArray(Buffer)^[$05] := $01; // NQUESTIONS (LSB)
-  PByteArray(Buffer)^[$06] := $00; // NANSWERSRR (MSB)
-  PByteArray(Buffer)^[$07] := $01; // NANSWERSRR (LSB)
-  PByteArray(Buffer)^[$08] := $00; // NAUTHORIRR (MSB)
-  PByteArray(Buffer)^[$09] := $00; // NAUTHORIRR (LSB)
-  PByteArray(Buffer)^[$0A] := $00; // NADDITIORR (MSB)
-  PByteArray(Buffer)^[$0B] := $00; // NADDITIORR (LSB)
+  PByteArray(Buffer)^[$00] := $00;
+  PByteArray(Buffer)^[$01] := $00;
+  PByteArray(Buffer)^[$02] := $85;
+  PByteArray(Buffer)^[$03] := $80;
+  PByteArray(Buffer)^[$04] := $00;
+  PByteArray(Buffer)^[$05] := $01;
+  PByteArray(Buffer)^[$06] := $00;
+  PByteArray(Buffer)^[$07] := $01;
+  PByteArray(Buffer)^[$08] := $00;
+  PByteArray(Buffer)^[$09] := $00;
+  PByteArray(Buffer)^[$0A] := $00;
+  PByteArray(Buffer)^[$0B] := $00;
 
-  // Offset
   Offset := $0C;
 
-  // Question name
   TDnsProtocolUtility.SetStringIntoPacket(DomainName, Buffer, Offset, BufferLen);
 
-  // Question properties
-  PByteArray(Buffer)^[Offset] := QueryType shr $08; Inc(Offset); // QUERYTYPE (MSB)
-  PByteArray(Buffer)^[Offset] := QueryType and $ff; Inc(Offset); // QUERYTYPE (LSB)
-  PByteArray(Buffer)^[Offset] := $00; Inc(Offset);               // QUERYCLASS (MSB)
-  PByteArray(Buffer)^[Offset] := $01; Inc(Offset);               // QUERYCLASS (LSB)
+  PByteArray(Buffer)^[Offset] := QueryType shr $08; Inc(Offset);
+  PByteArray(Buffer)^[Offset] := QueryType and $ff; Inc(Offset);
+  PByteArray(Buffer)^[Offset] := $00; Inc(Offset);
+  PByteArray(Buffer)^[Offset] := $01; Inc(Offset);
 
-  // Answer reference
   PByteArray(Buffer)^[Offset] := $C0; Inc(Offset);
   PByteArray(Buffer)^[Offset] := $0C; Inc(Offset);
 
-  // Answer properties
-  PByteArray(Buffer)^[Offset] := QueryType shr $08; Inc(Offset); // QUERYTYPE (MSB)
-  PByteArray(Buffer)^[Offset] := QueryType and $ff; Inc(Offset); // QUERYTYPE (LSB)
-  PByteArray(Buffer)^[Offset] := $00; Inc(Offset);               // QUERYCLASS (MSB)
-  PByteArray(Buffer)^[Offset] := $01; Inc(Offset);               // QUERYCLASS (LSB)
+  PByteArray(Buffer)^[Offset] := QueryType shr $08; Inc(Offset);
+  PByteArray(Buffer)^[Offset] := QueryType and $ff; Inc(Offset);
+  PByteArray(Buffer)^[Offset] := $00; Inc(Offset);
+  PByteArray(Buffer)^[Offset] := $01; Inc(Offset);
 
-  // Answer properties
-  PByteArray(Buffer)^[Offset] := TimeToLive shr $18;         Inc(Offset); // TTL (MSB)
-  PByteArray(Buffer)^[Offset] := TimeToLive shr $10 and $ff; Inc(Offset); // TTL
-  PByteArray(Buffer)^[Offset] := TimeToLive shr $08 and $ff; Inc(Offset); // TTL
-  PByteArray(Buffer)^[Offset] := TimeToLive and $ff;         Inc(Offset); // TTL (LSB)
+  PByteArray(Buffer)^[Offset] := TimeToLive shr $18; Inc(Offset);
+  PByteArray(Buffer)^[Offset] := TimeToLive shr $10 and $ff; Inc(Offset);
+  PByteArray(Buffer)^[Offset] := TimeToLive shr $08 and $ff; Inc(Offset);
+  PByteArray(Buffer)^[Offset] := TimeToLive and $ff; Inc(Offset);
 
-  // Answer length
-  PByteArray(Buffer)^[Offset] := $00; Inc(Offset); // MSB
-  PByteArray(Buffer)^[Offset] := $10; Inc(Offset); // LSB
+  PByteArray(Buffer)^[Offset] := $00; Inc(Offset);
+  PByteArray(Buffer)^[Offset] := $10; Inc(Offset);
 
-  // Answer contents
   Move(HostAddress, PByteArray(Buffer)^[Offset], 16); Inc(Offset, 16);
 
   BufferLen := Offset;
@@ -1122,30 +1099,6 @@ var
 begin
 
   RCode := PByteArray(Buffer)^[$03] and $0f; Result := (RCode = 3);
-
-end;
-
-// --------------------------------------------------------------------------
-//
-// --------------------------------------------------------------------------
-
-class procedure TDnsProtocolUtility.WrapUdpRequestPacketOverTcpRequestPacket(Buffer: Pointer; BufferLen: Integer; var Output: Pointer; var OutputLen: Integer);
-
-begin
-
-  Move(Buffer^, Pointer(Integer(Output) + $02)^, BufferLen); PByteArray(Output)^[$00] := BufferLen shr 8; PByteArray(Output)^[$01] := BufferLen and 255; OutputLen := BufferLen + $02;
-
-end;
-
-// --------------------------------------------------------------------------
-//
-// --------------------------------------------------------------------------
-
-class procedure TDnsProtocolUtility.WrapTcpResponsePacketOverUdpResponsePacket(Buffer: Pointer; BufferLen: Integer; var Output: Pointer; var OutputLen: Integer);
-
-begin
-
-  OutputLen := BufferLen - $02; Move(Pointer(Integer(Buffer) + $02)^, Output^, OutputLen);
 
 end;
 

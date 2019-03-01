@@ -16,7 +16,8 @@ interface
 // --------------------------------------------------------------------------
 
 uses
-  CommunicationChannels;
+  CommunicationChannels,
+  MD5;
 
 // --------------------------------------------------------------------------
 //
@@ -26,9 +27,10 @@ type
   TSessionCache = class
     public
       class procedure Initialize;
-      class procedure Insert(SessionId: Word; RequestHash: Int64; ClientAddress: TDualIPAddress; ClientPort: Word; IsSilentUpdate: Boolean; IsCacheException: Boolean);
-      class function  Extract(SessionId: Word; var RequestHash: Int64; var ClientAddress: TDualIPAddress; var ClientPort: Word; var IsSilentUpdate: Boolean; var IsCacheException: Boolean): Boolean;
-      class procedure Delete(SessionId: Word);
+      class procedure Reserve(ReferenceTime: TDateTime; OriginalSessionId: Word; var RemappedSessionId: Word);
+      class procedure Insert(ReferenceTime: TDateTime; OriginalSessionId: Word; RemappedSessionId: Word; RequestHash: TMD5Digest; ClientAddress: TDualIPAddress; ClientPort: Word; IsSilentUpdate: Boolean; IsCacheException: Boolean);
+      class function  Extract(ReferenceTime: TDateTime; var OriginalSessionId: Word; RemappedSessionId: Word; var RequestHash: TMD5Digest; var ClientAddress: TDualIPAddress; var ClientPort: Word; var IsSilentUpdate: Boolean; var IsCacheException: Boolean): Boolean;
+      class procedure Delete(RemappedSessionId: Word);
       class procedure Finalize;
   end;
 
@@ -42,10 +44,28 @@ implementation
 //
 // --------------------------------------------------------------------------
 
+uses
+  SysUtils;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+const
+  SESSION_CACHE_EXPIRATION_TIME_1 = 6.944444e-4;
+  SESSION_CACHE_EXPIRATION_TIME_2 = 3.472222e-4;
+  SESSION_CACHE_EXPIRATION_TIME_3 = 1.736111e-4;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
 type
   TSessionCacheItem = record
+    SessionId: Word;
     IsAllocated: Boolean;
-    RequestHash: Int64;
+    AllocationTime: TDateTime;
+    RequestHash: TMD5Digest;
     ClientAddress: TDualIPAddress;
     ClientPort: Word;
     IsSilentUpdate: Boolean;
@@ -75,16 +95,44 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class procedure TSessionCache.Insert(SessionId: Word; RequestHash: Int64; ClientAddress: TDualIPAddress; ClientPort: Word; IsSilentUpdate: Boolean; IsCacheException: Boolean);
+class procedure TSessionCache.Reserve(ReferenceTime: TDateTime; OriginalSessionId: Word; var RemappedSessionId: Word);
+
+var
+  i: Integer;
 
 begin
 
-  TSessionCache_List[SessionId].IsAllocated := True;
-  TSessionCache_List[SessionId].RequestHash := RequestHash;
-  TSessionCache_List[SessionId].ClientAddress := ClientAddress;
-  TSessionCache_List[SessionId].ClientPort := ClientPort;
-  TSessionCache_List[SessionId].IsSilentUpdate := IsSilentUpdate;
-  TSessionCache_List[SessionId].IsCacheException := IsCacheException;
+  for i := 1 to 10 do begin
+
+    RemappedSessionId := Random(65536);
+
+    if not(TSessionCache_List[RemappedSessionId].IsAllocated) or ((ReferenceTime - TSessionCache_List[RemappedSessionId].AllocationTime) > SESSION_CACHE_EXPIRATION_TIME_1) then Exit;
+
+  end;
+
+  for i := 1 to 10 do begin
+
+    RemappedSessionId := Random(65536);
+
+    if not(TSessionCache_List[RemappedSessionId].IsAllocated) or ((ReferenceTime - TSessionCache_List[RemappedSessionId].AllocationTime) > SESSION_CACHE_EXPIRATION_TIME_2) then Exit;
+
+  end;
+
+  for i := 1 to 10 do begin
+
+    RemappedSessionId := Random(65536);
+
+    if not(TSessionCache_List[RemappedSessionId].IsAllocated) or ((ReferenceTime - TSessionCache_List[RemappedSessionId].AllocationTime) > SESSION_CACHE_EXPIRATION_TIME_3) then Exit;
+
+  end;
+
+  while (True) do begin
+
+    RemappedSessionId := Random(65536);
+
+    if not(TSessionCache_List[RemappedSessionId].IsAllocated) or ((ReferenceTime - TSessionCache_List[RemappedSessionId].AllocationTime) > SESSION_CACHE_EXPIRATION_TIME_3) then Exit else Sleep(50);
+
+  end;
 
 end;
 
@@ -92,17 +140,38 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class function TSessionCache.Extract(SessionId: Word; var RequestHash: Int64; var ClientAddress: TDualIPAddress; var ClientPort: Word; var IsSilentUpdate: Boolean; var IsCacheException: Boolean): Boolean;
+class procedure TSessionCache.Insert(ReferenceTime: TDateTime; OriginalSessionId: Word; RemappedSessionId: Word; RequestHash: TMD5Digest; ClientAddress: TDualIPAddress; ClientPort: Word; IsSilentUpdate: Boolean; IsCacheException: Boolean);
 
 begin
 
-  if TSessionCache_List[SessionId].IsAllocated then begin
+  TSessionCache_List[RemappedSessionId].IsAllocated := True;
+  TSessionCache_List[RemappedSessionId].AllocationTime := ReferenceTime;
 
-    RequestHash := TSessionCache_List[SessionId].RequestHash;
-    ClientAddress := TSessionCache_List[SessionId].ClientAddress;
-    ClientPort := TSessionCache_List[SessionId].ClientPort;
-    IsSilentUpdate := TSessionCache_List[SessionId].IsSilentUpdate;
-    IsCacheException := TSessionCache_List[SessionId].IsCacheException;
+  TSessionCache_List[RemappedSessionId].SessionId := OriginalSessionId;
+  TSessionCache_List[RemappedSessionId].RequestHash := RequestHash;
+  TSessionCache_List[RemappedSessionId].ClientAddress := ClientAddress;
+  TSessionCache_List[RemappedSessionId].ClientPort := ClientPort;
+  TSessionCache_List[RemappedSessionId].IsSilentUpdate := IsSilentUpdate;
+  TSessionCache_List[RemappedSessionId].IsCacheException := IsCacheException;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class function TSessionCache.Extract(ReferenceTime: TDateTime; var OriginalSessionId: Word; RemappedSessionId: Word; var RequestHash: TMD5Digest; var ClientAddress: TDualIPAddress; var ClientPort: Word; var IsSilentUpdate: Boolean; var IsCacheException: Boolean): Boolean;
+
+begin
+
+  if TSessionCache_List[RemappedSessionId].IsAllocated then begin
+
+    OriginalSessionId := TSessionCache_List[RemappedSessionId].SessionId;
+    RequestHash := TSessionCache_List[RemappedSessionId].RequestHash;
+    ClientAddress := TSessionCache_List[RemappedSessionId].ClientAddress;
+    ClientPort := TSessionCache_List[RemappedSessionId].ClientPort;
+    IsSilentUpdate := TSessionCache_List[RemappedSessionId].IsSilentUpdate;
+    IsCacheException := TSessionCache_List[RemappedSessionId].IsCacheException;
 
     Result := True;
 
@@ -118,11 +187,11 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class procedure TSessionCache.Delete(SessionId: Word);
+class procedure TSessionCache.Delete(RemappedSessionId: Word);
 
 begin
 
-    TSessionCache_List[SessionId].IsAllocated := False;
+    TSessionCache_List[RemappedSessionId].IsAllocated := False;
 
 end;
 

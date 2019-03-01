@@ -1,7 +1,7 @@
 @Echo Off
 
 Set DST=C:\Temp\Acrylic-Latest
-Set FSP=C:\Temp\Acrylic-Latest-ArchivesForFalsePositivesReports
+Set FPR=C:\Temp\Acrylic-Latest-ArchivesForFalsePositivesReports
 
 Echo CLEANING...
 
@@ -9,7 +9,7 @@ Call CleanSources.bat
 
 RmDir /s /q "%DST%" >NUL 2>NUL & MkDir "%DST%" >NUL 2>NUL
 
-RmDir /s /q "%FSP%" >NUL 2>NUL & MkDir "%FSP%" >NUL 2>NUL
+RmDir /s /q "%FPR%" >NUL 2>NUL & MkDir "%FPR%" >NUL 2>NUL
 
 Echo SEARCHING THE COMPILER...
 
@@ -44,25 +44,25 @@ If %ErrorLevel% Neq 0 Echo FAILED! & Pause & Exit /b 0
 
 Echo BUILDING ACRYLIC PORTABLE PACKAGE...
 
-7za.exe a -tzip -mx9 "%DST%\Acrylic-Portable.zip" AcrylicConfiguration.ini AcrylicHosts.txt AcrylicService.exe AcrylicConsole.exe AcrylicUI.exe.manifest AcrylicUI.exe License.txt ReadMe.txt InstallAcrylicService.bat StartAcrylicService.bat StopAcrylicService.bat RestartAcrylicService.bat PurgeAcrylicCacheData.bat ActivateAcrylicDebugLog.bat DeactivateAcrylicDebugLog.bat UninstallAcrylicService.bat
+7za.exe a -tzip -mx9 "%DST%\Acrylic-Portable.zip" AcrylicConfiguration.ini AcrylicHosts.txt AcrylicService.exe AcrylicConsole.exe AcrylicUI.exe.manifest AcrylicUI.exe License.txt ReadMe.txt InstallAcrylicService.bat StartAcrylicService.bat StopAcrylicService.bat RestartAcrylicService.bat PurgeAcrylicCacheData.bat ActivateAcrylicDebugLog.bat DeactivateAcrylicDebugLog.bat OpenAcrylicConfigurationFile.bat OpenAcrylicHostsFile.bat UninstallAcrylicService.bat
 
 If %ErrorLevel% Neq 0 Echo FAILED! & Pause & Exit /b 0
 
 Echo BUILDING ACRYLIC FALSE POSITIVES PACKAGE (AcrylicService.exe)...
 
-7za.exe a -tzip -mx9 "%FSP%\AcrylicService.zip" AcrylicService.exe
+7za.exe a -tzip -mx9 "%FPR%\AcrylicService.zip" AcrylicService.exe
 
 If %ErrorLevel% Neq 0 Echo FAILED! & Pause & Exit /b 0
 
 Echo BUILDING ACRYLIC FALSE POSITIVES PACKAGE (AcrylicConsole.exe)...
 
-7za.exe a -tzip -mx9 "%FSP%\AcrylicConsole.zip" AcrylicConsole.exe
+7za.exe a -tzip -mx9 "%FPR%\AcrylicConsole.zip" AcrylicConsole.exe
 
 If %ErrorLevel% Neq 0 Echo FAILED! & Pause & Exit /b 0
 
 Echo BUILDING ACRYLIC FALSE POSITIVES PACKAGE (AcrylicUI.exe)...
 
-7za.exe a -tzip -mx9 "%FSP%\AcrylicUI.zip" AcrylicUI.exe
+7za.exe a -tzip -mx9 "%FPR%\AcrylicUI.zip" AcrylicUI.exe
 
 If %ErrorLevel% Neq 0 Echo FAILED! & Pause & Exit /b 0
 

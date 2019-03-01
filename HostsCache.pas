@@ -29,15 +29,15 @@ type
       class procedure LoadFromFile(FileName: String);
       class function  FindFWHostsEntry(HostName: String): Boolean;
       class function  FindNXHostsEntry(HostName: String): Boolean;
-      class function  FindIPv4AddressHostsEntry(HostName: String; var IPv4Address: TIPv4Address): Boolean;
-      class function  FindIPv6AddressHostsEntry(HostName: String; var IPv6Address: TIPv6Address): Boolean;
+      class function  FindIPv4HostsEntry(HostName: String; var IPv4Address: TIPv4Address): Boolean;
+      class function  FindIPv6HostsEntry(HostName: String; var IPv6Address: TIPv6Address): Boolean;
       class procedure Finalize;
     private
-      class procedure LoadFromFileEx(FileName: String; var HostsCacheFWListLastAdded: String; var HostsCacheFWListNeedsSorting: Boolean; var HostsCacheNXListLastAdded: String; var HostsCacheNXListNeedsSorting: Boolean; var HostsCacheIPv4ListLastAdded: String; var HostsCacheIPv4ListNeedsSorting: Boolean; var HostsCacheIPv6ListLastAdded: String; var HostsCacheIPv6ListNeedsSorting: Boolean);
-      class procedure ParseFWHostsLine(FileStreamLineData: String; HostsLineIndexA: Integer; HostsLineIndexB: Integer; var HostsCacheListLastAdded: String; var HostsCacheListNeedsSorting: Boolean);
-      class procedure ParseNXHostsLine(FileStreamLineData: String; HostsLineIndexA: Integer; HostsLineIndexB: Integer; var HostsCacheListLastAdded: String; var HostsCacheListNeedsSorting: Boolean);
-      class procedure ParseIPv4HostsLine(FileStreamLineData: String; HostsLineIndexA: Integer; HostsLineIndexB: Integer; var HostsLineAddressData: TIPv4Address; var HostsCacheListLastAdded: String; var HostsCacheListNeedsSorting: Boolean);
-      class procedure ParseIPv6HostsLine(FileStreamLineData: String; HostsLineIndexA: Integer; HostsLineIndexB: Integer; var HostsLineAddressData: TIPv6Address; var HostsCacheListLastAdded: String; var HostsCacheListNeedsSorting: Boolean);
+      class procedure InternalLoadFromFile(FileName: String);
+      class procedure InternalParseFWHostsLine(FileStreamLineData: String; HostsLineIndexA: Integer; HostsLineIndexB: Integer);
+      class procedure InternalParseNXHostsLine(FileStreamLineData: String; HostsLineIndexA: Integer; HostsLineIndexB: Integer);
+      class procedure InternalParseIPv4HostsLine(FileStreamLineData: String; HostsLineIndexA: Integer; HostsLineIndexB: Integer; var HostsLineAddressData: TIPv4Address);
+      class procedure InternalParseIPv6HostsLine(FileStreamLineData: String; HostsLineIndexA: Integer; HostsLineIndexB: Integer; var HostsLineAddressData: TIPv6Address);
   end;
 
 // --------------------------------------------------------------------------
@@ -52,12 +52,12 @@ implementation
 
 uses
   Classes,
-  IniFiles,
   StrUtils,
   SysUtils,
   Configuration,
   DnsProtocol,
   FileStreamLineEx,
+  HostsCacheBinaryTrees,
   MemoryStore,
   PatternMatching,
   PerlRegEx,
@@ -69,11 +69,11 @@ uses
 
 type
   TRegularExpressionList = class
+    public
+      Count: Integer;
     private
       List1: TList;
       List2: TList;
-    public
-      Count: Integer;
     public
       constructor Create;
       procedure   Add(Expression: String; Associated: TObject);
@@ -89,14 +89,14 @@ type
 // --------------------------------------------------------------------------
 
 var
-  THostsCache_MemoryStore: TMemoryStore;
+  THostsCache_MemoryStore: TType1MemoryStore;
 
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
 
 var
-  THostsCache_FWList: THashedStringList;
+  THostsCache_FWTree: THostsCacheNameOnlyBinaryTree;
   THostsCache_FWPatterns: TStringList;
   THostsCache_FWExpressions: TRegularExpressionList;
 
@@ -105,7 +105,7 @@ var
 // --------------------------------------------------------------------------
 
 var
-  THostsCache_NXList: THashedStringList;
+  THostsCache_NXTree: THostsCacheNameOnlyBinaryTree;
   THostsCache_NXPatterns: TStringList;
   THostsCache_NXExpressions: TRegularExpressionList;
 
@@ -114,7 +114,7 @@ var
 // --------------------------------------------------------------------------
 
 var
-  THostsCache_IPv4List: THashedStringList;
+  THostsCache_IPv4Tree: THostsCacheIPv4AddressBinaryTree;
   THostsCache_IPv4Patterns: TStringList;
   THostsCache_IPv4Expressions: TRegularExpressionList;
 
@@ -123,7 +123,7 @@ var
 // --------------------------------------------------------------------------
 
 var
-  THostsCache_IPv6List: THashedStringList;
+  THostsCache_IPv6Tree: THostsCacheIPv6AddressBinaryTree;
   THostsCache_IPv6Patterns: TStringList;
   THostsCache_IPv6Expressions: TRegularExpressionList;
 
@@ -135,23 +135,51 @@ class procedure THostsCache.Initialize;
 
 begin
 
-  THostsCache_MemoryStore := TMemoryStore.Create;
+  THostsCache_MemoryStore := TType1MemoryStore.Create(MEMORY_STORE_256KB_BLOCK_SIZE);
 
-  THostsCache_FWList := THashedStringList.Create; THostsCache_FWList.CaseSensitive := False; THostsCache_FWList.Duplicates := dupIgnore;
+  THostsCache_FWTree := THostsCacheNameOnlyBinaryTree.Create(THostsCache_MemoryStore);
   THostsCache_FWPatterns := TStringList.Create;
   THostsCache_FWExpressions := TRegularExpressionList.Create;
 
-  THostsCache_NXList := THashedStringList.Create; THostsCache_NXList.CaseSensitive := False; THostsCache_NXList.Duplicates := dupIgnore;
+  THostsCache_NXTree := THostsCacheNameOnlyBinaryTree.Create(THostsCache_MemoryStore);
   THostsCache_NXPatterns := TStringList.Create;
   THostsCache_NXExpressions := TRegularExpressionList.Create;
 
-  THostsCache_IPv4List := THashedStringList.Create; THostsCache_IPv4List.CaseSensitive := False; THostsCache_IPv4List.Duplicates := dupIgnore;
+  THostsCache_IPv4Tree := THostsCacheIPv4AddressBinaryTree.Create(THostsCache_MemoryStore);
   THostsCache_IPv4Patterns := TStringList.Create;
   THostsCache_IPv4Expressions := TRegularExpressionList.Create;
 
-  THostsCache_IPv6List := THashedStringList.Create; THostsCache_IPv6List.CaseSensitive := False; THostsCache_IPv6List.Duplicates := dupIgnore;
+  THostsCache_IPv6Tree := THostsCacheIPv6AddressBinaryTree.Create(THostsCache_MemoryStore);
   THostsCache_IPv6Patterns := TStringList.Create;
   THostsCache_IPv6Expressions := TRegularExpressionList.Create;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class procedure THostsCache.LoadFromFile(FileName: String);
+
+begin
+
+  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'THostsCache.LoadFromFile: Loading hosts cache items...');
+
+  THostsCache_FWExpressions.BeginUpdate; THostsCache_FWPatterns.BeginUpdate;
+  THostsCache_NXExpressions.BeginUpdate; THostsCache_NXPatterns.BeginUpdate;
+
+  THostsCache_IPv4Expressions.BeginUpdate; THostsCache_IPv4Patterns.BeginUpdate;
+  THostsCache_IPv6Expressions.BeginUpdate; THostsCache_IPv6Patterns.BeginUpdate;
+
+  Self.InternalLoadFromFile(FileName);
+
+  THostsCache_IPv6Patterns.EndUpdate; THostsCache_IPv6Expressions.EndUpdate;
+  THostsCache_IPv4Patterns.EndUpdate; THostsCache_IPv4Expressions.EndUpdate;
+
+  THostsCache_NXPatterns.EndUpdate; THostsCache_NXExpressions.EndUpdate;
+  THostsCache_FWPatterns.EndUpdate; THostsCache_FWExpressions.EndUpdate;
+
+  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'THostsCache.LoadFromFile: Done loading hosts cache items.');
 
 end;
 
@@ -166,7 +194,7 @@ var
 
 begin
 
-  if (THostsCache_FWList.Find(HostName, ListIndex)) then begin
+  if (THostsCache_FWTree.Find(HostName)) then begin
 
     Result := True; Exit;
 
@@ -212,7 +240,7 @@ var
 
 begin
 
-  if (THostsCache_NXList.Find(HostName, ListIndex)) then begin
+  if (THostsCache_NXTree.Find(HostName)) then begin
 
     Result := True; Exit;
 
@@ -251,16 +279,16 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class function THostsCache.FindIPv4AddressHostsEntry(HostName: String; var IPv4Address: TIPv4Address): Boolean;
+class function THostsCache.FindIPv4HostsEntry(HostName: String; var IPv4Address: TIPv4Address): Boolean;
 
 var
   ListIndex: Integer;
 
 begin
 
-  if (THostsCache_IPv4List.Find(HostName, ListIndex)) then begin
+  if (THostsCache_IPv4Tree.Find(HostName, IPv4Address)) then begin
 
-    IPv4Address := Integer(THostsCache_IPv4List.Objects[ListIndex]); Result := True; Exit;
+    Result := True; Exit;
 
   end else begin
 
@@ -297,16 +325,16 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class function THostsCache.FindIPv6AddressHostsEntry(HostName: String; var IPv6Address: TIPv6Address): Boolean;
+class function THostsCache.FindIPv6HostsEntry(HostName: String; var IPv6Address: TIPv6Address): Boolean;
 
 var
-  ListIndex: Integer;
+  TreeData: PIPv6Address; ListIndex: Integer;
 
 begin
 
-  if (THostsCache_IPv6List.Find(HostName, ListIndex)) then begin
+  if (THostsCache_IPv6Tree.Find(HostName, TreeData)) then begin
 
-    IPv6Address := PIPv6Address(THostsCache_IPv6List.Objects[ListIndex])^; Result := True; Exit;
+    IPv6Address := TreeData^; Result := True; Exit;
 
   end else begin
 
@@ -343,7 +371,25 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class procedure THostsCache.ParseFWHostsLine(FileStreamLineData: String; HostsLineIndexA: Integer; HostsLineIndexB: Integer; var HostsCacheListLastAdded: String; var HostsCacheListNeedsSorting: Boolean);
+class procedure THostsCache.Finalize;
+
+begin
+
+  THostsCache_IPv6Patterns.Free; THostsCache_IPv6Expressions.Free; THostsCache_IPv6Tree.Free;
+  THostsCache_IPv4Patterns.Free; THostsCache_IPv4Expressions.Free; THostsCache_IPv4Tree.Free;
+
+  THostsCache_NXPatterns.Free; THostsCache_NXExpressions.Free; THostsCache_NXTree.Free;
+  THostsCache_FWPatterns.Free; THostsCache_FWExpressions.Free; THostsCache_FWTree.Free;
+
+  THostsCache_MemoryStore.Free;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class procedure THostsCache.InternalParseFWHostsLine(FileStreamLineData: String; HostsLineIndexA: Integer; HostsLineIndexB: Integer);
 
 var
   HostsLineTextData: String;
@@ -364,9 +410,7 @@ begin
 
     if (Pos('*', HostsLineTextData) > 0) or (Pos('?', HostsLineTextData) > 0) then THostsCache_FWPatterns.AddObject(HostsLineTextData, nil) else begin
 
-      THostsCache_FWList.AddObject(HostsLineTextData, nil);
-
-      if (HostsLineTextData < HostsCacheListLastAdded) then HostsCacheListNeedsSorting := True; HostsCacheListLastAdded := HostsLineTextData;
+      THostsCache_FWTree.Add(HostsLineTextData);
 
     end;
 
@@ -376,9 +420,7 @@ begin
 
   end else begin
 
-    THostsCache_FWList.AddObject(HostsLineTextData, nil);
-
-    if (HostsLineTextData < HostsCacheListLastAdded) then HostsCacheListNeedsSorting := True; HostsCacheListLastAdded := HostsLineTextData;
+    THostsCache_FWTree.Add(HostsLineTextData);
 
   end;
 
@@ -388,7 +430,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class procedure THostsCache.ParseNXHostsLine(FileStreamLineData: String; HostsLineIndexA: Integer; HostsLineIndexB: Integer; var HostsCacheListLastAdded: String; var HostsCacheListNeedsSorting: Boolean);
+class procedure THostsCache.InternalParseNXHostsLine(FileStreamLineData: String; HostsLineIndexA: Integer; HostsLineIndexB: Integer);
 
 var
   HostsLineTextData: String;
@@ -409,9 +451,7 @@ begin
 
     if (Pos('*', HostsLineTextData) > 0) or (Pos('?', HostsLineTextData) > 0) then THostsCache_NXPatterns.AddObject(HostsLineTextData, nil) else begin
 
-      THostsCache_NXList.AddObject(HostsLineTextData, nil);
-
-      if (HostsLineTextData < HostsCacheListLastAdded) then HostsCacheListNeedsSorting := True; HostsCacheListLastAdded := HostsLineTextData;
+      THostsCache_NXTree.Add(HostsLineTextData);
 
     end;
 
@@ -421,9 +461,7 @@ begin
 
   end else begin
 
-    THostsCache_NXList.AddObject(HostsLineTextData, nil);
-
-    if (HostsLineTextData < HostsCacheListLastAdded) then HostsCacheListNeedsSorting := True; HostsCacheListLastAdded := HostsLineTextData;
+    THostsCache_NXTree.Add(HostsLineTextData);
 
   end;
 
@@ -433,7 +471,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class procedure THostsCache.ParseIPv4HostsLine(FileStreamLineData: String; HostsLineIndexA: Integer; HostsLineIndexB: Integer; var HostsLineAddressData: TIPv4Address; var HostsCacheListLastAdded: String; var HostsCacheListNeedsSorting: Boolean);
+class procedure THostsCache.InternalParseIPv4HostsLine(FileStreamLineData: String; HostsLineIndexA: Integer; HostsLineIndexB: Integer; var HostsLineAddressData: TIPv4Address);
 
 var
   HostsLineTextData: String;
@@ -454,9 +492,7 @@ begin
 
     if (Pos('*', HostsLineTextData) > 0) or (Pos('?', HostsLineTextData) > 0) then THostsCache_IPv4Patterns.AddObject(HostsLineTextData, TObject(HostsLineAddressData)) else begin
 
-      THostsCache_IPv4List.AddObject(HostsLineTextData, TObject(HostsLineAddressData));
-
-      if (HostsLineTextData < HostsCacheListLastAdded) then HostsCacheListNeedsSorting := True; HostsCacheListLastAdded := HostsLineTextData;
+      THostsCache_IPv4Tree.Add(HostsLineTextData, HostsLineAddressData);
 
     end;
 
@@ -466,9 +502,7 @@ begin
 
   end else begin
 
-    THostsCache_IPv4List.AddObject(HostsLineTextData, TObject(HostsLineAddressData));
-
-    if (HostsLineTextData < HostsCacheListLastAdded) then HostsCacheListNeedsSorting := True; HostsCacheListLastAdded := HostsLineTextData;
+    THostsCache_IPv4Tree.Add(HostsLineTextData, HostsLineAddressData);
 
   end;
 
@@ -478,7 +512,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class procedure THostsCache.ParseIPv6HostsLine(FileStreamLineData: String; HostsLineIndexA: Integer; HostsLineIndexB: Integer; var HostsLineAddressData: TIPv6Address; var HostsCacheListLastAdded: String; var HostsCacheListNeedsSorting: Boolean);
+class procedure THostsCache.InternalParseIPv6HostsLine(FileStreamLineData: String; HostsLineIndexA: Integer; HostsLineIndexB: Integer; var HostsLineAddressData: TIPv6Address);
 
 var
   HostsLineTextData: String; PHostsLineAddressData: PIPv6Address;
@@ -486,7 +520,8 @@ var
 begin
 
   HostsLineTextData := Copy(FileStreamLineData, HostsLineIndexA, HostsLineIndexB - HostsLineIndexA);
-  PHostsLineAddressData := THostsCache_MemoryStore.GetMemory(SizeOf(TIPv6Address)); PHostsLineAddressData^[0] := HostsLineAddressData[0]; PHostsLineAddressData^[1] := HostsLineAddressData[1]; PHostsLineAddressData^[2] := HostsLineAddressData[2]; PHostsLineAddressData^[3] := HostsLineAddressData[3]; PHostsLineAddressData^[4] := HostsLineAddressData[4]; PHostsLineAddressData^[5] := HostsLineAddressData[5]; PHostsLineAddressData^[6] := HostsLineAddressData[6]; PHostsLineAddressData^[7] := HostsLineAddressData[7]; PHostsLineAddressData^[8] := HostsLineAddressData[8]; PHostsLineAddressData^[9] := HostsLineAddressData[9]; PHostsLineAddressData^[10] := HostsLineAddressData[10]; PHostsLineAddressData^[11] := HostsLineAddressData[11]; PHostsLineAddressData^[12] := HostsLineAddressData[12]; PHostsLineAddressData^[13] := HostsLineAddressData[13]; PHostsLineAddressData^[14] := HostsLineAddressData[14]; PHostsLineAddressData^[15] := HostsLineAddressData[15];
+
+  PHostsLineAddressData := THostsCache_MemoryStore.GetMemory(SizeOf(TIPv6Address)); Move(HostsLineAddressData, PHostsLineAddressData^, SizeOf(TIPv6Address));
 
   if (FileStreamLineData[HostsLineIndexA] = '/') then begin
 
@@ -500,9 +535,7 @@ begin
 
     if (Pos('*', HostsLineTextData) > 0) or (Pos('?', HostsLineTextData) > 0) then THostsCache_IPv6Patterns.AddObject(HostsLineTextData, TObject(PHostsLineAddressData)) else begin
 
-      THostsCache_IPv6List.AddObject(HostsLineTextData, TObject(PHostsLineAddressData));
-
-      if (HostsLineTextData < HostsCacheListLastAdded) then HostsCacheListNeedsSorting := True; HostsCacheListLastAdded := HostsLineTextData;
+      THostsCache_IPv6Tree.Add(HostsLineTextData, PHostsLineAddressData);
 
     end;
 
@@ -512,9 +545,7 @@ begin
 
   end else begin
 
-    THostsCache_IPv6List.AddObject(HostsLineTextData, TObject(PHostsLineAddressData));
-
-    if (HostsLineTextData < HostsCacheListLastAdded) then HostsCacheListNeedsSorting := True; HostsCacheListLastAdded := HostsLineTextData;
+    THostsCache_IPv6Tree.Add(HostsLineTextData, PHostsLineAddressData);
 
   end;
 
@@ -524,50 +555,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class procedure THostsCache.LoadFromFile(FileName: String);
-
-var
-  HostsCacheFWListLastAdded: String; HostsCacheFWListNeedsSorting: Boolean; HostsCacheNXListLastAdded: String; HostsCacheNXListNeedsSorting: Boolean; HostsCacheIPv4ListLastAdded: String; HostsCacheIPv4ListNeedsSorting: Boolean; HostsCacheIPv6ListLastAdded: String; HostsCacheIPv6ListNeedsSorting: Boolean;
-
-begin
-
-  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'THostsCache.LoadFromFile: Loading hosts cache items...');
-
-  THostsCache_FWList.BeginUpdate; THostsCache_FWExpressions.BeginUpdate; THostsCache_FWPatterns.BeginUpdate;
-  THostsCache_NXList.BeginUpdate; THostsCache_NXExpressions.BeginUpdate; THostsCache_NXPatterns.BeginUpdate;
-
-  THostsCache_IPv4List.BeginUpdate; THostsCache_IPv4Expressions.BeginUpdate; THostsCache_IPv4Patterns.BeginUpdate;
-  THostsCache_IPv6List.BeginUpdate; THostsCache_IPv6Expressions.BeginUpdate; THostsCache_IPv6Patterns.BeginUpdate;
-
-  SetLength(HostsCacheFWListLastAdded, 0); HostsCacheFWListNeedsSorting := False;
-  SetLength(HostsCacheNXListLastAdded, 0); HostsCacheNXListNeedsSorting := False;
-
-  SetLength(HostsCacheIPv4ListLastAdded, 0); HostsCacheIPv4ListNeedsSorting := False;
-  SetLength(HostsCacheIPv6ListLastAdded, 0); HostsCacheIPv6ListNeedsSorting := False;
-
-  Self.LoadFromFileEx(FileName, HostsCacheFWListLastAdded, HostsCacheFWListNeedsSorting, HostsCacheNXListLastAdded, HostsCacheNXListNeedsSorting, HostsCacheIPv4ListLastAdded, HostsCacheIPv4ListNeedsSorting, HostsCacheIPv6ListLastAdded, HostsCacheIPv6ListNeedsSorting);
-
-  if (HostsCacheIPv6ListNeedsSorting) then THostsCache_IPv6List.Sort else THostsCache_IPv6List.Sorted := True;
-  if (HostsCacheIPv4ListNeedsSorting) then THostsCache_IPv4List.Sort else THostsCache_IPv4List.Sorted := True;
-
-  if (HostsCacheNXListNeedsSorting) then THostsCache_NXList.Sort else THostsCache_NXList.Sorted := True;
-  if (HostsCacheFWListNeedsSorting) then THostsCache_FWList.Sort else THostsCache_FWList.Sorted := True;
-
-  THostsCache_IPv6Patterns.EndUpdate; THostsCache_IPv6Expressions.EndUpdate; THostsCache_IPv6List.EndUpdate;
-  THostsCache_IPv4Patterns.EndUpdate; THostsCache_IPv4Expressions.EndUpdate; THostsCache_IPv4List.EndUpdate;
-
-  THostsCache_NXPatterns.EndUpdate; THostsCache_NXExpressions.EndUpdate; THostsCache_NXList.EndUpdate;
-  THostsCache_FWPatterns.EndUpdate; THostsCache_FWExpressions.EndUpdate; THostsCache_FWList.EndUpdate;
-
-  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'THostsCache.LoadFromFile: Done loading hosts cache items.');
-
-end;
-
-// --------------------------------------------------------------------------
-//
-// --------------------------------------------------------------------------
-
-class procedure THostsCache.LoadFromFileEx(FileName: String; var HostsCacheFWListLastAdded: String; var HostsCacheFWListNeedsSorting: Boolean; var HostsCacheNXListLastAdded: String; var HostsCacheNXListNeedsSorting: Boolean; var HostsCacheIPv4ListLastAdded: String; var HostsCacheIPv4ListNeedsSorting: Boolean; var HostsCacheIPv6ListLastAdded: String; var HostsCacheIPv6ListNeedsSorting: Boolean);
+class procedure THostsCache.InternalLoadFromFile(FileName: String);
 
 var
   FileStream: TFileStream; FileStreamLineEx: TFileStreamLineEx; FileStreamLineData: String; FileStreamLineMoreAvailable: Boolean; FileStreamLineSize: Integer; FileNameEx: String; HostsLineIndexA: Integer; HostsLineIndexB: Integer; HostsLineRecordType: Integer; HostsLineAddressText: String; HostsLineAddressData: TDualIPAddress;
@@ -596,7 +584,7 @@ begin
 
                 if FileExists(FileNameEx) then begin
 
-                  Self.LoadFromFileEx(FileNameEx, HostsCacheFWListLastAdded, HostsCacheFWListNeedsSorting, HostsCacheNXListLastAdded, HostsCacheNXListNeedsSorting, HostsCacheIPv4ListLastAdded, HostsCacheIPv4ListNeedsSorting, HostsCacheIPv6ListLastAdded, HostsCacheIPv6ListNeedsSorting);
+                  Self.InternalLoadFromFile(FileNameEx);
 
                 end;
 
@@ -648,19 +636,19 @@ begin
 
                     10: begin
 
-                      Self.ParseFWHostsLine(FileStreamLineData, HostsLineIndexA, HostsLineIndexB, HostsCacheFWListLastAdded, HostsCacheFWListNeedsSorting);
+                      Self.InternalParseFWHostsLine(FileStreamLineData, HostsLineIndexA, HostsLineIndexB);
 
                     end;
 
                     20: begin
 
-                      Self.ParseNXHostsLine(FileStreamLineData, HostsLineIndexA, HostsLineIndexB, HostsCacheNXListLastAdded, HostsCacheNXListNeedsSorting);
+                      Self.InternalParseNXHostsLine(FileStreamLineData, HostsLineIndexA, HostsLineIndexB);
 
                     end;
 
                     99: begin
 
-                      if HostsLineAddressData.IsIPv6Address then Self.ParseIPv6HostsLine(FileStreamLineData, HostsLineIndexA, HostsLineIndexB, HostsLineAddressData.IPv6Address, HostsCacheIPv6ListLastAdded, HostsCacheIPv6ListNeedsSorting) else Self.ParseIPv4HostsLine(FileStreamLineData, HostsLineIndexA, HostsLineIndexB, HostsLineAddressData.IPv4Address, HostsCacheIPv4ListLastAdded, HostsCacheIPv4ListNeedsSorting);
+                      if HostsLineAddressData.IsIPv6Address then Self.InternalParseIPv6HostsLine(FileStreamLineData, HostsLineIndexA, HostsLineIndexB, HostsLineAddressData.IPv6Address) else Self.InternalParseIPv4HostsLine(FileStreamLineData, HostsLineIndexA, HostsLineIndexB, HostsLineAddressData.IPv4Address);
 
                     end;
 
@@ -688,19 +676,19 @@ begin
 
               10: begin
 
-                Self.ParseFWHostsLine(FileStreamLineData, HostsLineIndexA, HostsLineIndexB, HostsCacheFWListLastAdded, HostsCacheFWListNeedsSorting);
+                Self.InternalParseFWHostsLine(FileStreamLineData, HostsLineIndexA, HostsLineIndexB);
 
               end;
 
               20: begin
 
-                Self.ParseNXHostsLine(FileStreamLineData, HostsLineIndexA, HostsLineIndexB, HostsCacheNXListLastAdded, HostsCacheNXListNeedsSorting);
+                Self.InternalParseNXHostsLine(FileStreamLineData, HostsLineIndexA, HostsLineIndexB);
 
               end;
 
               99: begin
 
-                if HostsLineAddressData.IsIPv6Address then Self.ParseIPv6HostsLine(FileStreamLineData, HostsLineIndexA, HostsLineIndexB, HostsLineAddressData.IPv6Address, HostsCacheIPv6ListLastAdded, HostsCacheIPv6ListNeedsSorting) else Self.ParseIPv4HostsLine(FileStreamLineData, HostsLineIndexA, HostsLineIndexB, HostsLineAddressData.IPv4Address, HostsCacheIPv4ListLastAdded, HostsCacheIPv4ListNeedsSorting);
+                if HostsLineAddressData.IsIPv6Address then Self.InternalParseIPv6HostsLine(FileStreamLineData, HostsLineIndexA, HostsLineIndexB, HostsLineAddressData.IPv6Address) else Self.InternalParseIPv4HostsLine(FileStreamLineData, HostsLineIndexA, HostsLineIndexB, HostsLineAddressData.IPv4Address);
 
               end;
 
@@ -725,24 +713,6 @@ begin
   end;
 
   if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'THostsCache.LoadFromFileEx: Done loading hosts cache items from file "' + FileName + '".');
-
-end;
-
-// --------------------------------------------------------------------------
-//
-// --------------------------------------------------------------------------
-
-class procedure THostsCache.Finalize;
-
-begin
-
-  THostsCache_IPv6Patterns.Free; THostsCache_IPv6Expressions.Free; THostsCache_IPv6List.Free;
-  THostsCache_IPv4Patterns.Free; THostsCache_IPv4Expressions.Free; THostsCache_IPv4List.Free;
-
-  THostsCache_NXPatterns.Free; THostsCache_NXExpressions.Free; THostsCache_NXList.Free;
-  THostsCache_FWPatterns.Free; THostsCache_FWExpressions.Free; THostsCache_FWList.Free;
-
-  THostsCache_MemoryStore.Free;
 
 end;
 

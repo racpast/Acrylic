@@ -28,9 +28,9 @@ begin
 
   inherited Create;
 
-  TMemoryManager.GetMemory(BufferA, MAX_DNS_PACKET_LEN);
-  TMemoryManager.GetMemory(BufferB, MAX_DNS_PACKET_LEN);
-  TMemoryManager.GetMemory(BufferC, MAX_DNS_PACKET_LEN);
+  Self.BufferA := TMemoryManager.GetMemory(MAX_DNS_PACKET_LEN);
+  Self.BufferB := TMemoryManager.GetMemory(MAX_DNS_PACKET_LEN);
+  Self.BufferC := TMemoryManager.GetMemory(MAX_DNS_PACKET_LEN);
 
 end;
 
@@ -41,24 +41,47 @@ end;
 procedure TAddressCacheUnitTest.ExecuteTest;
 
 var
-  i, j: Integer; Time: TDateTime; InitSeed: Integer;
+  TimeStamp: TDateTime; InitSeed: Integer; i, j: Integer;
 
 begin
 
-  Time := Now;
+  TimeStamp := Now;
 
-  InitSeed := Round(Frac(Time) * 8640000.0);
+  InitSeed := Round(Frac(TimeStamp) * 8640000.0);
 
   TAddressCache.Initialize;
 
   TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Starting massive insertion...');
 
-  RandSeed := InitSeed; for i := 0 to ((1000 * TAddressCacheUnitTest_KCacheItems) - 1) do begin
+  RandSeed := InitSeed;
 
-    BufferLenA := Random(MAX_DNS_PACKET_LEN - MIN_DNS_PACKET_LEN + 1) + MIN_DNS_PACKET_LEN; for j := 0 to (BufferLenA - 1) do PByteArray(BufferA)^[j] := Random(256);
-    BufferLenB := Random(MAX_DNS_PACKET_LEN - MIN_DNS_PACKET_LEN + 1) + MIN_DNS_PACKET_LEN; for j := 0 to (BufferLenB - 1) do PByteArray(BufferB)^[j] := Random(256);
+  for i := 0 to ((1000 * TAddressCacheUnitTest_KCacheItems) - 1) do begin
 
-    TAddressCache.Add(Time, TDigest.ComputeCRC64(BufferA, BufferLenA), BufferB, BufferLenB, (i mod 2) = 1);
+    BufferLenA := Random(512) + MIN_DNS_PACKET_LEN; for j := 0 to (BufferLenA - 1) do PByteArray(BufferA)^[j] := Random(256);
+    BufferLenB := Random(512) + MIN_DNS_PACKET_LEN; for j := 0 to (BufferLenB - 1) do PByteArray(BufferB)^[j] := Random(256);
+
+    TAddressCache.Add(TimeStamp, TMD5.Compute(BufferA, BufferLenA), BufferB, BufferLenB, AddressCacheItemOptionsResponseTypeIsPositive);
+
+  end;
+
+  TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Done.');
+
+  TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Starting massive search...');
+
+  RandSeed := InitSeed;
+
+  for i := 0 to ((1000 * TAddressCacheUnitTest_KCacheItems) - 1) do begin
+
+    BufferLenA := Random(512) + MIN_DNS_PACKET_LEN; for j := 0 to (BufferLenA - 1) do PByteArray(BufferA)^[j] := Random(256);
+    BufferLenB := Random(512) + MIN_DNS_PACKET_LEN; for j := 0 to (BufferLenB - 1) do PByteArray(BufferB)^[j] := Random(256);
+
+    if not((TAddressCache.Find(TimeStamp, TMD5.Compute(BufferA, BufferLenA), BufferC, BufferLenC) = RecentEnough)) then begin
+      raise FailedUnitTestException.Create;
+    end;
+
+    if (BufferLenC <> BufferLenB) and not(CompareMem(BufferB, BufferC, BufferLenB)) then begin
+      raise FailedUnitTestException.Create;
+    end;
 
   end;
 
@@ -70,7 +93,9 @@ begin
 
   TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Done.');
 
-  TAddressCache.Finalize; TAddressCache.Initialize;
+  TAddressCache.Finalize;
+
+  TAddressCache.Initialize;
 
   TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Starting loading from file...');
 
@@ -82,10 +107,10 @@ begin
 
   RandSeed := InitSeed; for i := 0 to ((1000 * TAddressCacheUnitTest_KCacheItems) - 1) do begin
 
-    BufferLenA := Random(MAX_DNS_PACKET_LEN - MIN_DNS_PACKET_LEN + 1) + MIN_DNS_PACKET_LEN; for j := 0 to (BufferLenA - 1) do PByteArray(BufferA)^[j] := Random(256);
-    BufferLenB := Random(MAX_DNS_PACKET_LEN - MIN_DNS_PACKET_LEN + 1) + MIN_DNS_PACKET_LEN; for j := 0 to (BufferLenB - 1) do PByteArray(BufferB)^[j] := Random(256);
+    BufferLenA := Random(512) + MIN_DNS_PACKET_LEN; for j := 0 to (BufferLenA - 1) do PByteArray(BufferA)^[j] := Random(256);
+    BufferLenB := Random(512) + MIN_DNS_PACKET_LEN; for j := 0 to (BufferLenB - 1) do PByteArray(BufferB)^[j] := Random(256);
 
-    if not((TAddressCache.Find(Time, TDigest.ComputeCRC64(BufferA, BufferLenA), BufferC, BufferLenC) = RecentEnough)) then begin
+    if not((TAddressCache.Find(TimeStamp, TMD5.Compute(BufferA, BufferLenA), BufferC, BufferLenC) = RecentEnough)) then begin
       raise FailedUnitTestException.Create;
     end;
 

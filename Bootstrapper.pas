@@ -69,7 +69,7 @@ begin
 
   if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StartSystem: Done loading configuration file.');
 
-  if not(TConfiguration.GetAddressCacheDisabled) and FileExists(TConfiguration.GetAddressCacheFileName) then begin
+  if not(TConfiguration.GetAddressCacheDisabled) and not(TConfiguration.GetAddressCacheInMemoryOnly) and FileExists(TConfiguration.GetAddressCacheFileName) then begin
 
     if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StartSystem: Loading address cache items...');
 
@@ -111,7 +111,7 @@ begin
 
   if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StopSystem: Done stopping DNS resolver.');
 
-  if not(TConfiguration.GetAddressCacheDisabled) then begin
+  if not(TConfiguration.GetAddressCacheDisabled) and not(TConfiguration.GetAddressCacheInMemoryOnly) then begin
 
     if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StopSystem: Saving address cache items...');
 

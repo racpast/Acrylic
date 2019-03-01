@@ -118,9 +118,9 @@ begin
 
   except
 
-   on FailedUnitTestException do TTracer.Trace(TracePriorityError, ClassName + ': Failed');
-   on UndefinedUnitTestException do TTracer.Trace(TracePriorityError, ClassName + ': Undefined class');
-   on E: Exception do TTracer.Trace(TracePriorityError, ClassName + ': Failed ' + E.Message);
+   on FailedUnitTestException do TTracer.Trace(TracePriorityError, ClassName + ': FAILED!');
+   on UndefinedUnitTestException do TTracer.Trace(TracePriorityError, ClassName + ': UNDEFINED CLASS!');
+   on E: Exception do TTracer.Trace(TracePriorityError, ClassName + ': FAILED! ' + E.Message);
 
   end;
 

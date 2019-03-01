@@ -26,7 +26,7 @@ uses
 type
   TMemoryManager = class
     public
-      class procedure GetMemory(var Address: Pointer; Size: Integer);
+      class function  GetMemory(Size: Integer): Pointer;
       class procedure FreeMemory(Address: Pointer; Size: Integer);
   end;
 
@@ -40,11 +40,14 @@ implementation
 //
 // --------------------------------------------------------------------------
 
-class procedure TMemoryManager.GetMemory(var Address: Pointer; Size: Integer);
+class function TMemoryManager.GetMemory(Size: Integer): Pointer;
+
+var
+  Address: Pointer;
 
 begin
 
-  GetMem(Address, Size);
+  GetMem(Address, Size); Result := Address;
 
 end;
 

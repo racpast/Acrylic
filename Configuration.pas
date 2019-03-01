@@ -41,6 +41,7 @@ type
     Protocol: TDnsProtocol;
     ProxyAddress: TDualIPAddress;
     ProxyPort: Word;
+    IgnoreFailureResponsesFromServer: Boolean;
     IgnoreNegativeResponsesFromServer: Boolean;
   end;
 
@@ -60,15 +61,15 @@ type
       class function  GetHitLogFileName: String;
       class function  GetHitLogFileWhat: String;
       class function  GetHitLogFileMode: String;
-      class function  GetStatsLogFileName: String;
     public
       class function  GetDnsServerConfiguration(Index: Integer): TDnsServerConfiguration;
-      class function  FindDnsServerConfiguration(Address: TDualIPAddress; Port: Word): Integer;
     public
-      class function  GetAddressCacheDisabled: Boolean;
+      class function  GetAddressCacheFailureTime: Integer;
       class function  GetAddressCacheNegativeTime: Integer;
       class function  GetAddressCacheScavengingTime: Integer;
       class function  GetAddressCacheSilentUpdateTime: Integer;
+      class function  GetAddressCacheInMemoryOnly: Boolean;
+      class function  GetAddressCacheDisabled: Boolean;
     public
       class function  IsLocalIPv4BindingEnabled: Boolean;
     public
@@ -81,6 +82,16 @@ type
       class function  GetLocalIPv6BindingPort: Word;
     public
       class function  GetGeneratedDnsResponseTimeToLive: Integer;
+    public
+      class function  GetServerUdpProtocolResponseTimeout: Integer;
+      class function  GetServerTcpProtocolResponseTimeout: Integer;
+      class function  GetServerTcpProtocolInternalTimeout: Integer;
+      class function  GetServerTcpProtocolPipeliningDisabled: Boolean;
+      class function  GetServerTcpProtocolPipeliningSessionLifetime: Integer;
+      class function  GetServerSocks5ProtocolProxyFirstByteTimeout: Integer;
+      class function  GetServerSocks5ProtocolProxyOtherBytesTimeout: Integer;
+      class function  GetServerSocks5ProtocolProxyRemoteConnectTimeout: Integer;
+      class function  GetServerSocks5ProtocolProxyRemoteResponseTimeout: Integer;
     public
       class function  IsDomainNameAffinityMatch(DomainName: String; DomainNameAffinityMask: TStringList): Boolean;
       class function  IsQueryTypeAffinityMatch(QueryType: Word; QueryTypeAffinityMask: TList): Boolean;
@@ -129,10 +140,12 @@ var
 // --------------------------------------------------------------------------
 
 var
-  TConfiguration_AddressCacheDisabled: Boolean;
+  TConfiguration_AddressCacheFailureTime: Integer;
   TConfiguration_AddressCacheNegativeTime: Integer;
   TConfiguration_AddressCacheScavengingTime: Integer;
   TConfiguration_AddressCacheSilentUpdateTime: Integer;
+  TConfiguration_AddressCacheInMemoryOnly: Boolean;
+  TConfiguration_AddressCacheDisabled: Boolean;
 
 // --------------------------------------------------------------------------
 //
@@ -154,8 +167,8 @@ var
 // --------------------------------------------------------------------------
 
 var
-  TConfiguration_IsLocalIPv6BindingEnabledOnWindowsVersionsPriorToWindowsVistaOrWindowsServer2008: Boolean;
   TConfiguration_IsLocalIPv6BindingEnabled: Boolean;
+  TConfiguration_IsLocalIPv6BindingEnabledOnWindowsVersionsPriorToWindowsVistaOrWindowsServer2008: Boolean;
 
 // --------------------------------------------------------------------------
 //
@@ -171,6 +184,21 @@ var
 
 var
   TConfiguration_GeneratedDnsResponseTimeToLive: Integer;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+var
+  TConfiguration_ServerUdpProtocolResponseTimeout: Integer;
+  TConfiguration_ServerTcpProtocolResponseTimeout: Integer;
+  TConfiguration_ServerTcpProtocolInternalTimeout: Integer;
+  TConfiguration_ServerTcpProtocolPipeliningDisabled: Boolean;
+  TConfiguration_ServerTcpProtocolPipeliningSessionLifetime: Integer;
+  TConfiguration_ServerSocks5ProtocolProxyFirstByteTimeout: Integer;
+  TConfiguration_ServerSocks5ProtocolProxyOtherBytesTimeout: Integer;
+  TConfiguration_ServerSocks5ProtocolProxyRemoteConnectTimeout: Integer;
+  TConfiguration_ServerSocks5ProtocolProxyRemoteResponseTimeout: Integer;
 
 // --------------------------------------------------------------------------
 //
@@ -198,7 +226,6 @@ var
   TConfiguration_HitLogFileName: String;
   TConfiguration_HitLogFileWhat: String;
   TConfiguration_HitLogFileMode: String;
-  TConfiguration_StatsLogFileName: String;
 
 // --------------------------------------------------------------------------
 //
@@ -229,14 +256,17 @@ begin
     TConfiguration_DnsServerConfiguration[i].ProxyAddress.IsIPv6Address := False;
     TConfiguration_DnsServerConfiguration[i].ProxyAddress.IPv4Address := LOCALHOST_IPV4_ADDRESS;
     TConfiguration_DnsServerConfiguration[i].ProxyPort := 9150;
+    TConfiguration_DnsServerConfiguration[i].IgnoreFailureResponsesFromServer := False;
     TConfiguration_DnsServerConfiguration[i].IgnoreNegativeResponsesFromServer := False;
 
   end;
 
+  TConfiguration_AddressCacheFailureTime := 10;
   TConfiguration_AddressCacheNegativeTime := 10;
-  TConfiguration_AddressCacheScavengingTime := 28800;
-  TConfiguration_AddressCacheSilentUpdateTime := 60;
+  TConfiguration_AddressCacheScavengingTime := 960;
+  TConfiguration_AddressCacheSilentUpdateTime := 240;
 
+  TConfiguration_AddressCacheInMemoryOnly := False;
   TConfiguration_AddressCacheDisabled := False;
 
   TConfiguration_IsLocalIPv4BindingEnabled := False;
@@ -252,11 +282,19 @@ begin
 
   TConfiguration_GeneratedDnsResponseTimeToLive := 60;
 
+  TConfiguration_ServerUdpProtocolResponseTimeout := 4999;
+  TConfiguration_ServerTcpProtocolResponseTimeout := 4999;
+  TConfiguration_ServerTcpProtocolInternalTimeout := 2477;
+  TConfiguration_ServerTcpProtocolPipeliningDisabled := True;
+  TConfiguration_ServerTcpProtocolPipeliningSessionLifetime := 10;
+  TConfiguration_ServerSocks5ProtocolProxyFirstByteTimeout := 2477;
+  TConfiguration_ServerSocks5ProtocolProxyOtherBytesTimeout := 2477;
+  TConfiguration_ServerSocks5ProtocolProxyRemoteConnectTimeout := 2477;
+  TConfiguration_ServerSocks5ProtocolProxyRemoteResponseTimeout := 4999;
+
   TConfiguration_HitLogFileName := '';
   TConfiguration_HitLogFileWhat := '';
   TConfiguration_HitLogFileMode := '';
-
-  TConfiguration_StatsLogFileName := '';
 
   TConfiguration_AllowedAddresses := nil;
 
@@ -364,18 +402,6 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class function TConfiguration.GetStatsLogFileName: String;
-
-begin
-
-  Result := TConfiguration_StatsLogFileName;
-
-end;
-
-// --------------------------------------------------------------------------
-//
-// --------------------------------------------------------------------------
-
 class function TConfiguration.GetDnsServerConfiguration(Index: Integer): TDnsServerConfiguration;
 
 begin
@@ -388,18 +414,11 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class function TConfiguration.FindDnsServerConfiguration(Address: TDualIPAddress; Port: Word): Integer;
-
-var
-  Index: Integer;
+class function TConfiguration.GetAddressCacheFailureTime: Integer;
 
 begin
 
-  for Index := 0 to (MAX_NUM_DNS_SERVERS - 1) do begin
-    if TConfiguration_DnsServerConfiguration[Index].IsEnabled and TDualIPAddressUtility.AreEqual(Address, TConfiguration_DnsServerConfiguration[Index].Address) then begin
-      Result := Index; Exit;
-    end;
-  end; Result := -1;
+  Result := TConfiguration_AddressCacheFailureTime;
 
 end;
 
@@ -436,6 +455,18 @@ class function TConfiguration.GetAddressCacheSilentUpdateTime: Integer;
 begin
 
   Result := TConfiguration_AddressCacheSilentUpdateTime;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class function TConfiguration.GetAddressCacheInMemoryOnly: Boolean;
+
+begin
+
+  Result := TConfiguration_AddressCacheInMemoryOnly;
 
 end;
 
@@ -539,6 +570,114 @@ end;
 //
 // --------------------------------------------------------------------------
 
+class function TConfiguration.GetServerUdpProtocolResponseTimeout: Integer;
+
+begin
+
+  Result := TConfiguration_ServerUdpProtocolResponseTimeout;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class function TConfiguration.GetServerTcpProtocolResponseTimeout: Integer;
+
+begin
+
+  Result := TConfiguration_ServerTcpProtocolResponseTimeout;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class function TConfiguration.GetServerTcpProtocolInternalTimeout: Integer;
+
+begin
+
+  Result := TConfiguration_ServerTcpProtocolInternalTimeout;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class function TConfiguration.GetServerTcpProtocolPipeliningSessionLifetime: Integer;
+
+begin
+
+  Result := TConfiguration_ServerTcpProtocolPipeliningSessionLifetime;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class function TConfiguration.GetServerTcpProtocolPipeliningDisabled: Boolean;
+
+begin
+
+  Result := TConfiguration_ServerTcpProtocolPipeliningDisabled;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class function TConfiguration.GetServerSocks5ProtocolProxyFirstByteTimeout: Integer;
+
+begin
+
+  Result := TConfiguration_ServerSocks5ProtocolProxyFirstByteTimeout;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class function TConfiguration.GetServerSocks5ProtocolProxyOtherBytesTimeout: Integer;
+
+begin
+
+  Result := TConfiguration_ServerSocks5ProtocolProxyOtherBytesTimeout;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class function TConfiguration.GetServerSocks5ProtocolProxyRemoteConnectTimeout: Integer;
+
+begin
+
+  Result := TConfiguration_ServerSocks5ProtocolProxyRemoteConnectTimeout;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class function TConfiguration.GetServerSocks5ProtocolProxyRemoteResponseTimeout: Integer;
+
+begin
+
+  Result := TConfiguration_ServerSocks5ProtocolProxyRemoteResponseTimeout;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
 class function TConfiguration.IsDomainNameAffinityMatch(DomainName: String; DomainNameAffinityMask: TStringList): Boolean;
 
 var
@@ -625,9 +764,7 @@ begin
 
   if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TConfiguration.LoadFromFile: Loading configuration file...');
 
-  IniFile := nil; try
-
-    IniFile := TMemIniFile.Create(FileName);
+  IniFile := TMemIniFile.Create(FileName); try
 
     if TTracer.IsEnabled then begin
 
@@ -683,6 +820,7 @@ begin
               TConfiguration_DnsServerConfiguration[DnsServerIndex].QueryTypeAffinityMask := TList.Create; StringList := TStringList.Create; StringList.Delimiter := ';'; StringList.DelimitedText := S; for i := 0 to (StringList.Count - 1) do begin W := TDnsQueryTypeUtility.Parse(StringList[i]); if (W > 0) then TConfiguration_DnsServerConfiguration[DnsServerIndex].QueryTypeAffinityMask.Add(Pointer(W)); end; StringList.Free;
             end;
 
+            TConfiguration_DnsServerConfiguration[DnsServerIndex].IgnoreFailureResponsesFromServer := UpperCase(IniFile.ReadString('GlobalSection', 'IgnoreFailureResponsesFrom' + DNS_SERVER_INDEX_DESCRIPTION[DnsServerIndex] + 'Server', '')) = 'YES';
             TConfiguration_DnsServerConfiguration[DnsServerIndex].IgnoreNegativeResponsesFromServer := UpperCase(IniFile.ReadString('GlobalSection', 'IgnoreNegativeResponsesFrom' + DNS_SERVER_INDEX_DESCRIPTION[DnsServerIndex] + 'Server', '')) = 'YES';
 
           end;
@@ -693,10 +831,12 @@ begin
 
     end;
 
+    TConfiguration_AddressCacheFailureTime := IniFile.ReadInteger('GlobalSection', 'AddressCacheFailureTime', TConfiguration_AddressCacheFailureTime);
     TConfiguration_AddressCacheNegativeTime := IniFile.ReadInteger('GlobalSection', 'AddressCacheNegativeTime', TConfiguration_AddressCacheNegativeTime);
     TConfiguration_AddressCacheScavengingTime := IniFile.ReadInteger('GlobalSection', 'AddressCacheScavengingTime', TConfiguration_AddressCacheScavengingTime);
     TConfiguration_AddressCacheSilentUpdateTime := IniFile.ReadInteger('GlobalSection', 'AddressCacheSilentUpdateTime', TConfiguration_AddressCacheSilentUpdateTime);
 
+    TConfiguration_AddressCacheInMemoryOnly := UpperCase(IniFile.ReadString('GlobalSection', 'AddressCacheInMemoryOnly', '')) = 'YES';
     TConfiguration_AddressCacheDisabled := UpperCase(IniFile.ReadString('GlobalSection', 'AddressCacheDisabled', '')) = 'YES';
 
     S := IniFile.ReadString('GlobalSection', 'LocalIPv4BindingAddress', ''); if (S <> '') then begin
@@ -725,11 +865,19 @@ begin
 
     TConfiguration_GeneratedDnsResponseTimeToLive := IniFile.ReadInteger('GlobalSection', 'GeneratedResponseTimeToLive', TConfiguration_GeneratedDnsResponseTimeToLive);
 
+    TConfiguration_ServerUdpProtocolResponseTimeout := IniFile.ReadInteger('GlobalSection', 'ServerUdpProtocolResponseTimeout', TConfiguration_ServerUdpProtocolResponseTimeout);
+    TConfiguration_ServerTcpProtocolResponseTimeout := IniFile.ReadInteger('GlobalSection', 'ServerTcpProtocolResponseTimeout', TConfiguration_ServerTcpProtocolResponseTimeout);
+    TConfiguration_ServerTcpProtocolInternalTimeout := IniFile.ReadInteger('GlobalSection', 'ServerTcpProtocolInternalTimeout', TConfiguration_ServerTcpProtocolInternalTimeout);
+    // TConfiguration_ServerTcpProtocolPipeliningDisabled := UpperCase(IniFile.ReadString('GlobalSection', 'ServerTcpProtocolPipeliningDisabled', '')) = 'YES';
+    // TConfiguration_ServerTcpProtocolPipeliningSessionLifetime := IniFile.ReadInteger('GlobalSection', 'ServerTcpProtocolPipeliningSessionLifetime', TConfiguration_ServerTcpProtocolPipeliningSessionLifetime);
+    TConfiguration_ServerSocks5ProtocolProxyFirstByteTimeout := IniFile.ReadInteger('GlobalSection', 'ServerSocks5ProtocolProxyFirstByteTimeout', TConfiguration_ServerSocks5ProtocolProxyFirstByteTimeout);
+    TConfiguration_ServerSocks5ProtocolProxyOtherBytesTimeout := IniFile.ReadInteger('GlobalSection', 'ServerSocks5ProtocolProxyOtherBytesTimeout', TConfiguration_ServerSocks5ProtocolProxyOtherBytesTimeout);
+    TConfiguration_ServerSocks5ProtocolProxyRemoteConnectTimeout := IniFile.ReadInteger('GlobalSection', 'ServerSocks5ProtocolProxyRemoteConnectTimeout', TConfiguration_ServerSocks5ProtocolProxyRemoteConnectTimeout);
+    TConfiguration_ServerSocks5ProtocolProxyRemoteResponseTimeout := IniFile.ReadInteger('GlobalSection', 'ServerSocks5ProtocolProxyRemoteResponseTimeout', TConfiguration_ServerSocks5ProtocolProxyRemoteResponseTimeout);
+
     TConfiguration_HitLogFileName := IniFile.ReadString('GlobalSection', 'HitLogFileName', ''); if (TConfiguration_HitLogFileName <> '') then TConfiguration_HitLogFileName := Self.MakeAbsolutePath(TConfiguration_HitLogFileName);
     TConfiguration_HitLogFileWhat := IniFile.ReadString('GlobalSection', 'HitLogFileWhat', '');
     TConfiguration_HitLogFileMode := IniFile.ReadString('GlobalSection', 'HitLogFileMode', '');
-
-    TConfiguration_StatsLogFileName := IniFile.ReadString('GlobalSection', 'StatsLogFileName', ''); if (TConfiguration_StatsLogFileName <> '') then TConfiguration_StatsLogFileName := Self.MakeAbsolutePath(TConfiguration_StatsLogFileName);
 
     StringList := TStringList.Create; IniFile.ReadSection('CacheExceptionsSection', StringList); if (StringList.Count > 0) then begin
       TConfiguration_CacheExceptions := TStringList.Create; for i := 0 to (StringList.Count - 1) do TConfiguration_CacheExceptions.Add(Trim(IniFile.ReadString('CacheExceptionsSection', StringList.Strings[i], '')));
@@ -741,7 +889,7 @@ begin
 
   finally
 
-    if (IniFile <> nil) then IniFile.Free;
+    IniFile.Free;
 
   end;
 
@@ -761,12 +909,13 @@ var
 begin
 
   if (TConfiguration_CacheExceptions <> nil) then TConfiguration_CacheExceptions.Free;
-
   if (TConfiguration_AllowedAddresses <> nil) then TConfiguration_AllowedAddresses.Free;
 
   for i := 0 to (MAX_NUM_DNS_SERVERS - 1) do begin
+
     if (TConfiguration_DnsServerConfiguration[i].QueryTypeAffinityMask <> nil) then TConfiguration_DnsServerConfiguration[i].QueryTypeAffinityMask.Free;
     if (TConfiguration_DnsServerConfiguration[i].DomainNameAffinityMask <> nil) then TConfiguration_DnsServerConfiguration[i].DomainNameAffinityMask.Free;
+
   end;
 
 end;

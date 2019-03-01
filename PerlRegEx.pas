@@ -180,15 +180,14 @@ function FirstCap(const S: string): string;
 
 begin
 
-  if S = '' then Result := ''
-  else begin
+  if S = '' then Result := '' else begin
     Result := AnsiLowerCase(S);
   {$IFDEF UNICODE}
     CharUpperBuffW(@Result[1], 1);
   {$ELSE}
     CharUpperBuffA(@Result[1], 1);
   {$ENDIF}
-  end
+  end;
 
 end;
 

@@ -323,6 +323,30 @@ begin
 
   Self.UpdateStatusInfo(AcrylicUIUtils.GetAcrylicWelcomeString);
 
+  if (ParamStr(1) = 'OpenAcrylicConfigurationFile') then begin
+
+    Self.FileOpenAcrylicConfigurationMainMenuItemClick(Sender);
+
+    Exit;
+
+  end;
+
+  if (ParamStr(1) = 'OpenAcrylicHostsFile') then begin
+
+    Self.FileOpenAcrylicHostsMainMenuItemClick(Sender);
+
+    Exit;
+
+  end;
+
+  if (ParamStr(1) = 'About') or (ParamStr(1) = 'Help') or (ParamStr(1) = '/?') or (ParamStr(1) = '--help') then begin
+
+    Self.HelpAboutAcrylicMainMenuItemClick(Sender);
+
+    Exit;
+
+  end;
+
 end;
 
 // --------------------------------------------------------------------------

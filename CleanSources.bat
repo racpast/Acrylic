@@ -28,8 +28,9 @@ Del /q *.~pas >NUL 2>NUL
 CsRun.exe SelectFiles *.dpr | Call CleanupCodeWindowsNewLinesTab2SpacesStdIn.bat
 CsRun.exe SelectFiles *.pas | Call CleanupCodeWindowsNewLinesTab2SpacesStdIn.bat
 
-CsRun.exe WrapText 80 < ReadMe.Template.txt > ReadMe.txt
-CsRun.exe WrapText 80 < License.Template.txt > License.txt
+CsRun.exe WrapText 120 < ReadMe.Template.txt > ReadMe.txt
 
 CsRun.exe WrapText 120 "; " < AcrylicConfiguration.Template.ini > AcrylicConfiguration.ini
 CsRun.exe WrapText 120 "# " < AcrylicHosts.Template.txt > AcrylicHosts.txt
+
+CsRun.exe WrapText 80 < License.Template.txt > License.txt

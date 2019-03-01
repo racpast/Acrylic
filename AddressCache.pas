@@ -16,8 +16,8 @@ interface
 // --------------------------------------------------------------------------
 
 uses
-  Classes,
-  SysUtils;
+  FileIO,
+  MD5;
 
 // --------------------------------------------------------------------------
 //
@@ -30,13 +30,23 @@ type
 //
 // --------------------------------------------------------------------------
 
+const
+  AddressCacheItemOptionsResponseTypeBitMask    = $03;
+  AddressCacheItemOptionsResponseTypeIsPositive = $00;
+  AddressCacheItemOptionsResponseTypeIsNegative = $01;
+  AddressCacheItemOptionsResponseTypeIsFailure  = $02;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
 type
   PAddressCacheItem = ^TAddressCacheItem;
   TAddressCacheItem = record
-    Time: Cardinal;
-    ResponseLen: Integer;
-    Response: Pointer;
-    IsNegativeResponse: Boolean;
+    TimeStamp   : Integer;
+    ResponseLen : Integer;
+    Response    : Pointer;
+    Options     : Byte;
   end;
 
 // --------------------------------------------------------------------------
@@ -44,14 +54,12 @@ type
 // --------------------------------------------------------------------------
 
 type
-  PHashPointerItem = ^THashPointerItem;
-  THashPointerItem = record
-    LHash: Int64;
-    LData: Pointer;
-    LNext: PHashPointerItem;
-    RHash: Int64;
-    RData: Pointer;
-    RNext: PHashPointerItem;
+  PAddressCacheHashTreeItem = ^TAddressCacheHashTreeItem;
+  TAddressCacheHashTreeItem = record
+    Hash : TMD5Digest;
+    Data : PAddressCacheItem;
+    L    : PAddressCacheHashTreeItem;
+    R    : PAddressCacheHashTreeItem;
   end;
 
 // --------------------------------------------------------------------------
@@ -62,26 +70,19 @@ type
   TAddressCache = class
     public
       class procedure Initialize;
-      class procedure Finalize;
-    public
-      class procedure Add(ArrivalTime: TDateTime; RequestHash: Int64; Response: Pointer; ResponseLen: Integer; IsNegativeResponse: Boolean);
-      class function  Find(ArrivalTime: TDateTime; RequestHash: Int64; Response: Pointer; var ResponseLen: Integer): TAddressCacheFindResult;
-    public
-      class procedure SaveToFile(FileName: String);
+      class procedure Add(ArrivalTime: TDateTime; RequestHash: TMD5Digest; Response: Pointer; ResponseLen: Integer; Options: Byte);
+      class function  Find(ArrivalTime: TDateTime; RequestHash: TMD5Digest; Response: Pointer; var ResponseLen: Integer): TAddressCacheFindResult;
       class procedure LoadFromFile(FileName: String);
+      class procedure SaveToFile(FileName: String);
+      class procedure Finalize;
     private
-      class function  ShortTime(Value: TDateTime): Cardinal;
+      class function  GetTimeStamp(Value: TDateTime): Integer;
     private
-      class procedure InternalAdd(Hash: Int64; Data: Pointer);
-      class procedure InternalIns(Hash: Int64; Data: Pointer; Item: PHashPointerItem; Bull: Int64; Half: Int64);
-      class procedure InternalXpl(Hash: Int64; Data: Pointer; Item: PHashPointerItem; Bull: Int64; Half: Int64);
-      class procedure InternalXpr(Hash: Int64; Data: Pointer; Item: PHashPointerItem; Bull: Int64; Half: Int64);
-    private
-      class procedure InternalFind(Hash: Int64; var Data: Pointer; Item: PHashPointerItem);
-      class procedure InternalEraseLastFoundItem;
-    private
-      class procedure InternalSaveItemToFile(FileStream: TFileStream; Time: Cardinal; Item: PHashPointerItem);
-      class procedure InternalSavePartToFile(FileStream: TFileStream; Time: Cardinal; Hash: Int64; Part: Pointer);
+      class procedure InternalAdd(RequestHash: TMD5Digest; ResponseData: PAddressCacheItem);
+      class procedure InternalFind(RequestHash: TMD5Digest; var ResponseData: PAddressCacheItem);
+      class procedure InternalLoadFromFile(FileStream: TBufferedSequentialReadStream; TimeStamp: Integer);
+      class procedure InternalSaveToFile(FileStream: TBufferedSequentialWriteStream; TimeStamp: Integer);
+      class procedure InternalSaveAddressCacheHashTreeItemToFile(FileStream: TBufferedSequentialWriteStream; TimeStamp: Integer; HashTreeItem: PAddressCacheHashTreeItem);
   end;
 
 // --------------------------------------------------------------------------
@@ -95,7 +96,9 @@ implementation
 // --------------------------------------------------------------------------
 
 uses
+  SysUtils,
   Configuration,
+  DnsProtocol,
   MemoryStore,
   Tracer;
 
@@ -104,14 +107,161 @@ uses
 // --------------------------------------------------------------------------
 
 var
-  TAddressCache_MemoryStore: TMemoryStore;
+  TAddressCache_MemoryStore_A: TType2MemoryStore;
+  TAddressCache_MemoryStore_B: TType2MemoryStore;
+  TAddressCache_MemoryStore_C: TType2MemoryStore;
+  TAddressCache_MemoryStore_D: TType2MemoryStore;
+  TAddressCache_MemoryStore_E: TType2MemoryStore;
+  TAddressCache_MemoryStore_F: TType2MemoryStore;
+  TAddressCache_MemoryStore_G: TType2MemoryStore;
+  TAddressCache_MemoryStore_H: TType2MemoryStore;
+  TAddressCache_MemoryStore_I: TType2MemoryStore;
+  TAddressCache_MemoryStore_J: TType2MemoryStore;
+  TAddressCache_MemoryStore_K: TType2MemoryStore;
+  TAddressCache_MemoryStore_L: TType2MemoryStore;
+  TAddressCache_MemoryStore_M: TType2MemoryStore;
+  TAddressCache_MemoryStore_N: TType2MemoryStore;
+  TAddressCache_MemoryStore_O: TType2MemoryStore;
+  TAddressCache_MemoryStore_P: TType2MemoryStore;
+  TAddressCache_MemoryStore_Q: TType2MemoryStore;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+type
+  TAddressCacheMemoryStore = class
+    public
+      class procedure Initialize;
+      class function  GetMemory(Size: Cardinal): Pointer;
+      class procedure FreeMemory(Address: Pointer; Size: Cardinal);
+      class procedure Finalize;
+  end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class procedure TAddressCacheMemoryStore.Initialize;
+
+begin
+
+  TAddressCache_MemoryStore_A := TType2MemoryStore.Create(98304, 16);
+  TAddressCache_MemoryStore_B := TType2MemoryStore.Create(98280, 28);
+  TAddressCache_MemoryStore_C := TType2MemoryStore.Create(98304, 64);
+  TAddressCache_MemoryStore_D := TType2MemoryStore.Create(98304, 96);
+  TAddressCache_MemoryStore_E := TType2MemoryStore.Create(98304, 128);
+  TAddressCache_MemoryStore_F := TType2MemoryStore.Create(98240, 160);
+  TAddressCache_MemoryStore_G := TType2MemoryStore.Create(98304, 192);
+  TAddressCache_MemoryStore_H := TType2MemoryStore.Create(98112, 224);
+  TAddressCache_MemoryStore_I := TType2MemoryStore.Create(98304, 256);
+  TAddressCache_MemoryStore_J := TType2MemoryStore.Create(98240, 320);
+  TAddressCache_MemoryStore_K := TType2MemoryStore.Create(98304, 384);
+  TAddressCache_MemoryStore_L := TType2MemoryStore.Create(98112, 448);
+  TAddressCache_MemoryStore_M := TType2MemoryStore.Create(98304, 512);
+  TAddressCache_MemoryStore_N := TType2MemoryStore.Create(98304, 768);
+  TAddressCache_MemoryStore_O := TType2MemoryStore.Create(98304, 1024);
+  TAddressCache_MemoryStore_P := TType2MemoryStore.Create(98304, 2048);
+  TAddressCache_MemoryStore_Q := TType2MemoryStore.Create(98304, MAX_DNS_PACKET_LEN);
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class function TAddressCacheMemoryStore.GetMemory(Size: Cardinal): Pointer;
+
+begin
+
+  // WriteLn('#ACMEM+' + IntToStr(Size));
+
+       if (Size <= 16)                 then Result := TAddressCache_MemoryStore_A.GetMemory(Size)
+  else if (Size <= 28)                 then Result := TAddressCache_MemoryStore_B.GetMemory(Size)
+  else if (Size <= 64)                 then Result := TAddressCache_MemoryStore_C.GetMemory(Size)
+  else if (Size <= 96)                 then Result := TAddressCache_MemoryStore_D.GetMemory(Size)
+  else if (Size <= 128)                then Result := TAddressCache_MemoryStore_E.GetMemory(Size)
+  else if (Size <= 160)                then Result := TAddressCache_MemoryStore_F.GetMemory(Size)
+  else if (Size <= 192)                then Result := TAddressCache_MemoryStore_G.GetMemory(Size)
+  else if (Size <= 224)                then Result := TAddressCache_MemoryStore_H.GetMemory(Size)
+  else if (Size <= 256)                then Result := TAddressCache_MemoryStore_I.GetMemory(Size)
+  else if (Size <= 320)                then Result := TAddressCache_MemoryStore_J.GetMemory(Size)
+  else if (Size <= 384)                then Result := TAddressCache_MemoryStore_K.GetMemory(Size)
+  else if (Size <= 448)                then Result := TAddressCache_MemoryStore_L.GetMemory(Size)
+  else if (Size <= 512)                then Result := TAddressCache_MemoryStore_M.GetMemory(Size)
+  else if (Size <= 768)                then Result := TAddressCache_MemoryStore_N.GetMemory(Size)
+  else if (Size <= 1024)               then Result := TAddressCache_MemoryStore_O.GetMemory(Size)
+  else if (Size <= 2048)               then Result := TAddressCache_MemoryStore_P.GetMemory(Size)
+  else if (Size <= MAX_DNS_PACKET_LEN) then Result := TAddressCache_MemoryStore_Q.GetMemory(Size)
+  else raise Exception.Create('Getting memory for TAddressCacheMemoryStore failed for a size of ' + IntToStr(Size) + ' bytes.');
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class procedure TAddressCacheMemoryStore.FreeMemory(Address: Pointer; Size: Cardinal);
+
+begin
+
+  // WriteLn('#ACMEM-' + IntToStr(Size));
+
+       if (Size <= 16)                 then TAddressCache_MemoryStore_A.FreeMemory(Address)
+  else if (Size <= 28)                 then TAddressCache_MemoryStore_B.FreeMemory(Address)
+  else if (Size <= 64)                 then TAddressCache_MemoryStore_C.FreeMemory(Address)
+  else if (Size <= 96)                 then TAddressCache_MemoryStore_D.FreeMemory(Address)
+  else if (Size <= 128)                then TAddressCache_MemoryStore_E.FreeMemory(Address)
+  else if (Size <= 160)                then TAddressCache_MemoryStore_F.FreeMemory(Address)
+  else if (Size <= 192)                then TAddressCache_MemoryStore_G.FreeMemory(Address)
+  else if (Size <= 224)                then TAddressCache_MemoryStore_H.FreeMemory(Address)
+  else if (Size <= 256)                then TAddressCache_MemoryStore_I.FreeMemory(Address)
+  else if (Size <= 320)                then TAddressCache_MemoryStore_J.FreeMemory(Address)
+  else if (Size <= 384)                then TAddressCache_MemoryStore_K.FreeMemory(Address)
+  else if (Size <= 448)                then TAddressCache_MemoryStore_L.FreeMemory(Address)
+  else if (Size <= 512)                then TAddressCache_MemoryStore_M.FreeMemory(Address)
+  else if (Size <= 768)                then TAddressCache_MemoryStore_N.FreeMemory(Address)
+  else if (Size <= 1024)               then TAddressCache_MemoryStore_O.FreeMemory(Address)
+  else if (Size <= 2048)               then TAddressCache_MemoryStore_P.FreeMemory(Address)
+  else if (Size <= MAX_DNS_PACKET_LEN) then TAddressCache_MemoryStore_Q.FreeMemory(Address)
+  else raise Exception.Create('Freeing memory for TAddressCacheMemoryStore failed for a size of ' + IntToStr(Size) + ' bytes.');
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class procedure TAddressCacheMemoryStore.Finalize;
+
+begin
+
+  TAddressCache_MemoryStore_Q.Free;
+  TAddressCache_MemoryStore_P.Free;
+  TAddressCache_MemoryStore_O.Free;
+  TAddressCache_MemoryStore_N.Free;
+  TAddressCache_MemoryStore_M.Free;
+  TAddressCache_MemoryStore_L.Free;
+  TAddressCache_MemoryStore_K.Free;
+  TAddressCache_MemoryStore_J.Free;
+  TAddressCache_MemoryStore_I.Free;
+  TAddressCache_MemoryStore_H.Free;
+  TAddressCache_MemoryStore_G.Free;
+  TAddressCache_MemoryStore_F.Free;
+  TAddressCache_MemoryStore_E.Free;
+  TAddressCache_MemoryStore_D.Free;
+  TAddressCache_MemoryStore_C.Free;
+  TAddressCache_MemoryStore_B.Free;
+  TAddressCache_MemoryStore_A.Free;
+
+end;
 
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
 
 var
-  TAddressCache_Root: PHashPointerItem; TAddressCache_LastFoundItem: PHashPointerItem; TAddressCache_LastFoundSide: Integer;
+  TAddressCache_HashTreeRoot: PAddressCacheHashTreeItem;
 
 // --------------------------------------------------------------------------
 //
@@ -121,9 +271,9 @@ class procedure TAddressCache.Initialize;
 
 begin
 
-  TAddressCache_MemoryStore := TMemoryStore.Create;
+  TAddressCacheMemoryStore.Initialize;
 
-  TAddressCache_Root := nil;
+  TAddressCache_HashTreeRoot := nil;
 
 end;
 
@@ -131,11 +281,11 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class function TAddressCache.ShortTime(Value: TDateTime): Cardinal;
+class function TAddressCache.GetTimeStamp(Value: TDateTime): Integer;
 
 begin
 
-  Result := Cardinal(Round((Value - 29221.0) * 1440.0));
+  Result := Trunc((Value - 29221.0) * 1440.0);
 
 end;
 
@@ -143,186 +293,20 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class procedure TAddressCache.InternalXpl(Hash: Int64; Data: Pointer; Item: PHashPointerItem; Bull: Int64; Half: Int64);
-
-begin
-
-  if (Item^.LNext = nil) then begin
-
-    Item^.LNext := TAddressCache_MemoryStore.GetMemory(SizeOf(THashPointerItem));
-
-    Item^.LNext^.LHash := Hash; Item^.LNext^.LData := Data; Item^.LNext^.LNext := nil;
-    Item^.LNext^.RHash := Hash; Item^.LNext^.RData := Data; Item^.LNext^.RNext := nil;
-
-  end else if (Half > 0) then begin
-
-    Self.InternalIns(Hash, Data, Item^.LNext, Bull - Half, Half div 2);
-
-  end else begin
-
-    if TTracer.IsEnabled then TTracer.Trace(TracePriorityError, 'TAddressCache.InternalXpl: Unable to insert ' + IntToStr(Hash))
-
-  end;
-
-end;
-
-// --------------------------------------------------------------------------
-//
-// --------------------------------------------------------------------------
-
-class procedure TAddressCache.InternalXpr(Hash: Int64; Data: Pointer; Item: PHashPointerItem; Bull: Int64; Half: Int64);
-
-begin
-
-  if (Item^.RNext = nil) then begin
-
-    Item^.RNext := TAddressCache_MemoryStore.GetMemory(SizeOf(THashPointerItem));
-
-    Item^.RNext^.LHash := Hash; Item^.RNext^.LData := Data; Item^.RNext^.LNext := nil;
-    Item^.RNext^.RHash := Hash; Item^.RNext^.RData := Data; Item^.RNext^.RNext := nil;
-
-  end else if (Half > 0) then begin
-
-    Self.InternalIns(Hash, Data, Item^.RNext, Bull + Half, Half div 2);
-
-  end else begin
-
-    if TTracer.IsEnabled then TTracer.Trace(TracePriorityError, 'TAddressCache.InternalXpr: Unable to insert ' + IntToStr(Hash))
-
-  end;
-
-end;
-
-// --------------------------------------------------------------------------
-//
-// --------------------------------------------------------------------------
-
-class procedure TAddressCache.InternalIns(Hash: Int64; Data: Pointer; Item: PHashPointerItem; Bull: Int64; Half: Int64);
-
-begin
-
-  if (Item^.LHash <> Item^.RHash) then begin
-
-    if (Item^.LHash = Hash) then begin
-      Item^.LData := Data;
-    end else if (Item^.RHash = Hash) then begin
-      Item^.RData := Data;
-    end else if (Hash < Item^.RHash) then begin
-      Self.InternalXpr(Hash, Data, Item, Bull, Half);
-    end else if (Hash > Item^.LHash) then begin
-      Self.InternalXpl(Hash, Data, Item, Bull, Half);
-    end else if (Hash <= Bull) then begin
-      Self.InternalXpr(Item^.RHash, Item^.RData, Item, Bull, Half); Item^.RHash := Hash; Item^.RData := Data;
-    end else begin
-      Self.InternalXpl(Item^.LHash, Item^.LData, Item, Bull, Half); Item^.LHash := Hash; Item^.LData := Data;
-    end;
-
-  end else begin
-
-    if (Item^.LHash = Hash) then begin
-      Item^.LData := Data; Item^.RData := Data;
-    end else if (Hash > Item^.LHash) then begin
-      Item^.LHash := Hash; Item^.LData := Data;
-    end else begin
-      Item^.RHash := Hash; Item^.RData := Data;
-    end;
-
-  end;
-
-end;
-
-// --------------------------------------------------------------------------
-//
-// --------------------------------------------------------------------------
-
-class procedure TAddressCache.InternalAdd(Hash: Int64; Data: Pointer);
-
-begin
-
-  if (TAddressCache_Root = nil) then begin
-
-    TAddressCache_Root := TAddressCache_MemoryStore.GetMemory(SizeOf(THashPointerItem));
-
-    TAddressCache_Root^.LHash := Hash; TAddressCache_Root^.LData := Data; TAddressCache_Root^.LNext := nil;
-    TAddressCache_Root^.RHash := Hash; TAddressCache_Root^.RData := Data; TAddressCache_Root^.RNext := nil;
-
-  end else begin
-
-    Self.InternalIns(Hash, Data, TAddressCache_Root, Int64(0), Int64($4000000000000000));
-
-  end;
-
-end;
-
-// --------------------------------------------------------------------------
-//
-// --------------------------------------------------------------------------
-
-class procedure TAddressCache.InternalFind(Hash: Int64; var Data: Pointer; Item: PHashPointerItem);
-
-begin
-
-  if (Hash = Item^.LHash) then begin
-
-    if (Item^.LData <> nil) then begin
-      Data := Item^.LData; TAddressCache_LastFoundItem := Item; TAddressCache_LastFoundSide := -1;
-    end;
-
-  end else if (Hash = Item^.RHash) then begin
-
-    if (Item^.RData <> nil) then begin
-      Data := Item^.RData; TAddressCache_LastFoundItem := Item; TAddressCache_LastFoundSide := +1;
-    end;
-
-  end else if (Hash > Item^.LHash) then begin
-
-    if (Item^.LNext <> nil) then Self.InternalFind(Hash, Data, Item^.LNext);
-
-  end else if (Hash < Item^.RHash) then begin
-
-    if (Item^.RNext <> nil) then Self.InternalFind(Hash, Data, Item^.RNext);
-
-  end;
-
-end;
-
-// --------------------------------------------------------------------------
-//
-// --------------------------------------------------------------------------
-
-class procedure TAddressCache.InternalEraseLastFoundItem;
-
-begin
-
-  if (TAddressCache_LastFoundItem <> nil) then begin
-
-    if (TAddressCache_LastFoundSide < 0) then begin
-      TAddressCache_LastFoundItem^.LData := nil; if (TAddressCache_LastFoundItem^.LHash = TAddressCache_LastFoundItem^.RHash) then TAddressCache_LastFoundItem^.RData := nil;
-    end else if (TAddressCache_LastFoundSide > 0) then begin
-      TAddressCache_LastFoundItem^.RData := nil; if (TAddressCache_LastFoundItem^.LHash = TAddressCache_LastFoundItem^.RHash) then TAddressCache_LastFoundItem^.LData := nil;
-    end;
-
-  end;
-
-end;
-
-// --------------------------------------------------------------------------
-//
-// --------------------------------------------------------------------------
-
-class procedure TAddressCache.Add(ArrivalTime: TDateTime; RequestHash: Int64; Response: Pointer; ResponseLen: Integer; IsNegativeResponse: Boolean);
+class procedure TAddressCache.Add(ArrivalTime: TDateTime; RequestHash: TMD5Digest; Response: Pointer; ResponseLen: Integer; Options: Byte);
 
 var
   AddressCacheItem: PAddressCacheItem;
 
 begin
 
-  AddressCacheItem := TAddressCache_MemoryStore.GetMemory(SizeOf(TAddressCacheItem));
+  AddressCacheItem := TAddressCacheMemoryStore.GetMemory(SizeOf(TAddressCacheItem));
 
-  AddressCacheItem^.Time := ShortTime(ArrivalTime);
-  AddressCacheItem^.IsNegativeResponse := IsNegativeResponse;
+  AddressCacheItem^.TimeStamp := GetTimeStamp(ArrivalTime);
 
-  AddressCacheItem^.Response := TAddressCache_MemoryStore.GetMemory(ResponseLen); Move(Response^, AddressCacheItem^.Response^, ResponseLen); AddressCacheItem^.ResponseLen := ResponseLen;
+  AddressCacheItem^.Response := TAddressCacheMemoryStore.GetMemory(ResponseLen); Move(Response^, AddressCacheItem^.Response^, ResponseLen); AddressCacheItem^.ResponseLen := ResponseLen;
+
+  AddressCacheItem^.Options := Options;
 
   Self.InternalAdd(RequestHash, AddressCacheItem);
 
@@ -332,28 +316,56 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class function TAddressCache.Find(ArrivalTime: TDateTime; RequestHash: Int64; Response: Pointer; var ResponseLen: Integer): TAddressCacheFindResult;
+class function TAddressCache.Find(ArrivalTime: TDateTime; RequestHash: TMD5Digest; Response: Pointer; var ResponseLen: Integer): TAddressCacheFindResult;
 
 var
-  AddressCacheItem: PAddressCacheItem; ElapsedTime: Cardinal;
+  AddressCacheItem: PAddressCacheItem; TimeStamp: Integer; ElapsedTime: Integer; AddressCacheItemOptionsResponseType: Byte;
 
 begin
 
-  Result := NotFound; if (TAddressCache_Root <> nil) then begin
+  AddressCacheItem := nil; Self.InternalFind(RequestHash, AddressCacheItem); if (AddressCacheItem <> nil) then begin
 
-    AddressCacheItem := nil; Self.InternalFind(RequestHash, Pointer(AddressCacheItem), TAddressCache_Root); if (AddressCacheItem <> nil) then begin
+    TimeStamp := GetTimeStamp(ArrivalTime);
 
-      ElapsedTime := ShortTime(ArrivalTime) - AddressCacheItem^.Time;
+    AddressCacheItemOptionsResponseType := AddressCacheItem^.Options and AddressCacheItemOptionsResponseTypeBitMask;
 
-      if (not AddressCacheItem^.IsNegativeResponse and (ElapsedTime <= Cardinal(TConfiguration.GetAddressCacheScavengingTime))) or (AddressCacheItem^.IsNegativeResponse and (ElapsedTime <= Cardinal(TConfiguration.GetAddressCacheNegativeTime))) then begin
+    if (TimeStamp > AddressCacheItem^.TimeStamp) then ElapsedTime := TimeStamp - AddressCacheItem^.TimeStamp else ElapsedTime := 0;
+
+    if (AddressCacheItemOptionsResponseType = AddressCacheItemOptionsResponseTypeIsPositive) then begin
+
+      if (ElapsedTime < TConfiguration.GetAddressCacheScavengingTime) then begin
 
         ResponseLen := AddressCacheItem^.ResponseLen; Move(AddressCacheItem^.Response^, Response^, ResponseLen);
 
-        if (ElapsedTime <= Cardinal(TConfiguration.GetAddressCacheSilentUpdateTime)) then Result := RecentEnough else Result := NeedsUpdate;
+        if (ElapsedTime < TConfiguration.GetAddressCacheSilentUpdateTime) then begin
 
-      end else begin
+          Result := RecentEnough; Exit;
 
-        Self.InternalEraseLastFoundItem;
+        end else begin
+
+          Result := NeedsUpdate; Exit;
+
+        end;
+
+      end;
+
+    end else if (AddressCacheItemOptionsResponseType = AddressCacheItemOptionsResponseTypeIsNegative) then begin
+
+      if (ElapsedTime < TConfiguration.GetAddressCacheNegativeTime) then begin
+
+        ResponseLen := AddressCacheItem^.ResponseLen; Move(AddressCacheItem^.Response^, Response^, ResponseLen);
+
+        Result := RecentEnough; Exit;
+
+      end;
+
+    end else if (AddressCacheItemOptionsResponseType = AddressCacheItemOptionsResponseTypeIsFailure) then begin
+
+      if (ElapsedTime < TConfiguration.GetAddressCacheFailureTime) then begin
+
+        ResponseLen := AddressCacheItem^.ResponseLen; Move(AddressCacheItem^.Response^, Response^, ResponseLen);
+
+        Result := RecentEnough; Exit;
 
       end;
 
@@ -361,85 +373,7 @@ begin
 
   end;
 
-end;
-
-// --------------------------------------------------------------------------
-//
-// --------------------------------------------------------------------------
-
-class procedure TAddressCache.InternalSaveItemToFile(FileStream: TFileStream; Time: Cardinal; Item: PHashPointerItem);
-
-begin
-
-  if (Item^.LData <> nil) then Self.InternalSavePartToFile(FileStream, Time, Item^.LHash, Item^.LData);
-  if (Item^.LHash <> Item^.RHash) and (Item^.RData <> nil) then Self.InternalSavePartToFile(FileStream, Time, Item^.RHash, Item^.RData);
-
-  if (Item^.LNext <> nil) then Self.InternalSaveItemToFile(FileStream, Time, Item^.LNext);
-  if (Item^.RNext <> nil) then Self.InternalSaveItemToFile(FileStream, Time, Item^.RNext);
-
-end;
-
-// --------------------------------------------------------------------------
-//
-// --------------------------------------------------------------------------
-
-class procedure TAddressCache.InternalSavePartToFile(FileStream: TFileStream; Time: Cardinal; Hash: Int64; Part: Pointer);
-
-var
-  ElapsedTime: Cardinal;
-
-begin
-
-  ElapsedTime := Time - PAddressCacheItem(Part)^.Time;
-
-  if (not PAddressCacheItem(Part)^.IsNegativeResponse and (ElapsedTime <= Cardinal(TConfiguration.GetAddressCacheScavengingTime))) or (PAddressCacheItem(Part)^.IsNegativeResponse and (ElapsedTime <= Cardinal(TConfiguration.GetAddressCacheNegativeTime))) then begin
-
-    if (FileStream.Write(Hash, SizeOf(Int64)) <> SizeOf(Int64)) then raise Exception.Create('TAddressCache.ScavengeToFile: Saving of the Hash field failed.');
-
-    if (FileStream.Write(PAddressCacheItem(Part)^.Time, SizeOf(Cardinal)) <> SizeOf(Cardinal)) then raise Exception.Create('TAddressCache.ScavengeToFile: Saving of the Time field failed.');
-
-    if (FileStream.Write(PAddressCacheItem(Part)^.ResponseLen, SizeOf(Integer)) <> SizeOf(Integer)) then raise Exception.Create('TAddressCache.ScavengeToFile: Saving of the ResponseLen field failed.');
-
-    if (FileStream.Write(PAddressCacheItem(Part)^.Response^, PAddressCacheItem(Part)^.ResponseLen) <> PAddressCacheItem(Part)^.ResponseLen) then raise Exception.Create('TAddressCache.ScavengeToFile: Saving of the Response field failed.');
-
-    if (FileStream.Write(PAddressCacheItem(Part)^.IsNegativeResponse, SizeOf(Boolean)) <> SizeOf(Boolean)) then raise Exception.Create('TAddressCache.ScavengeToFile: Saving of the IsNegativeResponse field failed.');
-
-  end;
-
-end;
-
-// --------------------------------------------------------------------------
-//
-// --------------------------------------------------------------------------
-
-class procedure TAddressCache.SaveToFile(FileName: String);
-
-var
-  FileStream: TFileStream;
-
-begin
-
-  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TAddressCache.SaveToFile: Saving address cache items...');
-
-  try
-
-    FileStream := TFileStream.Create(FileName, fmCreate, fmShareDenyWrite); try
-
-      if (TAddressCache_Root <> nil) then Self.InternalSaveItemToFile(FileStream, ShortTime(Now), TAddressCache_Root);
-
-    finally
-
-      FileStream.Free;
-
-    end;
-
-  except
-
-    on E: Exception do if TTracer.IsEnabled then TTracer.Trace(TracePriorityError, 'TAddressCache.SaveToFile: ' + E.Message);
-
-  end;
-
-  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TAddressCache.SaveToFile: Done saving address cache items.');
+  Result := NotFound;
 
 end;
 
@@ -450,7 +384,7 @@ end;
 class procedure TAddressCache.LoadFromFile(FileName: String);
 
 var
-  FileStream: TFileStream; Hash: Int64; AddressCacheItem: PAddressCacheItem;
+  FileStream: TBufferedSequentialReadStream;
 
 begin
 
@@ -458,27 +392,9 @@ begin
 
   try
 
-    FileStream := TFileStream.Create(FileName, fmOpenRead, fmShareDenyWrite); try
+    FileStream := TBufferedSequentialReadStream.Create(FileName, BUFFERED_SEQUENTIAL_STREAM_256KB_BUFFER_SIZE); try
 
-      while (FileStream.Position < FileStream.Size) do begin
-
-        AddressCacheItem := TAddressCache_MemoryStore.GetMemory(SizeOf(TAddressCacheItem)); AddressCacheItem^.Response := nil;
-
-        if (SizeOf(Int64) <> FileStream.Read(Hash, SizeOf(Int64))) then raise Exception.Create('TAddressCache.LoadFromFile: Loading of the Hash field failed.');
-
-        if (SizeOf(Cardinal) <> FileStream.Read(AddressCacheItem^.Time, SizeOf(Cardinal))) then raise Exception.Create('TAddressCache.LoadFromFile: Loading of the Time field failed.');
-
-        if (SizeOf(Integer) <> FileStream.Read(AddressCacheItem^.ResponseLen, SizeOf(Integer))) then raise Exception.Create('TAddressCache.LoadFromFile: Loading of the ResponseLen field failed.');
-
-        AddressCacheItem^.Response := TAddressCache_MemoryStore.GetMemory(AddressCacheItem^.ResponseLen);
-
-        if (AddressCacheItem^.ResponseLen <> FileStream.Read(AddressCacheItem^.Response^, AddressCacheItem^.ResponseLen)) then raise Exception.Create('TAddressCache.LoadFromFile: Loading of the Response field failed.');
-
-        if (SizeOf(Boolean) <> FileStream.Read(AddressCacheItem^.IsNegativeResponse, SizeOf(Boolean))) then raise Exception.Create('TAddressCache.LoadFromFile: Loading of the IsNegativeResponse field failed.');
-
-        Self.InternalAdd(Hash, AddressCacheItem);
-
-      end;
+      Self.InternalLoadFromFile(FileStream, GetTimeStamp(Now));
 
     finally
 
@@ -500,11 +416,336 @@ end;
 //
 // --------------------------------------------------------------------------
 
+class procedure TAddressCache.SaveToFile(FileName: String);
+
+var
+  FileStream: TBufferedSequentialWriteStream;
+
+begin
+
+  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TAddressCache.SaveToFile: Saving address cache items...');
+
+  try
+
+    FileStream := TBufferedSequentialWriteStream.Create(FileName, False, BUFFERED_SEQUENTIAL_STREAM_256KB_BUFFER_SIZE); try
+
+      Self.InternalSaveToFile(FileStream, GetTimeStamp(Now));
+
+    finally
+
+      FileStream.Free;
+
+    end;
+
+  except
+
+    on E: Exception do if TTracer.IsEnabled then TTracer.Trace(TracePriorityError, 'TAddressCache.SaveToFile: ' + E.Message);
+
+  end;
+
+  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TAddressCache.SaveToFile: Done saving address cache items.');
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
 class procedure TAddressCache.Finalize;
 
 begin
 
-  TAddressCache_MemoryStore.Free;
+  TAddressCacheMemoryStore.Finalize;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class procedure TAddressCache.InternalAdd(RequestHash: TMD5Digest; ResponseData: PAddressCacheItem);
+
+var
+  AddressCacheHashTreeItem: PAddressCacheHashTreeItem; CompareResult: Integer;
+
+begin
+
+  if (TAddressCache_HashTreeRoot <> nil) then begin
+
+    AddressCacheHashTreeItem := TAddressCache_HashTreeRoot; while True do begin
+
+      CompareResult := TMD5.Compare(RequestHash, AddressCacheHashTreeItem^.Hash);
+
+      if (CompareResult > 0) then begin
+
+        if (AddressCacheHashTreeItem^.R = nil) then begin
+
+          AddressCacheHashTreeItem^.R := TAddressCacheMemoryStore.GetMemory(SizeOf(TAddressCacheHashTreeItem)); AddressCacheHashTreeItem^.R^.Hash := RequestHash; AddressCacheHashTreeItem^.R^.Data := ResponseData; AddressCacheHashTreeItem^.R^.L := nil; AddressCacheHashTreeItem^.R^.R := nil; Exit;
+
+        end else begin
+
+          AddressCacheHashTreeItem := AddressCacheHashTreeItem^.R;
+
+        end;
+
+      end else if (CompareResult < 0) then begin
+
+        if (AddressCacheHashTreeItem^.L = nil) then begin
+
+          AddressCacheHashTreeItem^.L := TAddressCacheMemoryStore.GetMemory(SizeOf(TAddressCacheHashTreeItem)); AddressCacheHashTreeItem^.L^.Hash := RequestHash; AddressCacheHashTreeItem^.L^.Data := ResponseData; AddressCacheHashTreeItem^.L^.L := nil; AddressCacheHashTreeItem^.L^.R := nil; Exit;
+
+        end else begin
+
+          AddressCacheHashTreeItem := AddressCacheHashTreeItem^.L;
+
+        end;
+
+      end else begin
+
+        if (AddressCacheHashTreeItem^.Data <> nil) then begin
+
+          if (AddressCacheHashTreeItem^.Data^.Response <> nil) then begin
+
+            TAddressCacheMemoryStore.FreeMemory(AddressCacheHashTreeItem^.Data^.Response, AddressCacheHashTreeItem^.Data^.ResponseLen);
+
+          end;
+
+          TAddressCacheMemoryStore.FreeMemory(AddressCacheHashTreeItem^.Data, SizeOf(TAddressCacheItem));
+
+        end;
+
+        AddressCacheHashTreeItem^.Data := ResponseData; Exit;
+
+      end;
+
+    end;
+
+  end else begin
+
+    TAddressCache_HashTreeRoot := TAddressCacheMemoryStore.GetMemory(SizeOf(TAddressCacheHashTreeItem)); TAddressCache_HashTreeRoot^.Hash := RequestHash; TAddressCache_HashTreeRoot^.Data := ResponseData; TAddressCache_HashTreeRoot^.L := nil; TAddressCache_HashTreeRoot^.R := nil;
+
+  end;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class procedure TAddressCache.InternalFind(RequestHash: TMD5Digest; var ResponseData: PAddressCacheItem);
+
+var
+  AddressCacheHashTreeItem: PAddressCacheHashTreeItem; CompareResult: Integer;
+
+begin
+
+  if (TAddressCache_HashTreeRoot <> nil) then begin
+
+    AddressCacheHashTreeItem := TAddressCache_HashTreeRoot; while True do begin
+
+      CompareResult := TMD5.Compare(RequestHash, AddressCacheHashTreeItem^.Hash);
+
+      if (CompareResult > 0) then begin
+
+        if (AddressCacheHashTreeItem^.R <> nil) then begin
+
+          AddressCacheHashTreeItem := AddressCacheHashTreeItem^.R;
+
+        end else begin
+
+          Exit;
+
+        end;
+
+      end else if (CompareResult < 0) then begin
+
+        if (AddressCacheHashTreeItem^.L <> nil) then begin
+
+          AddressCacheHashTreeItem := AddressCacheHashTreeItem^.L;
+
+        end else begin
+
+          Exit;
+
+        end;
+
+      end else begin
+
+        ResponseData := AddressCacheHashTreeItem^.Data; Exit;
+
+      end;
+
+    end;
+
+  end;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class procedure TAddressCache.InternalLoadFromFile(FileStream: TBufferedSequentialReadStream; TimeStamp: Integer);
+
+var
+  ToLoad: Boolean; AddressCacheItem: PAddressCacheItem; RequestHash: TMD5Digest; AddressCacheItemOptions: Byte; AddressCacheItemTimeStamp: Integer; AddressCacheItemResponseLen: Integer; ElapsedTime: Integer; AddressCacheItemOptionsResponseType: Byte;
+
+begin
+
+  while (FileStream.Position < FileStream.FileSize) do begin
+
+    ToLoad := False;
+
+    if not(FileStream.Read(RequestHash, SizeOf(TMD5Digest))) then raise Exception.Create('Loading of the Hash field failed.');
+
+    if not(FileStream.Read(AddressCacheItemOptions, SizeOf(Byte))) then raise Exception.Create('Loading of the Options field failed.');
+
+    if not(FileStream.Read(AddressCacheItemTimeStamp, SizeOf(Integer))) then raise Exception.Create('Loading of the TimeStamp field failed.');
+
+    if not(FileStream.Read(AddressCacheItemResponseLen, SizeOf(Integer))) then raise Exception.Create('Loading of the ResponseLen field failed.');
+
+    AddressCacheItemOptionsResponseType := AddressCacheItemOptions and AddressCacheItemOptionsResponseTypeBitMask;
+
+    if (TimeStamp > AddressCacheItemTimeStamp) then ElapsedTime := TimeStamp - AddressCacheItemTimeStamp else ElapsedTime := 0;
+
+    if (AddressCacheItemOptionsResponseType = AddressCacheItemOptionsResponseTypeIsPositive) then begin
+
+      if (ElapsedTime < TConfiguration.GetAddressCacheScavengingTime) then begin
+
+        ToLoad := True;
+
+      end;
+
+    end else if (AddressCacheItemOptionsResponseType = AddressCacheItemOptionsResponseTypeIsNegative) then begin
+
+      if (ElapsedTime < TConfiguration.GetAddressCacheNegativeTime) then begin
+
+        ToLoad := True;
+
+      end;
+
+    end else if (AddressCacheItemOptionsResponseType = AddressCacheItemOptionsResponseTypeIsFailure) then begin
+
+      if (ElapsedTime < TConfiguration.GetAddressCacheFailureTime) then begin
+
+        ToLoad := True;
+
+      end;
+
+    end;
+
+    if ToLoad then begin
+
+      AddressCacheItem := TAddressCacheMemoryStore.GetMemory(SizeOf(TAddressCacheItem));
+
+      AddressCacheItem^.Options := AddressCacheItemOptions;
+      AddressCacheItem^.TimeStamp := AddressCacheItemTimeStamp;
+      AddressCacheItem^.ResponseLen := AddressCacheItemResponseLen;
+
+      AddressCacheItem^.Response := TAddressCacheMemoryStore.GetMemory(AddressCacheItemResponseLen);
+
+      if not(FileStream.Read(AddressCacheItem^.Response^, AddressCacheItemResponseLen)) then raise Exception.Create('Loading of the Response field failed.');
+
+      Self.InternalAdd(RequestHash, AddressCacheItem);
+
+    end else begin
+
+      if not(FileStream.Advance(AddressCacheItemResponseLen)) then raise Exception.Create('Skipping of the Response field failed.');
+
+    end;
+
+  end;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class procedure TAddressCache.InternalSaveToFile(FileStream: TBufferedSequentialWriteStream; TimeStamp: Integer);
+
+begin
+
+  if (TAddressCache_HashTreeRoot <> nil) then begin
+
+    Self.InternalSaveAddressCacheHashTreeItemToFile(FileStream, TimeStamp, TAddressCache_HashTreeRoot);
+
+    if not(FileStream.Flush) then raise Exception.Create('Flushing of the buffered file stream failed.');
+
+  end;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class procedure TAddressCache.InternalSaveAddressCacheHashTreeItemToFile(FileStream: TBufferedSequentialWriteStream; TimeStamp: Integer; HashTreeItem: PAddressCacheHashTreeItem);
+
+var
+  ToWrite: Boolean; AddressCacheItem: PAddressCacheItem; ElapsedTime: Integer; AddressCacheItemOptionsResponseType: Byte;
+
+begin
+
+  ToWrite := False;
+
+  AddressCacheItem := HashTreeItem^.Data;
+
+  AddressCacheItemOptionsResponseType := AddressCacheItem^.Options and AddressCacheItemOptionsResponseTypeBitMask;
+
+  if (TimeStamp > AddressCacheItem^.TimeStamp) then ElapsedTime := TimeStamp - AddressCacheItem^.TimeStamp else ElapsedTime := 0;
+
+  if (AddressCacheItemOptionsResponseType = AddressCacheItemOptionsResponseTypeIsPositive) then begin
+
+    if (ElapsedTime < TConfiguration.GetAddressCacheScavengingTime) then begin
+
+      ToWrite := True;
+
+    end;
+
+  end else if (AddressCacheItemOptionsResponseType = AddressCacheItemOptionsResponseTypeIsNegative) then begin
+
+    if (ElapsedTime < TConfiguration.GetAddressCacheNegativeTime) then begin
+
+      ToWrite := True;
+
+    end;
+
+  end else if (AddressCacheItemOptionsResponseType = AddressCacheItemOptionsResponseTypeIsFailure) then begin
+
+    if (ElapsedTime < TConfiguration.GetAddressCacheFailureTime) then begin
+
+      ToWrite := True;
+
+    end;
+
+  end;
+
+  if ToWrite then begin
+
+    if not(FileStream.Write(HashTreeItem^.Hash, SizeOf(TMD5Digest))) then raise Exception.Create('Saving of the Hash field failed.');
+
+    if not(FileStream.Write(AddressCacheItem^.Options, SizeOf(Byte))) then raise Exception.Create('Saving of the Options field failed.');
+
+    if not(FileStream.Write(AddressCacheItem^.TimeStamp, SizeOf(Integer))) then raise Exception.Create('Saving of the TimeStamp field failed.');
+
+    if not(FileStream.Write(AddressCacheItem^.ResponseLen, SizeOf(Integer))) then raise Exception.Create('Saving of the ResponseLen field failed.');
+
+    if not(FileStream.Write(AddressCacheItem^.Response^, AddressCacheItem^.ResponseLen)) then raise Exception.Create('Saving of the Response field failed.');
+
+  end;
+
+  if (HashTreeItem^.L <> nil) then begin
+
+    Self.InternalSaveAddressCacheHashTreeItemToFile(FileStream, TimeStamp, HashTreeItem^.L);
+
+  end;
+
+  if (HashTreeItem^.R <> nil) then begin
+
+    Self.InternalSaveAddressCacheHashTreeItemToFile(FileStream, TimeStamp, HashTreeItem^.R);
+
+  end;
 
 end;
 

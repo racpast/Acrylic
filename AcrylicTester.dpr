@@ -26,22 +26,22 @@ uses
   CommunicationChannels in 'CommunicationChannels.pas',
   Configuration in 'Configuration.pas',
   ConsoleTracerAgent in 'ConsoleTracerAgent.pas',
-  Digest in 'Digest.pas',
   DnsForwarder in 'DnsForwarder.pas',
   DnsProtocol in 'DnsProtocol.pas',
   DnsResolver in 'DnsResolver.pas',
   Environment in 'Environment.pas',
+  FileIO in 'FileIO.pas',
   FileStreamLineEx in 'FileStreamLineEx.pas',
   FileTracerAgent in 'FileTracerAgent.pas',
   HitLogger in 'HitLogger.pas',
   HostsCache in 'HostsCache.pas',
+  HostsCacheBinaryTrees in 'HostsCacheBinaryTrees.pas',
+  MD5 in 'MD5.pas',
   MemoryManager in 'MemoryManager.pas',
   MemoryStore in 'MemoryStore.pas',
   PatternMatching in 'PatternMatching.pas',
   PerlRegEx in 'PerlRegEx.pas',
   SessionCache in 'SessionCache.pas',
-  Statistics in 'Statistics.pas',
-  Stopwatch in 'Stopwatch.pas',
   Tracer in 'Tracer.pas';
 
 // --------------------------------------------------------------------------
@@ -49,13 +49,14 @@ uses
 // --------------------------------------------------------------------------
 
 const
-  TAddressCacheUnitTest_KCacheItems = 750;
-  THostsCacheUnitTest_KHostsItems = 1000;
+  TAddressCacheUnitTest_KCacheItems = 2000;
+  THostsCacheUnitTest_KHostsItems = 2000;
 
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
 
+{$i MD5UnitTest.pas }
 {$i CommunicationChannelsUnitTest.pas }
 {$i SessionCacheUnitTest.pas }
 {$i AddressCacheUnitTest.pas }
@@ -78,6 +79,7 @@ begin
 
   if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'Acrylic version ' + AcrylicVersionNumber + ' released on ' + AcrylicReleaseDate + '.');
 
+  TAbstractUnitTest.ControlTestExecution(TMD5UnitTest.Create);
   TAbstractUnitTest.ControlTestExecution(TCommunicationChannelsUnitTest.Create);
   TAbstractUnitTest.ControlTestExecution(TSessionCacheUnitTest.Create);
   TAbstractUnitTest.ControlTestExecution(TAddressCacheUnitTest.Create);

@@ -26,7 +26,7 @@ uses
 
 type
   TDnsForwarder = class
-    class function ForwardDnsRequest(DnsServerConfiguration: TDnsServerConfiguration; Buffer: Pointer; BufferLen: Integer; SessionId: Word): Boolean;
+    class function ForwardDnsRequest(ReferenceTime: TDateTime; DnsServerIndex: Integer; DnsServerConfiguration: TDnsServerConfiguration; Buffer: Pointer; BufferLen: Integer; SessionId: Word): Boolean;
   end;
 
 // --------------------------------------------------------------------------
@@ -36,14 +36,14 @@ type
 type
   TIPv4UdpDnsForwarder = class(TThread)
     private
+      ReferenceTime: TDateTime;
+      DnsServerIndex: Integer;
       DnsServerConfiguration: TDnsServerConfiguration;
       Buffer: Pointer;
       BufferLen: Integer;
-      Output: Pointer;
-      OutputLen: Integer;
       SessionId: Word;
     public
-      constructor Create(DnsServerConfiguration: TDnsServerConfiguration; Buffer: Pointer; BufferLen: Integer; SessionId: Word);
+      constructor Create(ReferenceTime: TDateTime; DnsServerIndex: Integer; DnsServerConfiguration: TDnsServerConfiguration; Buffer: Pointer; BufferLen: Integer; SessionId: Word);
       procedure   Execute; override;
       destructor  Destroy; override;
   end;
@@ -55,14 +55,14 @@ type
 type
   TIPv6UdpDnsForwarder = class(TThread)
     private
+      ReferenceTime: TDateTime;
+      DnsServerIndex: Integer;
       DnsServerConfiguration: TDnsServerConfiguration;
       Buffer: Pointer;
       BufferLen: Integer;
-      Output: Pointer;
-      OutputLen: Integer;
       SessionId: Word;
     public
-      constructor Create(DnsServerConfiguration: TDnsServerConfiguration; Buffer: Pointer; BufferLen: Integer; SessionId: Word);
+      constructor Create(ReferenceTime: TDateTime; DnsServerIndex: Integer; DnsServerConfiguration: TDnsServerConfiguration; Buffer: Pointer; BufferLen: Integer; SessionId: Word);
       procedure   Execute; override;
       destructor  Destroy; override;
   end;
@@ -74,16 +74,14 @@ type
 type
   TIPv4TcpDnsForwarder = class(TThread)
     private
+      ReferenceTime: TDateTime;
+      DnsServerIndex: Integer;
       DnsServerConfiguration: TDnsServerConfiguration;
       Buffer: Pointer;
       BufferLen: Integer;
-      Intermediate: Pointer;
-      IntermediateLen: Integer;
-      Output: Pointer;
-      OutputLen: Integer;
       SessionId: Word;
     public
-      constructor Create(DnsServerConfiguration: TDnsServerConfiguration; Buffer: Pointer; BufferLen: Integer; SessionId: Word);
+      constructor Create(ReferenceTime: TDateTime; DnsServerIndex: Integer; DnsServerConfiguration: TDnsServerConfiguration; Buffer: Pointer; BufferLen: Integer; SessionId: Word);
       procedure   Execute; override;
       destructor  Destroy; override;
   end;
@@ -95,16 +93,14 @@ type
 type
   TIPv6TcpDnsForwarder = class(TThread)
     private
+      ReferenceTime: TDateTime;
+      DnsServerIndex: Integer;
       DnsServerConfiguration: TDnsServerConfiguration;
       Buffer: Pointer;
       BufferLen: Integer;
-      Intermediate: Pointer;
-      IntermediateLen: Integer;
-      Output: Pointer;
-      OutputLen: Integer;
       SessionId: Word;
     public
-      constructor Create(DnsServerConfiguration: TDnsServerConfiguration; Buffer: Pointer; BufferLen: Integer; SessionId: Word);
+      constructor Create(ReferenceTime: TDateTime; DnsServerIndex: Integer; DnsServerConfiguration: TDnsServerConfiguration; Buffer: Pointer; BufferLen: Integer; SessionId: Word);
       procedure   Execute; override;
       destructor  Destroy; override;
   end;
@@ -116,16 +112,14 @@ type
 type
   TIPv4Socks5DnsForwarder = class(TThread)
     private
+      ReferenceTime: TDateTime;
+      DnsServerIndex: Integer;
       DnsServerConfiguration: TDnsServerConfiguration;
       Buffer: Pointer;
       BufferLen: Integer;
-      Intermediate: Pointer;
-      IntermediateLen: Integer;
-      Output: Pointer;
-      OutputLen: Integer;
       SessionId: Word;
     public
-      constructor Create(DnsServerConfiguration: TDnsServerConfiguration; Buffer: Pointer; BufferLen: Integer; SessionId: Word);
+      constructor Create(ReferenceTime: TDateTime; DnsServerIndex: Integer; DnsServerConfiguration: TDnsServerConfiguration; Buffer: Pointer; BufferLen: Integer; SessionId: Word);
       procedure   Execute; override;
       destructor  Destroy; override;
   end;
@@ -137,16 +131,14 @@ type
 type
   TIPv6Socks5DnsForwarder = class(TThread)
     private
+      ReferenceTime: TDateTime;
+      DnsServerIndex: Integer;
       DnsServerConfiguration: TDnsServerConfiguration;
       Buffer: Pointer;
       BufferLen: Integer;
-      Intermediate: Pointer;
-      IntermediateLen: Integer;
-      Output: Pointer;
-      OutputLen: Integer;
       SessionId: Word;
     public
-      constructor Create(DnsServerConfiguration: TDnsServerConfiguration; Buffer: Pointer; BufferLen: Integer; SessionId: Word);
+      constructor Create(ReferenceTime: TDateTime; DnsServerIndex: Integer; DnsServerConfiguration: TDnsServerConfiguration; Buffer: Pointer; BufferLen: Integer; SessionId: Word);
       procedure   Execute; override;
       destructor  Destroy; override;
   end;
@@ -172,21 +164,7 @@ uses
 //
 // --------------------------------------------------------------------------
 
-const
-  DNS_FORWARDER_MAX_BIND_RETRIES = 10;
-
-// --------------------------------------------------------------------------
-//
-// --------------------------------------------------------------------------
-
-const
-  DNS_FORWARDER_RESPONSE_RECEIVE_TIMEOUT = 3989;
-
-// --------------------------------------------------------------------------
-//
-// --------------------------------------------------------------------------
-
-class function TDnsForwarder.ForwardDnsRequest(DnsServerConfiguration: TDnsServerConfiguration; Buffer: Pointer; BufferLen: Integer; SessionId: Word): Boolean;
+class function TDnsForwarder.ForwardDnsRequest(ReferenceTime: TDateTime; DnsServerIndex: Integer; DnsServerConfiguration: TDnsServerConfiguration; Buffer: Pointer; BufferLen: Integer; SessionId: Word): Boolean;
 
 var
   DnsForwarderThread: TThread;
@@ -203,7 +181,7 @@ begin
 
         if DnsServerConfiguration.Address.IsIPv6Address then begin
 
-          DnsForwarderThread := TIPv6UdpDnsForwarder.Create(DnsServerConfiguration, Buffer, BufferLen, SessionId);
+          DnsForwarderThread := TIPv6UdpDnsForwarder.Create(ReferenceTime, DnsServerIndex, DnsServerConfiguration, Buffer, BufferLen, SessionId);
 
           if (DnsForwarderThread <> nil) then begin
 
@@ -215,7 +193,7 @@ begin
 
         end else begin
 
-          DnsForwarderThread := TIPv4UdpDnsForwarder.Create(DnsServerConfiguration, Buffer, BufferLen, SessionId);
+          DnsForwarderThread := TIPv4UdpDnsForwarder.Create(ReferenceTime, DnsServerIndex, DnsServerConfiguration, Buffer, BufferLen, SessionId);
 
           if (DnsForwarderThread <> nil) then begin
 
@@ -231,7 +209,7 @@ begin
 
         if DnsServerConfiguration.Address.IsIPv6Address then begin
 
-          DnsForwarderThread := TIPv6TcpDnsForwarder.Create(DnsServerConfiguration, Buffer, BufferLen, SessionId);
+          DnsForwarderThread := TIPv6TcpDnsForwarder.Create(ReferenceTime, DnsServerIndex, DnsServerConfiguration, Buffer, BufferLen, SessionId);
 
           if (DnsForwarderThread <> nil) then begin
 
@@ -243,7 +221,7 @@ begin
 
         end else begin
 
-          DnsForwarderThread := TIPv4TcpDnsForwarder.Create(DnsServerConfiguration, Buffer, BufferLen, SessionId);
+          DnsForwarderThread := TIPv4TcpDnsForwarder.Create(ReferenceTime, DnsServerIndex, DnsServerConfiguration, Buffer, BufferLen, SessionId);
 
           if (DnsForwarderThread <> nil) then begin
 
@@ -259,7 +237,7 @@ begin
 
         if DnsServerConfiguration.ProxyAddress.IsIPv6Address then begin
 
-          DnsForwarderThread := TIPv6Socks5DnsForwarder.Create(DnsServerConfiguration, Buffer, BufferLen, SessionId);
+          DnsForwarderThread := TIPv6Socks5DnsForwarder.Create(ReferenceTime, DnsServerIndex, DnsServerConfiguration, Buffer, BufferLen, SessionId);
 
           if (DnsForwarderThread <> nil) then begin
 
@@ -271,7 +249,7 @@ begin
 
         end else begin
 
-          DnsForwarderThread := TIPv4Socks5DnsForwarder.Create(DnsServerConfiguration, Buffer, BufferLen, SessionId);
+          DnsForwarderThread := TIPv4Socks5DnsForwarder.Create(ReferenceTime, DnsServerIndex, DnsServerConfiguration, Buffer, BufferLen, SessionId);
 
           if (DnsForwarderThread <> nil) then begin
 
@@ -297,13 +275,13 @@ end;
 //
 // --------------------------------------------------------------------------
 
-constructor TIPv4UdpDnsForwarder.Create(DnsServerConfiguration: TDnsServerConfiguration; Buffer: Pointer; BufferLen: Integer; SessionId: Word);
+constructor TIPv4UdpDnsForwarder.Create(ReferenceTime: TDateTime; DnsServerIndex: Integer; DnsServerConfiguration: TDnsServerConfiguration; Buffer: Pointer; BufferLen: Integer; SessionId: Word);
 
 begin
 
   inherited Create(True); Self.FreeOnTerminate := True;
 
-  Self.DnsServerConfiguration := DnsServerConfiguration; TMemoryManager.GetMemory(Self.Buffer, MAX_DNS_BUFFER_LEN); Move(Buffer^, Self.Buffer^, BufferLen); Self.BufferLen := BufferLen; TMemoryManager.GetMemory(Self.Output, MAX_DNS_BUFFER_LEN); Self.OutputLen := 0; Self.SessionId := SessionId;
+  Self.ReferenceTime := ReferenceTime; Self.DnsServerIndex := DnsServerIndex; Self.DnsServerConfiguration := DnsServerConfiguration; Self.Buffer := TMemoryManager.GetMemory(MAX_DNS_BUFFER_LEN); Move(Buffer^, Self.Buffer^, BufferLen); Self.BufferLen := BufferLen; Self.SessionId := SessionId;
 
 end;
 
@@ -314,23 +292,23 @@ end;
 procedure TIPv4UdpDnsForwarder.Execute;
 
 var
-  CommunicationChannel: TIPv4UdpCommunicationChannel; IPv4Address: TIPv4Address; Port: Word;
+  CommunicationChannel: TIPv4UdpClientCommunicationChannel; IPv4Address: TIPv4Address; Port: Word;
 
 begin
 
   try
 
-    CommunicationChannel := TIPv4UdpCommunicationChannel.Create;
+    CommunicationChannel := TIPv4UdpClientCommunicationChannel.Create;
 
     try
 
-      CommunicationChannel.BindToRandomUnregisteredPort(ANY_IPV4_ADDRESS, DNS_FORWARDER_MAX_BIND_RETRIES);
+      CommunicationChannel.BindToDynamicPort(ANY_IPV4_ADDRESS);
 
       CommunicationChannel.SendTo(Self.Buffer, Self.BufferLen, Self.DnsServerConfiguration.Address.IPv4Address, Self.DnsServerConfiguration.Port);
 
-      if CommunicationChannel.ReceiveFrom(DNS_FORWARDER_RESPONSE_RECEIVE_TIMEOUT, MAX_DNS_BUFFER_LEN, Self.Output, Self.OutputLen, IPv4Address, Port) then begin
+      if CommunicationChannel.ReceiveFrom(TConfiguration.GetServerUdpProtocolResponseTimeout, MAX_DNS_BUFFER_LEN, Self.Buffer, Self.BufferLen, IPv4Address, Port) then begin
 
-        TDnsResolver.GetInstance.HandleDnsResponse(Self.Output, Self.OutputLen, TDualIPAddressUtility.CreateFromIPv4Address(IPv4Address), Port);
+        TDnsResolver.GetInstance.HandleDnsResponse(Self.Buffer, Self.BufferLen, Self.DnsServerIndex);
 
       end;
 
@@ -356,7 +334,7 @@ destructor TIPv4UdpDnsForwarder.Destroy;
 
 begin
 
-  TMemoryManager.FreeMemory(Self.Output, MAX_DNS_BUFFER_LEN); TMemoryManager.FreeMemory(Self.Buffer, MAX_DNS_BUFFER_LEN);
+  TMemoryManager.FreeMemory(Self.Buffer, MAX_DNS_BUFFER_LEN);
 
   inherited Destroy;
 
@@ -366,13 +344,13 @@ end;
 //
 // --------------------------------------------------------------------------
 
-constructor TIPv6UdpDnsForwarder.Create(DnsServerConfiguration: TDnsServerConfiguration; Buffer: Pointer; BufferLen: Integer; SessionId: Word);
+constructor TIPv6UdpDnsForwarder.Create(ReferenceTime: TDateTime; DnsServerIndex: Integer; DnsServerConfiguration: TDnsServerConfiguration; Buffer: Pointer; BufferLen: Integer; SessionId: Word);
 
 begin
 
   inherited Create(True); Self.FreeOnTerminate := True;
 
-  Self.DnsServerConfiguration := DnsServerConfiguration; TMemoryManager.GetMemory(Self.Buffer, MAX_DNS_BUFFER_LEN); Move(Buffer^, Self.Buffer^, BufferLen); Self.BufferLen := BufferLen; TMemoryManager.GetMemory(Self.Output, MAX_DNS_BUFFER_LEN); Self.OutputLen := 0; Self.SessionId := SessionId;
+  Self.ReferenceTime := ReferenceTime; Self.DnsServerIndex := DnsServerIndex; Self.DnsServerConfiguration := DnsServerConfiguration; Self.Buffer := TMemoryManager.GetMemory(MAX_DNS_BUFFER_LEN); Move(Buffer^, Self.Buffer^, BufferLen); Self.BufferLen := BufferLen; Self.SessionId := SessionId;
 
 end;
 
@@ -383,23 +361,23 @@ end;
 procedure TIPv6UdpDnsForwarder.Execute;
 
 var
-  CommunicationChannel: TIPv6UdpCommunicationChannel; IPv6Address: TIPv6Address; Port: Word;
+  CommunicationChannel: TIPv6UdpClientCommunicationChannel; IPv6Address: TIPv6Address; Port: Word;
 
 begin
 
   try
 
-    CommunicationChannel := TIPv6UdpCommunicationChannel.Create;
+    CommunicationChannel := TIPv6UdpClientCommunicationChannel.Create;
 
     try
 
-      CommunicationChannel.BindToRandomUnregisteredPort(ANY_IPV6_ADDRESS, DNS_FORWARDER_MAX_BIND_RETRIES);
+      CommunicationChannel.BindToDynamicPort(ANY_IPV6_ADDRESS);
 
       CommunicationChannel.SendTo(Self.Buffer, Self.BufferLen, Self.DnsServerConfiguration.Address.IPv6Address, Self.DnsServerConfiguration.Port);
 
-      if CommunicationChannel.ReceiveFrom(DNS_FORWARDER_RESPONSE_RECEIVE_TIMEOUT, MAX_DNS_BUFFER_LEN, Self.Output, Self.OutputLen, IPv6Address, Port) then begin
+      if CommunicationChannel.ReceiveFrom(TConfiguration.GetServerUdpProtocolResponseTimeout, MAX_DNS_BUFFER_LEN, Self.Buffer, Self.BufferLen, IPv6Address, Port) then begin
 
-        TDnsResolver.GetInstance.HandleDnsResponse(Self.Output, Self.OutputLen, TDualIPAddressUtility.CreateFromIPv6Address(IPv6Address), Port);
+        TDnsResolver.GetInstance.HandleDnsResponse(Self.Buffer, Self.BufferLen, Self.DnsServerIndex);
 
       end;
 
@@ -425,7 +403,7 @@ destructor TIPv6UdpDnsForwarder.Destroy;
 
 begin
 
-  TMemoryManager.FreeMemory(Self.Output, MAX_DNS_BUFFER_LEN); TMemoryManager.FreeMemory(Self.Buffer, MAX_DNS_BUFFER_LEN);
+  TMemoryManager.FreeMemory(Self.Buffer, MAX_DNS_BUFFER_LEN);
 
   inherited Destroy;
 
@@ -435,13 +413,13 @@ end;
 //
 // --------------------------------------------------------------------------
 
-constructor TIPv4TcpDnsForwarder.Create(DnsServerConfiguration: TDnsServerConfiguration; Buffer: Pointer; BufferLen: Integer; SessionId: Word);
+constructor TIPv4TcpDnsForwarder.Create(ReferenceTime: TDateTime; DnsServerIndex: Integer; DnsServerConfiguration: TDnsServerConfiguration; Buffer: Pointer; BufferLen: Integer; SessionId: Word);
 
 begin
 
   inherited Create(True); Self.FreeOnTerminate := True;
 
-  Self.DnsServerConfiguration := DnsServerConfiguration; TMemoryManager.GetMemory(Self.Buffer, MAX_DNS_BUFFER_LEN); Move(Buffer^, Self.Buffer^, BufferLen); Self.BufferLen := BufferLen; TMemoryManager.GetMemory(Self.Intermediate, MAX_DNS_BUFFER_LEN); Self.IntermediateLen := 0; TMemoryManager.GetMemory(Self.Output, MAX_DNS_BUFFER_LEN); Self.OutputLen := 0; Self.SessionId := SessionId;
+  Self.ReferenceTime := ReferenceTime; Self.DnsServerIndex := DnsServerIndex; Self.DnsServerConfiguration := DnsServerConfiguration; Self.Buffer := TMemoryManager.GetMemory(MAX_DNS_BUFFER_LEN); Move(Buffer^, Self.Buffer^, BufferLen); Self.BufferLen := BufferLen; Self.SessionId := SessionId;
 
 end;
 
@@ -452,39 +430,37 @@ end;
 procedure TIPv4TcpDnsForwarder.Execute;
 
 var
-  CommunicationChannel: TIPv4TcpCommunicationChannel;
+  CommunicationChannel: TIPv4TcpClientCommunicationChannel; ExchangeSucceeded: Boolean;
 
 begin
 
   try
 
-    CommunicationChannel := TIPv4TcpCommunicationChannel.Create;
+    CommunicationChannel := TIPv4TcpClientCommunicationManager.AcquireCommunicationChannel(Self.ReferenceTime, Self.DnsServerIndex); ExchangeSucceeded := False; try
 
-    try
+      if not CommunicationChannel.Connected then CommunicationChannel.Connect(Self.DnsServerConfiguration.Address.IPv4Address, Self.DnsServerConfiguration.Port);
 
-      CommunicationChannel.Connect(Self.DnsServerConfiguration.Address.IPv4Address, Self.DnsServerConfiguration.Port);
+      CommunicationChannel.SendWrappedDnsPacket(Self.Buffer, Self.BufferLen);
 
-      TDnsProtocolUtility.WrapUdpRequestPacketOverTcpRequestPacket(Buffer, BufferLen, Self.Intermediate, Self.IntermediateLen);
+      if CommunicationChannel.ReceiveWrappedDnsPacket(TConfiguration.GetServerTcpProtocolResponseTimeout, TConfiguration.GetServerTcpProtocolInternalTimeout, MAX_DNS_BUFFER_LEN, Self.Buffer, Self.BufferLen) then begin
 
-      CommunicationChannel.Send(Self.Intermediate, Self.IntermediateLen);
+        TDnsResolver.GetInstance.HandleDnsResponse(Self.Buffer, Self.BufferLen, Self.DnsServerIndex); ExchangeSucceeded := True;
 
-      if CommunicationChannel.Receive(DNS_FORWARDER_RESPONSE_RECEIVE_TIMEOUT, MAX_DNS_BUFFER_LEN, Self.Intermediate, Self.IntermediateLen) then begin
+      end else begin
 
-        TDnsProtocolUtility.WrapTcpResponsePacketOverUdpResponsePacket(Self.Intermediate, Self.IntermediateLen, Self.Output, Self.OutputLen);
-
-        TDnsResolver.GetInstance.HandleDnsResponse(Self.Output, Self.OutputLen, Self.DnsServerConfiguration.Address, Self.DnsServerConfiguration.Port);
+        raise Exception.Create('No response received.');
 
       end;
 
     finally
 
-      CommunicationChannel.Free;
+      TIPv4TcpClientCommunicationManager.ReleaseCommunicationChannel(Self.ReferenceTime, Self.DnsServerIndex, CommunicationChannel, ExchangeSucceeded);
 
     end;
 
   except
 
-    on E: Exception do if TTracer.IsEnabled then TTracer.Trace(TracePriorityError, 'TIPv4TcpDnsForwarder.Execute: ' + E.Message);
+    on E: Exception do if TTracer.IsEnabled then TTracer.Trace(TracePriorityError, 'TIPv4TcpDnsForwarder.Execute: The following error occurred while forwarding request ID ' + IntToStr(Self.SessionId) + ' to server ' + IntToStr(Self.DnsServerIndex + 1) + ': ' + E.Message);
 
   end;
 
@@ -498,7 +474,7 @@ destructor TIPv4TcpDnsForwarder.Destroy;
 
 begin
 
-  TMemoryManager.FreeMemory(Self.Output, MAX_DNS_BUFFER_LEN); TMemoryManager.FreeMemory(Self.Intermediate, MAX_DNS_BUFFER_LEN); TMemoryManager.FreeMemory(Self.Buffer, MAX_DNS_BUFFER_LEN);
+  TMemoryManager.FreeMemory(Self.Buffer, MAX_DNS_BUFFER_LEN);
 
   inherited Destroy;
 
@@ -508,13 +484,13 @@ end;
 //
 // --------------------------------------------------------------------------
 
-constructor TIPv6TcpDnsForwarder.Create(DnsServerConfiguration: TDnsServerConfiguration; Buffer: Pointer; BufferLen: Integer; SessionId: Word);
+constructor TIPv6TcpDnsForwarder.Create(ReferenceTime: TDateTime; DnsServerIndex: Integer; DnsServerConfiguration: TDnsServerConfiguration; Buffer: Pointer; BufferLen: Integer; SessionId: Word);
 
 begin
 
   inherited Create(True); Self.FreeOnTerminate := True;
 
-  Self.DnsServerConfiguration := DnsServerConfiguration; TMemoryManager.GetMemory(Self.Buffer, MAX_DNS_BUFFER_LEN); Move(Buffer^, Self.Buffer^, BufferLen); Self.BufferLen := BufferLen; TMemoryManager.GetMemory(Self.Intermediate, MAX_DNS_BUFFER_LEN); Self.IntermediateLen := 0; TMemoryManager.GetMemory(Self.Output, MAX_DNS_BUFFER_LEN); Self.OutputLen := 0; Self.SessionId := SessionId;
+  Self.ReferenceTime := ReferenceTime; Self.DnsServerIndex := DnsServerIndex; Self.DnsServerConfiguration := DnsServerConfiguration; Self.Buffer := TMemoryManager.GetMemory(MAX_DNS_BUFFER_LEN); Move(Buffer^, Self.Buffer^, BufferLen); Self.BufferLen := BufferLen; Self.SessionId := SessionId;
 
 end;
 
@@ -525,39 +501,37 @@ end;
 procedure TIPv6TcpDnsForwarder.Execute;
 
 var
-  CommunicationChannel: TIPv6TcpCommunicationChannel;
+  CommunicationChannel: TIPv6TcpClientCommunicationChannel; ExchangeSucceeded: Boolean;
 
 begin
 
   try
 
-    CommunicationChannel := TIPv6TcpCommunicationChannel.Create;
+    CommunicationChannel := TIPv6TcpClientCommunicationManager.AcquireCommunicationChannel(Self.ReferenceTime, Self.DnsServerIndex); ExchangeSucceeded := False; try
 
-    try
+      if not CommunicationChannel.Connected then CommunicationChannel.Connect(Self.DnsServerConfiguration.Address.IPv6Address, Self.DnsServerConfiguration.Port);
 
-      CommunicationChannel.Connect(Self.DnsServerConfiguration.Address.IPv6Address, Self.DnsServerConfiguration.Port);
+      CommunicationChannel.SendWrappedDnsPacket(Self.Buffer, Self.BufferLen);
 
-      TDnsProtocolUtility.WrapUdpRequestPacketOverTcpRequestPacket(Buffer, BufferLen, Self.Intermediate, Self.IntermediateLen);
+      if CommunicationChannel.ReceiveWrappedDnsPacket(TConfiguration.GetServerTcpProtocolResponseTimeout, TConfiguration.GetServerTcpProtocolInternalTimeout, MAX_DNS_BUFFER_LEN, Self.Buffer, Self.BufferLen) then begin
 
-      CommunicationChannel.Send(Self.Intermediate, Self.IntermediateLen);
+        TDnsResolver.GetInstance.HandleDnsResponse(Self.Buffer, Self.BufferLen, Self.DnsServerIndex); ExchangeSucceeded := True;
 
-      if CommunicationChannel.Receive(DNS_FORWARDER_RESPONSE_RECEIVE_TIMEOUT, MAX_DNS_BUFFER_LEN, Self.Intermediate, Self.IntermediateLen) then begin
+      end else begin
 
-        TDnsProtocolUtility.WrapTcpResponsePacketOverUdpResponsePacket(Self.Intermediate, Self.IntermediateLen, Self.Output, Self.OutputLen);
-
-        TDnsResolver.GetInstance.HandleDnsResponse(Self.Output, Self.OutputLen, Self.DnsServerConfiguration.Address, Self.DnsServerConfiguration.Port);
+        raise Exception.Create('No response received.');
 
       end;
 
     finally
 
-      CommunicationChannel.Free;
+      TIPv6TcpClientCommunicationManager.ReleaseCommunicationChannel(Self.ReferenceTime, Self.DnsServerIndex, CommunicationChannel, ExchangeSucceeded);
 
     end;
 
   except
 
-    on E: Exception do if TTracer.IsEnabled then TTracer.Trace(TracePriorityError, 'TIPv6TcpDnsForwarder.Execute: ' + E.Message);
+    on E: Exception do if TTracer.IsEnabled then TTracer.Trace(TracePriorityError, 'TIPv6TcpDnsForwarder.Execute: The following error occurred while forwarding request ID ' + IntToStr(Self.SessionId) + ' to server ' + IntToStr(Self.DnsServerIndex + 1) + ': ' + E.Message);
 
   end;
 
@@ -571,7 +545,7 @@ destructor TIPv6TcpDnsForwarder.Destroy;
 
 begin
 
-  TMemoryManager.FreeMemory(Self.Output, MAX_DNS_BUFFER_LEN); TMemoryManager.FreeMemory(Self.Intermediate, MAX_DNS_BUFFER_LEN); TMemoryManager.FreeMemory(Self.Buffer, MAX_DNS_BUFFER_LEN);
+  TMemoryManager.FreeMemory(Self.Buffer, MAX_DNS_BUFFER_LEN);
 
   inherited Destroy;
 
@@ -581,13 +555,13 @@ end;
 //
 // --------------------------------------------------------------------------
 
-constructor TIPv4Socks5DnsForwarder.Create(DnsServerConfiguration: TDnsServerConfiguration; Buffer: Pointer; BufferLen: Integer; SessionId: Word);
+constructor TIPv4Socks5DnsForwarder.Create(ReferenceTime: TDateTime; DnsServerIndex: Integer; DnsServerConfiguration: TDnsServerConfiguration; Buffer: Pointer; BufferLen: Integer; SessionId: Word);
 
 begin
 
   inherited Create(True); Self.FreeOnTerminate := True;
 
-  Self.DnsServerConfiguration := DnsServerConfiguration; TMemoryManager.GetMemory(Self.Buffer, MAX_DNS_BUFFER_LEN); Move(Buffer^, Self.Buffer^, BufferLen); Self.BufferLen := BufferLen; TMemoryManager.GetMemory(Self.Intermediate, MAX_DNS_BUFFER_LEN); Self.IntermediateLen := 0; TMemoryManager.GetMemory(Self.Output, MAX_DNS_BUFFER_LEN); Self.OutputLen := 0; Self.SessionId := SessionId;
+  Self.ReferenceTime := ReferenceTime; Self.DnsServerIndex := DnsServerIndex; Self.DnsServerConfiguration := DnsServerConfiguration; Self.Buffer := TMemoryManager.GetMemory(MAX_DNS_BUFFER_LEN); Move(Buffer^, Self.Buffer^, BufferLen); Self.BufferLen := BufferLen; Self.SessionId := SessionId;
 
 end;
 
@@ -598,67 +572,29 @@ end;
 procedure TIPv4Socks5DnsForwarder.Execute;
 
 var
-  CommunicationChannel: TIPv4TcpCommunicationChannel;
+  CommunicationChannel: TIPv4TcpClientCommunicationChannel;
 
 begin
 
   try
 
-    CommunicationChannel := TIPv4TcpCommunicationChannel.Create;
+    CommunicationChannel := TIPv4TcpClientCommunicationChannel.Create;
 
     try
 
       CommunicationChannel.Connect(Self.DnsServerConfiguration.ProxyAddress.IPv4Address, Self.DnsServerConfiguration.ProxyPort);
 
-      PByteArray(Self.Intermediate)^[00] := $05;
-      PByteArray(Self.Intermediate)^[01] := $01;
-      PByteArray(Self.Intermediate)^[02] := $00;
+      if CommunicationChannel.PerformSocks5Handshake(TConfiguration.GetServerSocks5ProtocolProxyFirstByteTimeout, TConfiguration.GetServerSocks5ProtocolProxyOtherBytesTimeout, TConfiguration.GetServerSocks5ProtocolProxyRemoteConnectTimeout, Self.DnsServerConfiguration.Address, Self.DnsServerConfiguration.Port) then begin
 
-      Self.IntermediateLen := 3;
+        CommunicationChannel.SendWrappedDnsPacket(Self.Buffer, Self.BufferLen);
 
-      CommunicationChannel.Send(Self.Intermediate, Self.IntermediateLen); if CommunicationChannel.Receive(DNS_FORWARDER_RESPONSE_RECEIVE_TIMEOUT, MAX_DNS_BUFFER_LEN, Self.Intermediate, Self.IntermediateLen) then begin
+        if CommunicationChannel.ReceiveWrappedDnsPacket(TConfiguration.GetServerSocks5ProtocolProxyRemoteResponseTimeout, TConfiguration.GetServerSocks5ProtocolProxyOtherBytesTimeout, MAX_DNS_BUFFER_LEN, Self.Buffer, Self.BufferLen) then begin
 
-        if Self.DnsServerConfiguration.Address.IsIPv6Address then begin
-
-          PByteArray(Self.Intermediate)^[00] := $05;
-          PByteArray(Self.Intermediate)^[01] := $01;
-          PByteArray(Self.Intermediate)^[02] := $00;
-          PByteArray(Self.Intermediate)^[03] := $04;
-
-          Move(Self.DnsServerConfiguration.Address.IPv6Address, PByteArray(Self.Intermediate)^[04], SizeOf(TIPv6Address));
-
-          PByteArray(Self.Intermediate)^[20] := Self.DnsServerConfiguration.Port shr $08;
-          PByteArray(Self.Intermediate)^[21] := Self.DnsServerConfiguration.Port and $ff;
-
-          Self.IntermediateLen := 22;
+          TDnsResolver.GetInstance.HandleDnsResponse(Self.Buffer, Self.BufferLen, Self.DnsServerIndex);
 
         end else begin
 
-          PByteArray(Self.Intermediate)^[00] := $05;
-          PByteArray(Self.Intermediate)^[01] := $01;
-          PByteArray(Self.Intermediate)^[02] := $00;
-          PByteArray(Self.Intermediate)^[03] := $01;
-
-          Move(Self.DnsServerConfiguration.Address.IPv4Address, PByteArray(Self.Intermediate)^[04], SizeOf(TIPv4Address));
-
-          PByteArray(Self.Intermediate)^[08] := Self.DnsServerConfiguration.Port shr $08;
-          PByteArray(Self.Intermediate)^[09] := Self.DnsServerConfiguration.Port and $ff;
-
-          Self.IntermediateLen := 10;
-
-        end;
-
-        CommunicationChannel.Send(Self.Intermediate, Self.IntermediateLen); if CommunicationChannel.Receive(DNS_FORWARDER_RESPONSE_RECEIVE_TIMEOUT, MAX_DNS_BUFFER_LEN, Self.Intermediate, Self.IntermediateLen) then begin
-
-          TDnsProtocolUtility.WrapUdpRequestPacketOverTcpRequestPacket(Buffer, BufferLen, Self.Intermediate, Self.IntermediateLen);
-
-          CommunicationChannel.Send(Self.Intermediate, Self.IntermediateLen); if CommunicationChannel.Receive(DNS_FORWARDER_RESPONSE_RECEIVE_TIMEOUT, MAX_DNS_BUFFER_LEN, Self.Intermediate, Self.IntermediateLen) then begin
-
-            TDnsProtocolUtility.WrapTcpResponsePacketOverUdpResponsePacket(Self.Intermediate, Self.IntermediateLen, Self.Output, Self.OutputLen);
-
-            TDnsResolver.GetInstance.HandleDnsResponse(Self.Output, Self.OutputLen, Self.DnsServerConfiguration.Address, Self.DnsServerConfiguration.Port);
-
-          end;
+          raise Exception.Create('No response received.');
 
         end;
 
@@ -672,7 +608,7 @@ begin
 
   except
 
-    on E: Exception do if TTracer.IsEnabled then TTracer.Trace(TracePriorityError, 'TIPv4Socks5DnsForwarder.Execute: ' + E.Message);
+    on E: Exception do if TTracer.IsEnabled then TTracer.Trace(TracePriorityError, 'TIPv4Socks5DnsForwarder.Execute: The following error occurred while forwarding request ID ' + IntToStr(Self.SessionId) + ' to server ' + IntToStr(Self.DnsServerIndex + 1) + ': ' + E.Message);
 
   end;
 
@@ -686,7 +622,7 @@ destructor TIPv4Socks5DnsForwarder.Destroy;
 
 begin
 
-  TMemoryManager.FreeMemory(Self.Output, MAX_DNS_BUFFER_LEN); TMemoryManager.FreeMemory(Self.Intermediate, MAX_DNS_BUFFER_LEN); TMemoryManager.FreeMemory(Self.Buffer, MAX_DNS_BUFFER_LEN);
+  TMemoryManager.FreeMemory(Self.Buffer, MAX_DNS_BUFFER_LEN);
 
   inherited Destroy;
 
@@ -696,13 +632,13 @@ end;
 //
 // --------------------------------------------------------------------------
 
-constructor TIPv6Socks5DnsForwarder.Create(DnsServerConfiguration: TDnsServerConfiguration; Buffer: Pointer; BufferLen: Integer; SessionId: Word);
+constructor TIPv6Socks5DnsForwarder.Create(ReferenceTime: TDateTime; DnsServerIndex: Integer; DnsServerConfiguration: TDnsServerConfiguration; Buffer: Pointer; BufferLen: Integer; SessionId: Word);
 
 begin
 
   inherited Create(True); Self.FreeOnTerminate := True;
 
-  Self.DnsServerConfiguration := DnsServerConfiguration; TMemoryManager.GetMemory(Self.Buffer, MAX_DNS_BUFFER_LEN); Move(Buffer^, Self.Buffer^, BufferLen); Self.BufferLen := BufferLen; TMemoryManager.GetMemory(Self.Intermediate, MAX_DNS_BUFFER_LEN); Self.IntermediateLen := 0; TMemoryManager.GetMemory(Self.Output, MAX_DNS_BUFFER_LEN); Self.OutputLen := 0; Self.SessionId := SessionId;
+  Self.ReferenceTime := ReferenceTime; Self.DnsServerIndex := DnsServerIndex; Self.DnsServerConfiguration := DnsServerConfiguration; Self.Buffer := TMemoryManager.GetMemory(MAX_DNS_BUFFER_LEN); Move(Buffer^, Self.Buffer^, BufferLen); Self.BufferLen := BufferLen; Self.SessionId := SessionId;
 
 end;
 
@@ -713,67 +649,29 @@ end;
 procedure TIPv6Socks5DnsForwarder.Execute;
 
 var
-  CommunicationChannel: TIPv6TcpCommunicationChannel;
+  CommunicationChannel: TIPv6TcpClientCommunicationChannel;
 
 begin
 
   try
 
-    CommunicationChannel := TIPv6TcpCommunicationChannel.Create;
+    CommunicationChannel := TIPv6TcpClientCommunicationChannel.Create;
 
     try
 
       CommunicationChannel.Connect(Self.DnsServerConfiguration.ProxyAddress.IPv6Address, Self.DnsServerConfiguration.ProxyPort);
 
-      PByteArray(Self.Intermediate)^[00] := $05;
-      PByteArray(Self.Intermediate)^[01] := $01;
-      PByteArray(Self.Intermediate)^[02] := $00;
+      if CommunicationChannel.PerformSocks5Handshake(TConfiguration.GetServerSocks5ProtocolProxyFirstByteTimeout, TConfiguration.GetServerSocks5ProtocolProxyOtherBytesTimeout, TConfiguration.GetServerSocks5ProtocolProxyRemoteConnectTimeout, Self.DnsServerConfiguration.Address, Self.DnsServerConfiguration.Port) then begin
 
-      Self.IntermediateLen := 3;
+        CommunicationChannel.SendWrappedDnsPacket(Self.Buffer, Self.BufferLen);
 
-      CommunicationChannel.Send(Self.Intermediate, Self.IntermediateLen); if CommunicationChannel.Receive(DNS_FORWARDER_RESPONSE_RECEIVE_TIMEOUT, MAX_DNS_BUFFER_LEN, Self.Intermediate, Self.IntermediateLen) then begin
+        if CommunicationChannel.ReceiveWrappedDnsPacket(TConfiguration.GetServerSocks5ProtocolProxyRemoteResponseTimeout, TConfiguration.GetServerSocks5ProtocolProxyOtherBytesTimeout, MAX_DNS_BUFFER_LEN, Self.Buffer, Self.BufferLen) then begin
 
-        if Self.DnsServerConfiguration.Address.IsIPv6Address then begin
-
-          PByteArray(Self.Intermediate)^[00] := $05;
-          PByteArray(Self.Intermediate)^[01] := $01;
-          PByteArray(Self.Intermediate)^[02] := $00;
-          PByteArray(Self.Intermediate)^[03] := $04;
-
-          Move(Self.DnsServerConfiguration.Address.IPv6Address, PByteArray(Self.Intermediate)^[04], SizeOf(TIPv6Address));
-
-          PByteArray(Self.Intermediate)^[20] := Self.DnsServerConfiguration.Port shr $08;
-          PByteArray(Self.Intermediate)^[21] := Self.DnsServerConfiguration.Port and $ff;
-
-          Self.IntermediateLen := 22;
+          TDnsResolver.GetInstance.HandleDnsResponse(Self.Buffer, Self.BufferLen, Self.DnsServerIndex);
 
         end else begin
 
-          PByteArray(Self.Intermediate)^[00] := $05;
-          PByteArray(Self.Intermediate)^[01] := $01;
-          PByteArray(Self.Intermediate)^[02] := $00;
-          PByteArray(Self.Intermediate)^[03] := $01;
-
-          Move(Self.DnsServerConfiguration.Address.IPv4Address, PByteArray(Self.Intermediate)^[04], SizeOf(TIPv4Address));
-
-          PByteArray(Self.Intermediate)^[08] := Self.DnsServerConfiguration.Port shr $08;
-          PByteArray(Self.Intermediate)^[09] := Self.DnsServerConfiguration.Port and $ff;
-
-          Self.IntermediateLen := 10;
-
-        end;
-
-        CommunicationChannel.Send(Self.Intermediate, Self.IntermediateLen); if CommunicationChannel.Receive(DNS_FORWARDER_RESPONSE_RECEIVE_TIMEOUT, MAX_DNS_BUFFER_LEN, Self.Intermediate, Self.IntermediateLen) then begin
-
-          TDnsProtocolUtility.WrapUdpRequestPacketOverTcpRequestPacket(Buffer, BufferLen, Self.Intermediate, Self.IntermediateLen);
-
-          CommunicationChannel.Send(Self.Intermediate, Self.IntermediateLen); if CommunicationChannel.Receive(DNS_FORWARDER_RESPONSE_RECEIVE_TIMEOUT, MAX_DNS_BUFFER_LEN, Self.Intermediate, Self.IntermediateLen) then begin
-
-            TDnsProtocolUtility.WrapTcpResponsePacketOverUdpResponsePacket(Self.Intermediate, Self.IntermediateLen, Self.Output, Self.OutputLen);
-
-            TDnsResolver.GetInstance.HandleDnsResponse(Self.Output, Self.OutputLen, Self.DnsServerConfiguration.Address, Self.DnsServerConfiguration.Port);
-
-          end;
+          raise Exception.Create('No response received.');
 
         end;
 
@@ -787,7 +685,7 @@ begin
 
   except
 
-    on E: Exception do if TTracer.IsEnabled then TTracer.Trace(TracePriorityError, 'TIPv6Socks5DnsForwarder.Execute: ' + E.Message);
+    on E: Exception do if TTracer.IsEnabled then TTracer.Trace(TracePriorityError, 'TIPv6Socks5DnsForwarder.Execute: The following error occurred while forwarding request ID ' + IntToStr(Self.SessionId) + ' to server ' + IntToStr(Self.DnsServerIndex + 1) + ': ' + E.Message);
 
   end;
 
@@ -801,7 +699,7 @@ destructor TIPv6Socks5DnsForwarder.Destroy;
 
 begin
 
-  TMemoryManager.FreeMemory(Self.Output, MAX_DNS_BUFFER_LEN); TMemoryManager.FreeMemory(Self.Intermediate, MAX_DNS_BUFFER_LEN); TMemoryManager.FreeMemory(Self.Buffer, MAX_DNS_BUFFER_LEN);
+  TMemoryManager.FreeMemory(Self.Buffer, MAX_DNS_BUFFER_LEN);
 
   inherited Destroy;
 

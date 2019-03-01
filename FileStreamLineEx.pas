@@ -107,7 +107,9 @@ begin
       LineTerminatorFound := Self.TryFindLineTerminator(Self.CurrentLine, LineTerminatorPosition, LineTerminatorLength);
 
     end else begin
+
       Break;
+
     end;
 
   end; if LineTerminatorFound then begin

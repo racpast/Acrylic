@@ -8,26 +8,18 @@
 ; General
 ;--------------------------------
 
-; Name
-Name "Acrylic DNS Proxy (0.9.39)"
+Name "Acrylic DNS Proxy (1.0.0)"
 
-; Output
 OutFile "Acrylic.exe"
 
-; Compressor
 SetCompressor "lzma"
 
-; Default installation folder
 InstallDir "$PROGRAMFILES\Acrylic DNS Proxy"
 
-; Request administrative rights
 RequestExecutionLevel admin
 
-;--------------------------------
-; Interface Settings
-;--------------------------------
-
-!define MUI_ABORTWARNING
+ShowInstDetails show
+ShowUninstDetails show
 
 ;--------------------------------
 ; Pages
@@ -52,12 +44,14 @@ RequestExecutionLevel admin
 !insertmacro MUI_LANGUAGE "English"
 
 ;--------------------------------
-; Installer Sections
+; Sections
 ;--------------------------------
 
 Section "Acrylic" SecMain
 
   SetShellVarContext all
+
+  Call PerformInstallSystemChecks
 
   SectionIn RO
   SetOutPath "$INSTDIR"
@@ -78,6 +72,8 @@ Section "Acrylic" SecMain
   File "PurgeAcrylicCacheData.bat"
   File "ActivateAcrylicDebugLog.bat"
   File "DeactivateAcrylicDebugLog.bat"
+  File "OpenAcrylicConfigurationFile.bat"
+  File "OpenAcrylicHostsFile.bat"
   File "UninstallAcrylicService.bat"
 
   WriteUninstaller "$INSTDIR\Uninstall.exe"
@@ -91,10 +87,6 @@ Section "Acrylic" SecMain
   ExecWait "$INSTDIR\AcrylicUI.exe InstallAcrylicService"
 
 SectionEnd
-
-;--------------------------------
-; Uninstaller Section
-;--------------------------------
 
 Section "Uninstall"
 
@@ -125,14 +117,40 @@ Section "Uninstall"
   Delete "$INSTDIR\PurgeAcrylicCacheData.bat"
   Delete "$INSTDIR\ActivateAcrylicDebugLog.bat"
   Delete "$INSTDIR\DeactivateAcrylicDebugLog.bat"
+  Delete "$INSTDIR\OpenAcrylicConfigurationFile.bat"
+  Delete "$INSTDIR\OpenAcrylicHostsFile.bat"
   Delete "$INSTDIR\UninstallAcrylicService.bat"
 
   Delete "$INSTDIR\AcrylicCache.dat"
   Delete "$INSTDIR\AcrylicDebug.txt"
-  Delete "$INSTDIR\AcrylicStats.txt"
 
   Delete "$INSTDIR\Uninstall.exe"
 
   RmDir  "$INSTDIR"
 
 SectionEnd
+
+;--------------------------------
+; Functions
+;--------------------------------
+
+Function PerformInstallSystemChecks
+
+  DetailPrint "Performing system checks..."
+
+  IfFileExists "$INSTDIR\AcrylicService.exe" NO01
+  IfFileExists "$INSTDIR\AcrylicConsole.exe" NO01
+
+  Goto GOON
+
+NO01:
+
+  MessageBox MB_OK|MB_ICONSTOP "An old version of Acrylic has been detected at the designated destination folder.$\n$\nYou must uninstall any old version of Acrylic before installing a new one. You may also want to backup your old Acrylic configuration and HOSTS file, as the installation process will overwrite them with new content."
+
+  DetailPrint "Old version of Acrylic detected. Installation aborted."
+
+  Abort
+
+GOON:
+
+FunctionEnd

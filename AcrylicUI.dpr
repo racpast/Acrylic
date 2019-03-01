@@ -14,7 +14,8 @@ uses
   AcrylicUIMain in 'AcrylicUIMain.pas',
   AcrylicUIUtils in 'AcrylicUIUtils.pas',
   AcrylicUISettings in 'AcrylicUISettings.pas',
-  AcrylicUIRegExTester in 'AcrylicUIRegExTester.pas';
+  AcrylicUIRegExTester in 'AcrylicUIRegExTester.pas',
+  AcrylicVersionInfo in 'AcrylicVersionInfo.pas';
 
 // --------------------------------------------------------------------------
 //

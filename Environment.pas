@@ -37,11 +37,9 @@ type
   TEnvironment = class
     private
       class function  ExecuteCommandAndCaptureOutput(const CommandLine: String; var CommandOutput: String): Boolean;
-    private
       class procedure ReadOSVersion;
     public
       class procedure ReadSystem;
-    public
       class function  IsWindowsVistaOrWindowsServer2008OrHigher: Boolean;
   end;
 
@@ -58,6 +56,7 @@ implementation
 uses
   SysUtils,
   Windows,
+  FileIO,
   Tracer;
 
 // --------------------------------------------------------------------------
@@ -72,7 +71,7 @@ const
 // --------------------------------------------------------------------------
 
 const
-  EXECUTE_COMMAND_MAX_WAIT_TIME = 5000;
+  EXECUTE_COMMAND_MAX_WAIT_TIME = 30000;
 
 // --------------------------------------------------------------------------
 //
@@ -81,7 +80,7 @@ const
 class function TEnvironment.ExecuteCommandAndCaptureOutput(const CommandLine: String; var CommandOutput: String): Boolean;
 
 var
-  TempDirectoryPath: String; TempFilePath: String; TempFileHandle: Cardinal; TempFile: TextFile; TempLine: String; SecurityAttributes: TSecurityAttributes; StartupInfo: TStartUpInfo; ProcessInfo: TProcessInformation;
+  TempDirectoryPath: String; TempFilePath: String; TempFileHandle: Cardinal; SecurityAttributes: TSecurityAttributes; StartupInfo: TStartUpInfo; ProcessInfo: TProcessInformation;
 
 begin
 
@@ -115,8 +114,8 @@ begin
 
       FillChar(ProcessInfo, SizeOf(TProcessInformation), #0);
 
-      ProcessInfo.hProcess := INVALID_HANDLE_VALUE;
-      ProcessInfo.hThread := INVALID_HANDLE_VALUE;
+      ProcessInfo.hProcess    := INVALID_HANDLE_VALUE;
+      ProcessInfo.hThread     := INVALID_HANDLE_VALUE;
 
       if not(CreateProcess(nil, PChar(CommandLine), @SecurityAttributes, @SecurityAttributes, True, NORMAL_PRIORITY_CLASS, nil, nil, StartupInfo, ProcessInfo)) then begin
         Exit;
@@ -146,17 +145,7 @@ begin
 
     end;
 
-    AssignFile(TempFile, TempFilePath); Reset(TempFile);
-
-    while not(Eof(TempFile)) do begin
-
-      ReadLn(TempFile, TempLine);
-
-      if (CommandOutput <> '') then CommandOutput := CommandOutput + #13#10 + TempLine else CommandOutput := TempLine;
-
-    end;
-
-    CloseFile(TempFile);
+    CommandOutput := TFileIO.ReadAllText(TempFilePath);
 
   finally
 
@@ -299,7 +288,7 @@ begin
 
     try
 
-      if Self.ExecuteCommandAndCaptureOutput('IpConfig.exe /all', CommandOutput) then TTracer.Trace(TracePriorityInfo, CommandOutput);
+      if Self.ExecuteCommandAndCaptureOutput('IpConfig.exe /All', CommandOutput) then TTracer.Trace(TracePriorityInfo, CommandOutput);
 
     except
 

@@ -64,6 +64,3 @@
 # performance perspective it is better to use a large list of domain names rather than a lot of patterns and regexes.
 # Patterns and regexes should be used to ease manual maintenance when the full list of domain names is either unknown or
 # too variable. A domain name is free, a pattern is relatively cheap and a regular expression is rather expensive.
-#
-# Note: If all domain names are provided in ascending order Acrylic will be able to load them much faster (avoiding a
-# costly sort at the end of the process).

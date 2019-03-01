@@ -23,40 +23,32 @@ uses
   CommunicationChannels in 'CommunicationChannels.pas',
   Configuration in 'Configuration.pas',
   ConsoleTracerAgent in 'ConsoleTracerAgent.pas',
-  Digest in 'Digest.pas',
   DnsForwarder in 'DnsForwarder.pas',
   DnsProtocol in 'DnsProtocol.pas',
   DnsResolver in 'DnsResolver.pas',
   Environment in 'Environment.pas',
   EnvironmentVariables in 'EnvironmentVariables.pas',
+  FileIO in 'FileIO.pas',
   FileStreamLineEx in 'FileStreamLineEx.pas',
   FileTracerAgent in 'FileTracerAgent.pas',
   HitLogger in 'HitLogger.pas',
   HostsCache in 'HostsCache.pas',
+  HostsCacheBinaryTrees in 'HostsCacheBinaryTrees.pas',
+  MD5 in 'MD5.pas',
   MemoryManager in 'MemoryManager.pas',
   MemoryStore in 'MemoryStore.pas',
   PatternMatching in 'PatternMatching.pas',
   PCRE in 'PCRE.pas',
   PerlRegEx in 'PerlRegEx.pas',
   SessionCache in 'SessionCache.pas',
-  Tracer in 'Tracer.pas',
-  Statistics in 'Statistics.pas',
-  Stopwatch in 'Stopwatch.pas';
+  Tracer in 'Tracer.pas';
 
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
 
-function GetBooleanCommandLineParamValue(ParamName: String): Boolean;
-
 var
   i: Integer;
-
-begin
-
-  for i := 1 to ParamCount do if (ParamStr(i) = '/' + ParamName) then begin Result := True; Exit; end; Result := False;
-
-end;
 
 // --------------------------------------------------------------------------
 //
@@ -97,8 +89,14 @@ begin
 
   end;
 
-  NoLog := GetBooleanCommandLineParamValue('NoLog');
-  NoBanner := GetBooleanCommandLineParamValue('NoBanner');
+  NoLog := False;
+  NoBanner := False;
+
+  for i := 1 to ParamCount do begin
+
+    if (ParamStr(i) = '/NoLog') then NoLog := True else if (ParamStr(i) = '/NoBanner') then NoBanner := True;
+
+  end;
 
   if not NoBanner then begin
 
