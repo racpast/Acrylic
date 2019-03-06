@@ -70,14 +70,6 @@ uses
 //
 // --------------------------------------------------------------------------
 
-const
-  MIN_PENDING_HITS = 1024;
-  MAX_PENDING_HITS = 8192;
-
-// --------------------------------------------------------------------------
-//
-// --------------------------------------------------------------------------
-
 var
   THitLogger_BufferList: TStringList;
 
@@ -108,7 +100,7 @@ class procedure THitLogger.AddHit(When: TDateTime; Treatment: String; Client: TD
 
 begin
 
-  if (THitLogger_BufferList = nil) then begin THitLogger_BufferList := TStringList.Create; THitLogger_BufferList.Capacity := MAX_PENDING_HITS; end; THitLogger_BufferList.Add(FormatDateTime('yyyy-mm-dd HH":"nn":"ss.zzz', When) + #9 + TDualIPAddressUtility.ToString(Client) + #9 + Treatment + #9 + Description); if (THitLogger_BufferList.Count >= MAX_PENDING_HITS) then Self.FlushAllPendingHitsToDisk(True, True);
+  if (THitLogger_BufferList = nil) then begin THitLogger_BufferList := TStringList.Create; THitLogger_BufferList.Capacity := TConfiguration.GetHitLogMaxPendingHits; end; THitLogger_BufferList.Add(FormatDateTime('yyyy-mm-dd HH":"nn":"ss.zzz', When) + #9 + TDualIPAddressUtility.ToString(Client) + #9 + Treatment + #9 + Description); if (THitLogger_BufferList.Count >= TConfiguration.GetHitLogMaxPendingHits) then Self.FlushAllPendingHitsToDisk(True, True);
 
 end;
 
@@ -123,7 +115,7 @@ var
 
 begin
 
-  if (THitLogger_BufferList <> nil) and (Force or (THitLogger_BufferList.Count >= MIN_PENDING_HITS)) then begin
+  if (THitLogger_BufferList <> nil) and (Force or (THitLogger_BufferList.Count >= TConfiguration.GetHitLogMinPendingHits)) then begin
 
     if (THitLogger_LastAsyncWriter <> nil) then begin
 

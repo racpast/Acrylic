@@ -24,7 +24,7 @@ For more informations please use the "Acrylic Home Page" shortcut available from
 https://mayakron.altervista.org/acrylic.php
 
 Installed version is:
-1.0.0 released on January 31, 2019.
+1.0.1 released on February 28, 2019.
 
 ========================================================================================================================
 ACRYLIC DNS PROXY UI

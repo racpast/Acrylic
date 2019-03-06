@@ -58,9 +58,6 @@ type
       class function  GetAddressCacheFileName: String;
       class function  GetHostsCacheFileName: String;
       class function  GetDebugLogFileName: String;
-      class function  GetHitLogFileName: String;
-      class function  GetHitLogFileWhat: String;
-      class function  GetHitLogFileMode: String;
     public
       class function  GetDnsServerConfiguration(Index: Integer): TDnsServerConfiguration;
     public
@@ -95,6 +92,12 @@ type
     public
       class function  IsDomainNameAffinityMatch(DomainName: String; DomainNameAffinityMask: TStringList): Boolean;
       class function  IsQueryTypeAffinityMatch(QueryType: Word; QueryTypeAffinityMask: TList): Boolean;
+    public
+      class function  GetHitLogFileName: String;
+      class function  GetHitLogFileWhat: String;
+      class function  GetHitLogFileMode: String;
+      class function  GetHitLogMinPendingHits: Integer;
+      class function  GetHitLogMaxPendingHits: Integer;
     public
       class function  IsAllowedAddress(Value: String): Boolean;
       class function  IsCacheException(Value: String): Boolean;
@@ -205,6 +208,17 @@ var
 // --------------------------------------------------------------------------
 
 var
+  TConfiguration_HitLogFileName: String;
+  TConfiguration_HitLogFileWhat: String;
+  TConfiguration_HitLogFileMode: String;
+  TConfiguration_HitLogMinPendingHits: Integer;
+  TConfiguration_HitLogMaxPendingHits: Integer;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+var
   TConfiguration_CacheExceptions: TStringList;
 
 // --------------------------------------------------------------------------
@@ -223,9 +237,6 @@ var
   TConfiguration_AddressCacheFileName: String;
   TConfiguration_HostsCacheFileName: String;
   TConfiguration_DebugLogFileName: String;
-  TConfiguration_HitLogFileName: String;
-  TConfiguration_HitLogFileWhat: String;
-  TConfiguration_HitLogFileMode: String;
 
 // --------------------------------------------------------------------------
 //
@@ -295,6 +306,8 @@ begin
   TConfiguration_HitLogFileName := '';
   TConfiguration_HitLogFileWhat := '';
   TConfiguration_HitLogFileMode := '';
+  TConfiguration_HitLogMinPendingHits := 1;
+  TConfiguration_HitLogMaxPendingHits := 8192;
 
   TConfiguration_AllowedAddresses := nil;
 
@@ -395,6 +408,30 @@ class function TConfiguration.GetHitLogFileMode: String;
 begin
 
   Result := TConfiguration_HitLogFileMode;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class function TConfiguration.GetHitLogMinPendingHits: Integer;
+
+begin
+
+  Result := TConfiguration_HitLogMinPendingHits;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class function TConfiguration.GetHitLogMaxPendingHits: Integer;
+
+begin
+
+  Result := TConfiguration_HitLogMaxPendingHits;
 
 end;
 
@@ -878,6 +915,8 @@ begin
     TConfiguration_HitLogFileName := IniFile.ReadString('GlobalSection', 'HitLogFileName', ''); if (TConfiguration_HitLogFileName <> '') then TConfiguration_HitLogFileName := Self.MakeAbsolutePath(TConfiguration_HitLogFileName);
     TConfiguration_HitLogFileWhat := IniFile.ReadString('GlobalSection', 'HitLogFileWhat', '');
     TConfiguration_HitLogFileMode := IniFile.ReadString('GlobalSection', 'HitLogFileMode', '');
+    TConfiguration_HitLogMinPendingHits := IniFile.ReadInteger('GlobalSection', 'HitLogMinPendingHits', TConfiguration_HitLogMinPendingHits);
+    TConfiguration_HitLogMaxPendingHits := IniFile.ReadInteger('GlobalSection', 'HitLogMaxPendingHits', TConfiguration_HitLogMaxPendingHits);
 
     StringList := TStringList.Create; IniFile.ReadSection('CacheExceptionsSection', StringList); if (StringList.Count > 0) then begin
       TConfiguration_CacheExceptions := TStringList.Create; for i := 0 to (StringList.Count - 1) do TConfiguration_CacheExceptions.Add(Trim(IniFile.ReadString('CacheExceptionsSection', StringList.Strings[i], '')));
