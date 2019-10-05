@@ -52,16 +52,16 @@ uses
 // --------------------------------------------------------------------------
 
 const
-  SESSION_CACHE_EXPIRATION_TIME_1 = 6.944444e-4;
-  SESSION_CACHE_EXPIRATION_TIME_2 = 3.472222e-4;
-  SESSION_CACHE_EXPIRATION_TIME_3 = 1.736111e-4;
+  SESSION_CACHE_EXPIRATION_TIME_1 = 6.944444e-4; // 60 seconds
+  SESSION_CACHE_EXPIRATION_TIME_2 = 3.472222e-4; // 30 seconds
+  SESSION_CACHE_EXPIRATION_TIME_3 = 1.736111e-4; // 15 seconds
 
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
 
 type
-  TSessionCacheItem = record
+  TSessionCacheItem = packed record
     SessionId: Word;
     IsAllocated: Boolean;
     AllocationTime: TDateTime;

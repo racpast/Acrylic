@@ -25,7 +25,7 @@ uses
 type
   TEnvironmentVariables = class
     public
-      class function Get(Name: String; DefValue: String): String;
+      class function Get(const Name: String; const DefValue: String): String;
   end;
 
 // --------------------------------------------------------------------------
@@ -46,7 +46,7 @@ uses
 //
 // --------------------------------------------------------------------------
 
-class function TEnvironmentVariables.Get(Name: String; DefValue: String): String;
+class function TEnvironmentVariables.Get(const Name: String; const DefValue: String): String;
 
 var
   Value: String; Length: Integer;

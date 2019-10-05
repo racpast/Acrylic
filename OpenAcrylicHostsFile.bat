@@ -1,2 +1,2 @@
 @Echo Off
-AcrylicUI.exe OpenAcrylicHostsFile
+Start "AcrylicUI" AcrylicUI.exe OpenAcrylicHostsFile

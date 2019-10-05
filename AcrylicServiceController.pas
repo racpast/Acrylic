@@ -101,23 +101,29 @@ var
 
 begin
 
-  R := TRegistry.Create(KEY_READ or KEY_WRITE);
-
   try
 
-    R.RootKey := HKEY_LOCAL_MACHINE;
+    R := TRegistry.Create(KEY_READ or KEY_WRITE);
 
-    if R.OpenKey('\System\CurrentControlSet\Services\' + Self.Name, false) then begin
+    try
 
-      R.WriteString('Description', 'A local DNS proxy which improves the performance of your computer.');
+      R.RootKey := HKEY_LOCAL_MACHINE;
 
-      R.CloseKey;
+      if R.OpenKey('\System\CurrentControlSet\Services\' + Self.Name, false) then begin
+
+        R.WriteString('Description', 'A local DNS proxy which improves the performance of your computer.');
+
+        R.CloseKey;
+
+      end;
+
+    finally
+
+      R.Free;
 
     end;
 
-  finally
-
-    R.Free;
+  except
 
   end;
 
@@ -131,9 +137,11 @@ procedure TAcrylicDNSProxySvc.ServiceStart(Sender: TService; var Started: Boolea
 
 begin
 
-  try
+  Started := False;
 
-    DecimalSeparator := '.';
+  DecimalSeparator := '.';
+
+  try
 
     TConfiguration.Initialize; TTracer.Initialize; if FileExists(TConfiguration.GetDebugLogFileName) then TTracer.SetTracerAgent(TFileTracerAgent.Create(TConfiguration.GetDebugLogFileName));
 
@@ -149,9 +157,8 @@ begin
 
       Self.LogMessage('TAcrylicServiceController.ServiceStart: ' + E.Message, EVENTLOG_ERROR_TYPE);
 
-      Started := False;
-
     end;
+
   end;
 
 end;
@@ -164,11 +171,11 @@ procedure TAcrylicDNSProxySvc.ServiceStop(Sender: TService; var Stopped: Boolean
 
 begin
 
+  Stopped := False;
+
   try
 
-    TBootstrapper.StopSystem;
-
-    TTracer.Finalize; TConfiguration.Finalize;
+    TBootstrapper.StopSystem; TTracer.Finalize; TConfiguration.Finalize;
 
     Stopped := True;
 
@@ -178,9 +185,8 @@ begin
 
       Self.LogMessage('TAcrylicServiceController.ServiceStop: ' + E.Message, EVENTLOG_ERROR_TYPE);
 
-      Stopped := False;
-
     end;
+
   end;
 
 end;
@@ -195,9 +201,7 @@ begin
 
   try
 
-    TBootstrapper.StopSystem;
-
-    TTracer.Finalize; TConfiguration.Finalize;
+    TBootstrapper.StopSystem; TTracer.Finalize; TConfiguration.Finalize;
 
   except
 

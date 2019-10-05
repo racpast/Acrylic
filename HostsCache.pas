@@ -26,18 +26,18 @@ type
   THostsCache = class
     public
       class procedure Initialize;
-      class procedure LoadFromFile(FileName: String);
-      class function  FindFWHostsEntry(HostName: String): Boolean;
-      class function  FindNXHostsEntry(HostName: String): Boolean;
-      class function  FindIPv4HostsEntry(HostName: String; var IPv4Address: TIPv4Address): Boolean;
-      class function  FindIPv6HostsEntry(HostName: String; var IPv6Address: TIPv6Address): Boolean;
+      class procedure LoadFromFile(const FileName: String);
+      class function  FindFWHostsEntry(const HostName: String): Boolean;
+      class function  FindNXHostsEntry(const HostName: String): Boolean;
+      class function  FindIPv4HostsEntry(const HostName: String; var IPv4Address: TIPv4Address): Boolean;
+      class function  FindIPv6HostsEntry(const HostName: String; var IPv6Address: TIPv6Address): Boolean;
       class procedure Finalize;
     private
-      class procedure InternalLoadFromFile(FileName: String);
-      class procedure InternalParseFWHostsLine(FileStreamLineData: String; HostsLineIndexA: Integer; HostsLineIndexB: Integer);
-      class procedure InternalParseNXHostsLine(FileStreamLineData: String; HostsLineIndexA: Integer; HostsLineIndexB: Integer);
-      class procedure InternalParseIPv4HostsLine(FileStreamLineData: String; HostsLineIndexA: Integer; HostsLineIndexB: Integer; var HostsLineAddressData: TIPv4Address);
-      class procedure InternalParseIPv6HostsLine(FileStreamLineData: String; HostsLineIndexA: Integer; HostsLineIndexB: Integer; var HostsLineAddressData: TIPv6Address);
+      class procedure InternalLoadFromFile(const FileName: String);
+      class procedure InternalParseFWHostsLine(const FileStreamLineData: String; HostsLineIndexA: Integer; HostsLineIndexB: Integer);
+      class procedure InternalParseNXHostsLine(const FileStreamLineData: String; HostsLineIndexA: Integer; HostsLineIndexB: Integer);
+      class procedure InternalParseIPv4HostsLine(const FileStreamLineData: String; HostsLineIndexA: Integer; HostsLineIndexB: Integer; var HostsLineAddressData: TIPv4Address);
+      class procedure InternalParseIPv6HostsLine(const FileStreamLineData: String; HostsLineIndexA: Integer; HostsLineIndexB: Integer; var HostsLineAddressData: TIPv6Address);
   end;
 
 // --------------------------------------------------------------------------
@@ -76,8 +76,8 @@ type
       List2: TList;
     public
       constructor Create;
-      procedure   Add(Expression: String; Associated: TObject);
-      function    ExecRegularExpression(Index: Integer; InputStr: String): Boolean;
+      procedure   Add(const Expression: String; Associated: TObject);
+      function    ExecRegularExpression(Index: Integer; const InputStr: String): Boolean;
       function    GetAssociatedObject(Index: Integer): TObject;
       procedure   BeginUpdate;
       procedure   EndUpdate;
@@ -159,7 +159,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class procedure THostsCache.LoadFromFile(FileName: String);
+class procedure THostsCache.LoadFromFile(const FileName: String);
 
 begin
 
@@ -187,7 +187,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class function THostsCache.FindFWHostsEntry(HostName: String): Boolean;
+class function THostsCache.FindFWHostsEntry(const HostName: String): Boolean;
 
 var
   ListIndex: Integer;
@@ -233,7 +233,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class function THostsCache.FindNXHostsEntry(HostName: String): Boolean;
+class function THostsCache.FindNXHostsEntry(const HostName: String): Boolean;
 
 var
   ListIndex: Integer;
@@ -279,7 +279,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class function THostsCache.FindIPv4HostsEntry(HostName: String; var IPv4Address: TIPv4Address): Boolean;
+class function THostsCache.FindIPv4HostsEntry(const HostName: String; var IPv4Address: TIPv4Address): Boolean;
 
 var
   ListIndex: Integer;
@@ -325,7 +325,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class function THostsCache.FindIPv6HostsEntry(HostName: String; var IPv6Address: TIPv6Address): Boolean;
+class function THostsCache.FindIPv6HostsEntry(const HostName: String; var IPv6Address: TIPv6Address): Boolean;
 
 var
   TreeData: PIPv6Address; ListIndex: Integer;
@@ -389,7 +389,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class procedure THostsCache.InternalParseFWHostsLine(FileStreamLineData: String; HostsLineIndexA: Integer; HostsLineIndexB: Integer);
+class procedure THostsCache.InternalParseFWHostsLine(const FileStreamLineData: String; HostsLineIndexA: Integer; HostsLineIndexB: Integer);
 
 var
   HostsLineTextData: String;
@@ -430,7 +430,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class procedure THostsCache.InternalParseNXHostsLine(FileStreamLineData: String; HostsLineIndexA: Integer; HostsLineIndexB: Integer);
+class procedure THostsCache.InternalParseNXHostsLine(const FileStreamLineData: String; HostsLineIndexA: Integer; HostsLineIndexB: Integer);
 
 var
   HostsLineTextData: String;
@@ -471,7 +471,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class procedure THostsCache.InternalParseIPv4HostsLine(FileStreamLineData: String; HostsLineIndexA: Integer; HostsLineIndexB: Integer; var HostsLineAddressData: TIPv4Address);
+class procedure THostsCache.InternalParseIPv4HostsLine(const FileStreamLineData: String; HostsLineIndexA: Integer; HostsLineIndexB: Integer; var HostsLineAddressData: TIPv4Address);
 
 var
   HostsLineTextData: String;
@@ -512,7 +512,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class procedure THostsCache.InternalParseIPv6HostsLine(FileStreamLineData: String; HostsLineIndexA: Integer; HostsLineIndexB: Integer; var HostsLineAddressData: TIPv6Address);
+class procedure THostsCache.InternalParseIPv6HostsLine(const FileStreamLineData: String; HostsLineIndexA: Integer; HostsLineIndexB: Integer; var HostsLineAddressData: TIPv6Address);
 
 var
   HostsLineTextData: String; PHostsLineAddressData: PIPv6Address;
@@ -555,7 +555,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class procedure THostsCache.InternalLoadFromFile(FileName: String);
+class procedure THostsCache.InternalLoadFromFile(const FileName: String);
 
 var
   FileStream: TFileStream; FileStreamLineEx: TFileStreamLineEx; FileStreamLineData: String; FileStreamLineMoreAvailable: Boolean; FileStreamLineSize: Integer; FileNameEx: String; HostsLineIndexA: Integer; HostsLineIndexB: Integer; HostsLineRecordType: Integer; HostsLineAddressText: String; HostsLineAddressData: TDualIPAddress;
@@ -732,7 +732,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-procedure TRegularExpressionList.Add(Expression: String; Associated: TObject);
+procedure TRegularExpressionList.Add(const Expression: String; Associated: TObject);
 
 var
   RegularExpression: TPerlRegEx;
@@ -747,7 +747,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-function TRegularExpressionList.ExecRegularExpression(Index: Integer; InputStr: String): Boolean;
+function TRegularExpressionList.ExecRegularExpression(Index: Integer; const InputStr: String): Boolean;
 
 var
   RegularExpression: TPerlRegEx;

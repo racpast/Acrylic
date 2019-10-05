@@ -18,9 +18,9 @@ interface
 type
   TFileIO = class
     public
-      class function  ReadAllText(FileName: String): String;
-      class procedure WriteAllText(FileName: String; Contents: String);
-      class procedure AppendAllText(FileName: String; Contents: String);
+      class function  ReadAllText(const FileName: String): String;
+      class procedure WriteAllText(const FileName: String; const Contents: String);
+      class procedure AppendAllText(const FileName: String; const Contents: String);
   end;
 
 // --------------------------------------------------------------------------
@@ -50,7 +50,7 @@ type
       StreamBufferPosition: Cardinal;
       StreamBufferBytesRead: Cardinal;
     public
-      constructor Create(FileName: String; StreamBufferSize: Cardinal);
+      constructor Create(const FileName: String; StreamBufferSize: Cardinal);
       function    Read(var DataBuffer; BytesToRead: Cardinal): Boolean;
       function    Advance(BytesToAdvance: Cardinal): Boolean;
       destructor  Destroy; override;
@@ -68,7 +68,7 @@ type
       StreamBufferSize: Cardinal;
       StreamBufferPosition: Cardinal;
     public
-      constructor Create(FileName: String; Append: Boolean; StreamBufferSize: Cardinal);
+      constructor Create(const FileName: String; Append: Boolean; StreamBufferSize: Cardinal);
       function    Write(const DataBuffer; BytesToWrite: Cardinal): Boolean;
       function    WriteString(const Text: String): Boolean;
       function    Flush: Boolean;
@@ -94,7 +94,7 @@ uses
 //
 // --------------------------------------------------------------------------
 
-class function TFileIO.ReadAllText(FileName: String): String;
+class function TFileIO.ReadAllText(const FileName: String): String;
 
 var
   FileHandle: THandle; BytesToRead: Cardinal; Contents: String; BytesRead: Cardinal;
@@ -139,7 +139,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class procedure TFileIO.WriteAllText(FileName: String; Contents: String);
+class procedure TFileIO.WriteAllText(const FileName: String; const Contents: String);
 
 var
   FileHandle: THandle; BytesToWrite: Cardinal; BytesWritten: Cardinal;
@@ -174,7 +174,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class procedure TFileIO.AppendAllText(FileName: String; Contents: String);
+class procedure TFileIO.AppendAllText(const FileName: String; const Contents: String);
 
 var
   FileHandle: THandle; BytesToWrite: Cardinal; BytesWritten: Cardinal;
@@ -209,7 +209,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-constructor TBufferedSequentialReadStream.Create(FileName: String; StreamBufferSize: Cardinal);
+constructor TBufferedSequentialReadStream.Create(const FileName: String; StreamBufferSize: Cardinal);
 
 begin
 
@@ -503,7 +503,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-constructor TBufferedSequentialWriteStream.Create(FileName: String; Append: Boolean; StreamBufferSize: Cardinal);
+constructor TBufferedSequentialWriteStream.Create(const FileName: String; Append: Boolean; StreamBufferSize: Cardinal);
 
 begin
 

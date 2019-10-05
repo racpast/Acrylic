@@ -14,16 +14,15 @@ Del AcrylicUI.ini >NUL 2>NUL
 
 Del AcrylicTester.exe >NUL 2>NUL
 
-Del /q *.tmp >NUL 2>NUL
-
 Del /q *.dcu >NUL 2>NUL
 Del /q *.ddp >NUL 2>NUL
-Del /q *.dsk >NUL 2>NUL
-
 Del /q *.~ddp >NUL 2>NUL
 Del /q *.~dfm >NUL 2>NUL
 Del /q *.~dpr >NUL 2>NUL
+Del /q *.dsk >NUL 2>NUL
+Del /q *.map >NUL 2>NUL
 Del /q *.~pas >NUL 2>NUL
+Del /q *.tmp >NUL 2>NUL
 
 CsRun.exe SelectFiles *.dpr | Call CleanupCodeWindowsNewLinesTab2SpacesStdIn.bat
 CsRun.exe SelectFiles *.pas | Call CleanupCodeWindowsNewLinesTab2SpacesStdIn.bat

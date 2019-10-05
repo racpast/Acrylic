@@ -23,6 +23,7 @@ uses
   AcrylicVersionInfo in 'AcrylicVersionInfo.pas',
   AddressCache in 'AddressCache.pas',
   Bootstrapper in 'Bootstrapper.pas',
+  CommonUtils in 'CommonUtils.pas',
   CommunicationChannels in 'CommunicationChannels.pas',
   Configuration in 'Configuration.pas',
   ConsoleTracerAgent in 'ConsoleTracerAgent.pas',
@@ -56,12 +57,12 @@ const
 //
 // --------------------------------------------------------------------------
 
-{$i MD5UnitTest.pas }
-{$i CommunicationChannelsUnitTest.pas }
-{$i SessionCacheUnitTest.pas }
-{$i AddressCacheUnitTest.pas }
-{$i HostsCacheUnitTest.pas }
-{$i RegularExpressionUnitTest.pas }
+{$I MD5UnitTest.pas }
+{$I CommunicationChannelsUnitTest.pas }
+{$I SessionCacheUnitTest.pas }
+{$I AddressCacheUnitTest.pas }
+{$I HostsCacheUnitTest.pas }
+{$I RegularExpressionUnitTest.pas }
 
 // --------------------------------------------------------------------------
 //

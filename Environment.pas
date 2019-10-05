@@ -23,7 +23,7 @@ uses
 // --------------------------------------------------------------------------
 
 type
-  TOSVersion = record
+  TOSVersion = packed record
     MajorVersion: Byte;
     MinorVersion: Byte;
     VersionDescription: String;
@@ -106,36 +106,28 @@ begin
 
       FillChar(StartupInfo, SizeOf(TStartupInfo), #0);
 
-      StartupInfo.cb          := SizeOf(TStartupInfo);
+      StartupInfo.cb := SizeOf(TStartupInfo);
       StartupInfo.wShowWindow := SW_HIDE;
-      StartupInfo.dwFlags     := STARTF_USESHOWWINDOW or STARTF_USESTDHANDLES;
-      StartupInfo.hStdError   := TempFileHandle;
-      StartupInfo.hStdOutput  := TempFileHandle;
+      StartupInfo.dwFlags := STARTF_USESHOWWINDOW or STARTF_USESTDHANDLES;
+      StartupInfo.hStdError := TempFileHandle;
+      StartupInfo.hStdOutput := TempFileHandle;
 
       FillChar(ProcessInfo, SizeOf(TProcessInformation), #0);
 
-      ProcessInfo.hProcess    := INVALID_HANDLE_VALUE;
-      ProcessInfo.hThread     := INVALID_HANDLE_VALUE;
+      ProcessInfo.hProcess := INVALID_HANDLE_VALUE;
+      ProcessInfo.hThread := INVALID_HANDLE_VALUE;
 
-      if not(CreateProcess(nil, PChar(CommandLine), @SecurityAttributes, @SecurityAttributes, True, NORMAL_PRIORITY_CLASS, nil, nil, StartupInfo, ProcessInfo)) then begin
-        Exit;
-      end;
+      if not(CreateProcess(nil, PChar(CommandLine), @SecurityAttributes, @SecurityAttributes, True, NORMAL_PRIORITY_CLASS, nil, nil, StartupInfo, ProcessInfo)) then Exit;
 
       try
 
-        if (WaitForSingleObject(ProcessInfo.hProcess, EXECUTE_COMMAND_MAX_WAIT_TIME) <> WAIT_OBJECT_0) then begin
-          Exit;
-        end;
+        if (WaitForSingleObject(ProcessInfo.hProcess, EXECUTE_COMMAND_MAX_WAIT_TIME) <> WAIT_OBJECT_0) then Exit;
 
       finally
 
-        if (ProcessInfo.hProcess <> INVALID_HANDLE_VALUE) then begin
-          CloseHandle(ProcessInfo.hProcess);
-        end;
+        if (ProcessInfo.hProcess <> INVALID_HANDLE_VALUE) then CloseHandle(ProcessInfo.hProcess);
 
-        if (ProcessInfo.hThread <> INVALID_HANDLE_VALUE) then begin
-          CloseHandle(ProcessInfo.hThread);
-        end;
+        if (ProcessInfo.hThread <> INVALID_HANDLE_VALUE) then CloseHandle(ProcessInfo.hThread);
 
       end;
 

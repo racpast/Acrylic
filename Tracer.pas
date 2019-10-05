@@ -24,7 +24,7 @@ type
 
 type
   ITracerAgent = interface(IInterface)
-    procedure RenderTrace(Time: Double; Priority: TracePriority; Message: String);
+    procedure RenderTrace(Time: Double; Priority: TracePriority; const Message: String);
     procedure CloseTrace;
   end;
 
@@ -42,7 +42,7 @@ type
       class procedure SetTracerAgent(TracerAgent: ITracerAgent);
       class procedure SetMinimumTracingPriority(Priority: TracePriority);
     public
-      class procedure Trace(Priority: TracePriority; Message: String);
+      class procedure Trace(Priority: TracePriority; const Message: String);
   end;
 
 // --------------------------------------------------------------------------
@@ -57,6 +57,12 @@ implementation
 
 uses
   SysUtils;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+var TTracer_Enabled: Boolean;
 
 // --------------------------------------------------------------------------
 //
@@ -80,7 +86,7 @@ class procedure TTracer.Initialize;
 
 begin
 
-  TTracer_TracerAgent := nil; TTracer_MinimumTracingPriority := TracePriorityInfo;
+  TTracer_Enabled := False; TTracer_TracerAgent := nil; TTracer_MinimumTracingPriority := TracePriorityInfo;
 
 end;
 
@@ -92,7 +98,7 @@ class function TTracer.IsEnabled: Boolean;
 
 begin
 
-  Result := (TTracer_TracerAgent <> nil);
+  Result := TTracer_Enabled;
 
 end;
 
@@ -104,7 +110,7 @@ class procedure TTracer.SetTracerAgent(TracerAgent: ITracerAgent);
 
 begin
 
-  if (TTracer_TracerAgent <> nil) then TTracer_TracerAgent.CloseTrace; TTracer_TracerAgent := TracerAgent;
+  if (TTracer_TracerAgent <> nil) then TTracer_TracerAgent.CloseTrace; TTracer_TracerAgent := TracerAgent; TTracer_Enabled := True;
 
 end;
 
@@ -124,7 +130,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class procedure TTracer.Trace(Priority: TracePriority; Message: String);
+class procedure TTracer.Trace(Priority: TracePriority; const Message: String);
 
 begin
 
@@ -148,12 +154,16 @@ class procedure TTracer.Finalize;
 
 begin
 
-  if (TTracer_TracerAgent <> nil) then TTracer_TracerAgent.CloseTrace; TTracer_TracerAgent := nil;
+  if (TTracer_TracerAgent <> nil) then TTracer_TracerAgent.CloseTrace; TTracer_Enabled := False; TTracer_TracerAgent := nil;
 
 end;
 
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
+
+begin
+
+  TTracer_Enabled := False;
 
 end.

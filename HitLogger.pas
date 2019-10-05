@@ -26,9 +26,13 @@ uses
 type
   THitLogger = class
     public
+      class procedure SetProperties(const FileName: String; const FileWhat: String; FullDump: Boolean; MinPendingHits: Integer; MaxPendingHits: Integer);
+    public
       class function  IsEnabled: Boolean;
-      class procedure AddHit(When: TDateTime; Treatment: String; Client: TDualIPAddress; Description: String);
-      class procedure FlushAllPendingHitsToDisk(Force: Boolean; Async: Boolean);
+      class function  GetFileWhat: String;
+      class function  GetFullDump: Boolean;
+      class procedure AddHit(When: TDateTime; const Treatment: String; Client: TDualIPAddress; const Description: String);
+      class procedure WriteAllPendingHitsToDisk(Force: Boolean; Async: Boolean);
   end;
 
 // --------------------------------------------------------------------------
@@ -43,7 +47,7 @@ type
       FileName: String;
       Contents: String;
     public
-      constructor Create(FileName: String; Contents: String);
+      constructor Create(const FileName: String; const Contents: String);
       procedure   Execute; override;
       destructor  Destroy; override;
   end;
@@ -71,6 +75,37 @@ uses
 // --------------------------------------------------------------------------
 
 var
+  THitLogger_Enabled: Boolean;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+var
+  THitLogger_FileName: String;
+  THitLogger_FileWhat: String;
+  THitLogger_FullDump: Boolean;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+var
+  THitLogger_DateTemplatePresent: Boolean;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+var
+  THitLogger_MinPendingHits: Integer;
+  THitLogger_MaxPendingHits: Integer;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+var
   THitLogger_BufferList: TStringList;
 
 // --------------------------------------------------------------------------
@@ -84,11 +119,42 @@ var
 //
 // --------------------------------------------------------------------------
 
+class procedure THitLogger.SetProperties(const FileName: String; const FileWhat: String; FullDump: Boolean; MinPendingHits: Integer; MaxPendingHits: Integer);
+
+begin
+
+  if (FileName <> '') then begin
+
+    THitLogger_Enabled := True;
+
+    THitLogger_FileName := FileName;
+
+    THitLogger_DateTemplatePresent := Pos('%DATE%', FileName) > 0;
+
+    if (Pos('%TEMP%', FileName) > 0) then THitLogger_FileName := StringReplace(THitLogger_FileName, '%TEMP%', TEnvironmentVariables.Get('TEMP', '%TEMP%'), [rfReplaceAll]);
+    if (Pos('%APPDATA%', FileName) > 0) then THitLogger_FileName := StringReplace(THitLogger_FileName, '%APPDATA%', TEnvironmentVariables.Get('APPDATA', '%APPDATA%'), [rfReplaceAll]);
+    if (Pos('%LOCALAPPDATA%', FileName) > 0) then THitLogger_FileName := StringReplace(THitLogger_FileName, '%LOCALAPPDATA%', TEnvironmentVariables.Get('LOCALAPPDATA', '%LOCALAPPDATA%'), [rfReplaceAll]);
+
+    THitLogger_FileWhat := FileWhat;
+
+    THitLogger_FullDump := FullDump;
+
+    THitLogger_MinPendingHits := MinPendingHits;
+    THitLogger_MaxPendingHits := MaxPendingHits;
+
+  end;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
 class function THitLogger.IsEnabled: Boolean;
 
 begin
 
-  Result := TConfiguration.GetHitLogFileName <> '';
+  Result := THitLogger_Enabled;
 
 end;
 
@@ -96,11 +162,11 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class procedure THitLogger.AddHit(When: TDateTime; Treatment: String; Client: TDualIPAddress; Description: String);
+class function THitLogger.GetFileWhat: String;
 
 begin
 
-  if (THitLogger_BufferList = nil) then begin THitLogger_BufferList := TStringList.Create; THitLogger_BufferList.Capacity := TConfiguration.GetHitLogMaxPendingHits; end; THitLogger_BufferList.Add(FormatDateTime('yyyy-mm-dd HH":"nn":"ss.zzz', When) + #9 + TDualIPAddressUtility.ToString(Client) + #9 + Treatment + #9 + Description); if (THitLogger_BufferList.Count >= TConfiguration.GetHitLogMaxPendingHits) then Self.FlushAllPendingHitsToDisk(True, True);
+  Result := THitLogger_FileWhat;
 
 end;
 
@@ -108,51 +174,76 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class procedure THitLogger.FlushAllPendingHitsToDisk(Force: Boolean; Async: Boolean);
+class function THitLogger.GetFullDump: Boolean;
+
+begin
+
+  Result := THitLogger_FullDump;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class procedure THitLogger.AddHit(When: TDateTime; const Treatment: String; Client: TDualIPAddress; const Description: String);
+
+begin
+
+  if (THitLogger_BufferList = nil) then begin THitLogger_BufferList := TStringList.Create; THitLogger_BufferList.Capacity := THitLogger_MaxPendingHits; end; THitLogger_BufferList.Add(FormatDateTime('yyyy-mm-dd HH":"nn":"ss.zzz', When) + #9 + TDualIPAddressUtility.ToString(Client) + #9 + Treatment + #9 + Description); if (THitLogger_BufferList.Count >= THitLogger_MaxPendingHits) then Self.WriteAllPendingHitsToDisk(True, True);
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class procedure THitLogger.WriteAllPendingHitsToDisk(Force: Boolean; Async: Boolean);
 
 var
-  FileName: String; Contents: String;
+  HitLoggerBufferListCount: Integer; FileName: String; Contents: String;
 
 begin
 
-  if (THitLogger_BufferList <> nil) and (Force or (THitLogger_BufferList.Count >= TConfiguration.GetHitLogMinPendingHits)) then begin
+  if (THitLogger_BufferList <> nil) then begin
 
-    if (THitLogger_LastAsyncWriter <> nil) then begin
+    HitLoggerBufferListCount := THitLogger_BufferList.Count;
 
-      while not(THitLogger_LastAsyncWriter.IsDone) do Sleep(50); THitLogger_LastAsyncWriter.Free; THitLogger_LastAsyncWriter := nil;
+    if (Force or (HitLoggerBufferListCount >= THitLogger_MinPendingHits)) then begin
 
-    end;
+      if (THitLogger_LastAsyncWriter <> nil) then begin
 
-    if (THitLogger_BufferList.Count > 0) then begin
-
-      FileName := TConfiguration.GetHitLogFileName;
-
-      if (Pos('%DATE%', FileName) > 0) then FileName := StringReplace(FileName, '%DATE%', FormatDateTime('yyyymmdd', Now), [rfReplaceAll]);
-      if (Pos('%TEMP%', FileName) > 0) then FileName := StringReplace(FileName, '%TEMP%', TEnvironmentVariables.Get('TEMP', '%TEMP%'), [rfReplaceAll]);
-      if (Pos('%APPDATA%', FileName) > 0) then FileName := StringReplace(FileName, '%APPDATA%', TEnvironmentVariables.Get('APPDATA', '%APPDATA%'), [rfReplaceAll]);
-      if (Pos('%LOCALAPPDATA%', FileName) > 0) then FileName := StringReplace(FileName, '%LOCALAPPDATA%', TEnvironmentVariables.Get('LOCALAPPDATA', '%LOCALAPPDATA%'), [rfReplaceAll]);
-
-      Contents := THitLogger_BufferList.Text;
-
-      try
-
-        if Async then begin
-
-          THitLogger_LastAsyncWriter := THitLoggerAsyncWriter.Create(FileName, Contents); if (THitLogger_LastAsyncWriter <> nil) then THitLogger_LastAsyncWriter.Resume else TFileIO.AppendAllText(FileName, Contents);
-
-        end else begin
-
-          TFileIO.AppendAllText(FileName, Contents);
-
-        end;
-
-      except
-
-        on E: Exception do if TTracer.IsEnabled then TTracer.Trace(TracePriorityError, 'THitLogger.FlushAllPendingHitsToDisk: ' + E.Message);
+        while not THitLogger_LastAsyncWriter.IsDone do Sleep(50); THitLogger_LastAsyncWriter.Free; THitLogger_LastAsyncWriter := nil;
 
       end;
 
-      THitLogger_BufferList.Clear;
+      if (HitLoggerBufferListCount > 0) then begin
+
+        FileName := THitLogger_FileName; if THitLogger_DateTemplatePresent then FileName := StringReplace(FileName, '%DATE%', FormatDateTime('yyyymmdd', Now), [rfReplaceAll]);
+
+        Contents := THitLogger_BufferList.Text;
+
+        try
+
+          if Async then begin
+
+            THitLogger_LastAsyncWriter := THitLoggerAsyncWriter.Create(FileName, Contents); if (THitLogger_LastAsyncWriter <> nil) then THitLogger_LastAsyncWriter.Resume else TFileIO.AppendAllText(FileName, Contents);
+
+          end else begin
+
+            TFileIO.AppendAllText(FileName, Contents);
+
+          end;
+
+        except
+
+          on E: Exception do if TTracer.IsEnabled then TTracer.Trace(TracePriorityError, 'THitLogger.WriteAllPendingHitsToDisk: ' + E.Message);
+
+        end;
+
+        THitLogger_BufferList.Clear;
+
+      end;
 
     end;
 
@@ -164,7 +255,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-constructor THitLoggerAsyncWriter.Create(FileName: String; Contents: String);
+constructor THitLoggerAsyncWriter.Create(const FileName: String; const Contents: String);
 
 begin
 
@@ -209,5 +300,9 @@ end;
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
+
+begin
+
+  THitLogger_Enabled := False;
 
 end.

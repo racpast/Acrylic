@@ -32,7 +32,7 @@ type
     public
       function    ReadLine(var OutputLine: String): Boolean;
     private
-      function    TryFindLineTerminator(CurrentLine: String; var Position, Length: Integer): Boolean;
+      function    TryFindLineTerminator(const CurrentLine: String; var Position, Length: Integer): Boolean;
   end;
 
 // --------------------------------------------------------------------------
@@ -64,7 +64,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-function TFileStreamLineEx.TryFindLineTerminator(CurrentLine: String; var Position, Length: Integer): Boolean;
+function TFileStreamLineEx.TryFindLineTerminator(const CurrentLine: String; var Position, Length: Integer): Boolean;
 
 var
   i: Integer;

@@ -8,7 +8,7 @@
 ; General
 ;--------------------------------
 
-Name "Acrylic DNS Proxy (1.0.1)"
+Name "Acrylic DNS Proxy (1.0.2)"
 
 OutFile "Acrylic.exe"
 
@@ -145,7 +145,7 @@ Function PerformInstallSystemChecks
 
 NO01:
 
-  MessageBox MB_OK|MB_ICONSTOP "An old version of Acrylic has been detected at the designated destination folder.$\n$\nYou must uninstall any old version of Acrylic before installing a new one. You may also want to backup your old Acrylic configuration and HOSTS file, as the installation process will overwrite them with new content."
+  MessageBox MB_OK|MB_ICONSTOP "An old version of Acrylic has been detected at the designated destination folder.$\n$\nYou must uninstall any old version of Acrylic before installing a new one. You may also want to backup your old AcrylicConfiguration.ini and AcrylicHosts.txt files, as the installation process will overwrite them with new content."
 
   DetailPrint "Old version of Acrylic detected. Installation aborted."
 

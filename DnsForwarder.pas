@@ -308,7 +308,7 @@ begin
 
       if CommunicationChannel.ReceiveFrom(TConfiguration.GetServerUdpProtocolResponseTimeout, MAX_DNS_BUFFER_LEN, Self.Buffer, Self.BufferLen, IPv4Address, Port) then begin
 
-        TDnsResolver.GetInstance.HandleDnsResponse(Self.Buffer, Self.BufferLen, Self.DnsServerIndex);
+        TDnsResolver.GetInstance.HandleDnsResponse(Now, Self.Buffer, Self.BufferLen, Self.DnsServerIndex);
 
       end;
 
@@ -377,7 +377,7 @@ begin
 
       if CommunicationChannel.ReceiveFrom(TConfiguration.GetServerUdpProtocolResponseTimeout, MAX_DNS_BUFFER_LEN, Self.Buffer, Self.BufferLen, IPv6Address, Port) then begin
 
-        TDnsResolver.GetInstance.HandleDnsResponse(Self.Buffer, Self.BufferLen, Self.DnsServerIndex);
+        TDnsResolver.GetInstance.HandleDnsResponse(Now, Self.Buffer, Self.BufferLen, Self.DnsServerIndex);
 
       end;
 
@@ -444,7 +444,7 @@ begin
 
       if CommunicationChannel.ReceiveWrappedDnsPacket(TConfiguration.GetServerTcpProtocolResponseTimeout, TConfiguration.GetServerTcpProtocolInternalTimeout, MAX_DNS_BUFFER_LEN, Self.Buffer, Self.BufferLen) then begin
 
-        TDnsResolver.GetInstance.HandleDnsResponse(Self.Buffer, Self.BufferLen, Self.DnsServerIndex); ExchangeSucceeded := True;
+        TDnsResolver.GetInstance.HandleDnsResponse(Now, Self.Buffer, Self.BufferLen, Self.DnsServerIndex); ExchangeSucceeded := True;
 
       end else begin
 
@@ -515,7 +515,7 @@ begin
 
       if CommunicationChannel.ReceiveWrappedDnsPacket(TConfiguration.GetServerTcpProtocolResponseTimeout, TConfiguration.GetServerTcpProtocolInternalTimeout, MAX_DNS_BUFFER_LEN, Self.Buffer, Self.BufferLen) then begin
 
-        TDnsResolver.GetInstance.HandleDnsResponse(Self.Buffer, Self.BufferLen, Self.DnsServerIndex); ExchangeSucceeded := True;
+        TDnsResolver.GetInstance.HandleDnsResponse(Now, Self.Buffer, Self.BufferLen, Self.DnsServerIndex); ExchangeSucceeded := True;
 
       end else begin
 
@@ -590,7 +590,7 @@ begin
 
         if CommunicationChannel.ReceiveWrappedDnsPacket(TConfiguration.GetServerSocks5ProtocolProxyRemoteResponseTimeout, TConfiguration.GetServerSocks5ProtocolProxyOtherBytesTimeout, MAX_DNS_BUFFER_LEN, Self.Buffer, Self.BufferLen) then begin
 
-          TDnsResolver.GetInstance.HandleDnsResponse(Self.Buffer, Self.BufferLen, Self.DnsServerIndex);
+          TDnsResolver.GetInstance.HandleDnsResponse(Now, Self.Buffer, Self.BufferLen, Self.DnsServerIndex);
 
         end else begin
 
@@ -667,7 +667,7 @@ begin
 
         if CommunicationChannel.ReceiveWrappedDnsPacket(TConfiguration.GetServerSocks5ProtocolProxyRemoteResponseTimeout, TConfiguration.GetServerSocks5ProtocolProxyOtherBytesTimeout, MAX_DNS_BUFFER_LEN, Self.Buffer, Self.BufferLen) then begin
 
-          TDnsResolver.GetInstance.HandleDnsResponse(Self.Buffer, Self.BufferLen, Self.DnsServerIndex);
+          TDnsResolver.GetInstance.HandleDnsResponse(Now, Self.Buffer, Self.BufferLen, Self.DnsServerIndex);
 
         end else begin
 

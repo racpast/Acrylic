@@ -29,7 +29,7 @@ type
       Lock: TCriticalSection;
     public
       constructor Create;
-      procedure   RenderTrace(Time: Double; Priority: TracePriority; Message: String);
+      procedure   RenderTrace(Time: Double; Priority: TracePriority; const Message: String);
       procedure   CloseTrace;
   end;
 
@@ -64,7 +64,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-procedure TConsoleTracerAgent.RenderTrace(Time: Double; Priority: TracePriority; Message: String);
+procedure TConsoleTracerAgent.RenderTrace(Time: Double; Priority: TracePriority; const Message: String);
 
 var
   Line: String;

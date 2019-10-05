@@ -26,7 +26,7 @@ uses
 
 type
   PHostsCacheIPv4AddressBinaryTreeItem = ^THostsCacheIPv4AddressBinaryTreeItem;
-  THostsCacheIPv4AddressBinaryTreeItem = record
+  THostsCacheIPv4AddressBinaryTreeItem = packed record
     Hash : TMD5Digest;
     Data : TIPv4Address;
     L    : PHostsCacheIPv4AddressBinaryTreeItem;
@@ -56,7 +56,7 @@ type
 
 type
   PHostsCacheIPv6AddressBinaryTreeItem = ^THostsCacheIPv6AddressBinaryTreeItem;
-  THostsCacheIPv6AddressBinaryTreeItem = record
+  THostsCacheIPv6AddressBinaryTreeItem = packed record
     Hash : TMD5Digest;
     Data : PIPv6Address;
     L    : PHostsCacheIPv6AddressBinaryTreeItem;
@@ -86,7 +86,7 @@ type
 
 type
   PHostsCacheNameOnlyBinaryTreeItem = ^THostsCacheNameOnlyBinaryTreeItem;
-  THostsCacheNameOnlyBinaryTreeItem = record
+  THostsCacheNameOnlyBinaryTreeItem = packed record
     Hash : TMD5Digest;
     L    : PHostsCacheNameOnlyBinaryTreeItem;
     R    : PHostsCacheNameOnlyBinaryTreeItem;

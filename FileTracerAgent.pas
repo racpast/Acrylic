@@ -35,7 +35,7 @@ type
       FileStream: TBufferedSequentialWriteStream;
     public
       constructor Create(FileName: String);
-      procedure   RenderTrace(Time: Double; Priority: TracePriority; Message: String);
+      procedure   RenderTrace(Time: Double; Priority: TracePriority; const Message: String);
       procedure   CloseTrace;
   end;
 
@@ -73,7 +73,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-procedure TFileTracerAgent.RenderTrace(Time: Double; Priority: TracePriority; Message: String);
+procedure TFileTracerAgent.RenderTrace(Time: Double; Priority: TracePriority; const Message: String);
 
 var
   Line: String;

@@ -1,2 +1,2 @@
 @Echo Off
-AcrylicUI.exe OpenAcrylicConfigurationFile
+Start "AcrylicUI" AcrylicUI.exe OpenAcrylicConfigurationFile

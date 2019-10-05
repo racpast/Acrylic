@@ -15,6 +15,7 @@ uses
   AcrylicVersionInfo in 'AcrylicVersionInfo.pas',
   AddressCache in 'AddressCache.pas',
   Bootstrapper in 'Bootstrapper.pas',
+  CommonUtils in 'CommonUtils.pas',
   CommunicationChannels in 'CommunicationChannels.pas',
   Configuration in 'Configuration.pas',
   ConsoleTracerAgent in 'ConsoleTracerAgent.pas',
