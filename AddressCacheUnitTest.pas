@@ -55,7 +55,7 @@ begin
 
   RandSeed := InitSeed;
 
-  for i := 0 to ((1000 * TAddressCacheUnitTest_KCacheItems) - 1) do begin
+  for i := 0 to ((1000 * TAddressCacheUnitTestKCacheItems) - 1) do begin
 
     BufferLenA := Random(512) + MIN_DNS_PACKET_LEN; for j := 0 to (BufferLenA - 1) do PByteArray(BufferA)^[j] := Random(256);
     BufferLenB := Random(512) + MIN_DNS_PACKET_LEN; for j := 0 to (BufferLenB - 1) do PByteArray(BufferB)^[j] := Random(256);
@@ -70,7 +70,7 @@ begin
 
   RandSeed := InitSeed;
 
-  for i := 0 to ((1000 * TAddressCacheUnitTest_KCacheItems) - 1) do begin
+  for i := 0 to ((1000 * TAddressCacheUnitTestKCacheItems) - 1) do begin
 
     BufferLenA := Random(512) + MIN_DNS_PACKET_LEN; for j := 0 to (BufferLenA - 1) do PByteArray(BufferA)^[j] := Random(256);
     BufferLenB := Random(512) + MIN_DNS_PACKET_LEN; for j := 0 to (BufferLenB - 1) do PByteArray(BufferB)^[j] := Random(256);
@@ -105,7 +105,7 @@ begin
 
   TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Starting massive search...');
 
-  RandSeed := InitSeed; for i := 0 to ((1000 * TAddressCacheUnitTest_KCacheItems) - 1) do begin
+  RandSeed := InitSeed; for i := 0 to ((1000 * TAddressCacheUnitTestKCacheItems) - 1) do begin
 
     BufferLenA := Random(512) + MIN_DNS_PACKET_LEN; for j := 0 to (BufferLenA - 1) do PByteArray(BufferA)^[j] := Random(256);
     BufferLenB := Random(512) + MIN_DNS_PACKET_LEN; for j := 0 to (BufferLenB - 1) do PByteArray(BufferB)^[j] := Random(256);

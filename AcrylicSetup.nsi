@@ -8,7 +8,7 @@
 ; General
 ;--------------------------------
 
-Name "Acrylic DNS Proxy (1.0.2)"
+Name "Acrylic DNS Proxy (1.1.0)"
 
 OutFile "Acrylic.exe"
 

@@ -59,7 +59,7 @@ begin
 
   RandSeed := InitSeed;
 
-  for i := 0 to (THostsCacheUnitTest_KHostsItems - 1) do begin
+  for i := 0 to (THostsCacheUnitTestKHostsItems - 1) do begin
 
     for j := 0 to 999 do begin
 
@@ -190,7 +190,7 @@ begin
 
   RandSeed := InitSeed;
 
-  for i := 0 to (THostsCacheUnitTest_KHostsItems - 1) do begin
+  for i := 0 to (THostsCacheUnitTestKHostsItems - 1) do begin
 
     for j := 0 to 999 do begin
 

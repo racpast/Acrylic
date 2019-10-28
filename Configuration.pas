@@ -17,8 +17,8 @@ interface
 
 uses
   Classes,
-  CommunicationChannels,
-  DnsProtocol;
+  DnsProtocol,
+  IpUtils;
 
 // --------------------------------------------------------------------------
 //
@@ -39,8 +39,12 @@ type
     Address: TDualIPAddress;
     Port: Word;
     Protocol: TDnsProtocol;
-    ProxyAddress: TDualIPAddress;
-    ProxyPort: Word;
+    Socks5ProtocolProxyAddress: TDualIPAddress;
+    Socks5ProtocolProxyPort: Word;
+    DnsOverHttpsProtocolHost: String;
+    DnsOverHttpsProtocolPath: String;
+    DnsOverHttpsProtocolConnectionType: TDnsOverHttpsProtocolConnectionType;
+    DnsOverHttpsProtocolReuseConnections: Boolean;
     IgnoreFailureResponsesFromServer: Boolean;
     IgnoreNegativeResponsesFromServer: Boolean;
   end;
@@ -86,8 +90,6 @@ type
       class function  GetServerUdpProtocolResponseTimeout: Integer;
       class function  GetServerTcpProtocolResponseTimeout: Integer;
       class function  GetServerTcpProtocolInternalTimeout: Integer;
-      class function  GetServerTcpProtocolPipeliningDisabled: Boolean;
-      class function  GetServerTcpProtocolPipeliningSessionLifetime: Integer;
       class function  GetServerSocks5ProtocolProxyFirstByteTimeout: Integer;
       class function  GetServerSocks5ProtocolProxyOtherBytesTimeout: Integer;
       class function  GetServerSocks5ProtocolProxyRemoteConnectTimeout: Integer;
@@ -202,8 +204,6 @@ var
   TConfiguration_ServerUdpProtocolResponseTimeout: Integer;
   TConfiguration_ServerTcpProtocolResponseTimeout: Integer;
   TConfiguration_ServerTcpProtocolInternalTimeout: Integer;
-  TConfiguration_ServerTcpProtocolPipeliningDisabled: Boolean;
-  TConfiguration_ServerTcpProtocolPipeliningSessionLifetime: Integer;
   TConfiguration_ServerSocks5ProtocolProxyFirstByteTimeout: Integer;
   TConfiguration_ServerSocks5ProtocolProxyOtherBytesTimeout: Integer;
   TConfiguration_ServerSocks5ProtocolProxyRemoteConnectTimeout: Integer;
@@ -270,9 +270,11 @@ begin
     TConfiguration_DnsServerConfiguration[i].Address.IsIPv6Address := False;
     TConfiguration_DnsServerConfiguration[i].Port := 53;
     TConfiguration_DnsServerConfiguration[i].Protocol := UdpProtocol;
-    TConfiguration_DnsServerConfiguration[i].ProxyAddress.IsIPv6Address := False;
-    TConfiguration_DnsServerConfiguration[i].ProxyAddress.IPv4Address := LOCALHOST_IPV4_ADDRESS;
-    TConfiguration_DnsServerConfiguration[i].ProxyPort := 9150;
+    TConfiguration_DnsServerConfiguration[i].Socks5ProtocolProxyAddress.IsIPv6Address := False;
+    TConfiguration_DnsServerConfiguration[i].Socks5ProtocolProxyAddress.IPv4Address := LOCALHOST_IPV4_ADDRESS;
+    TConfiguration_DnsServerConfiguration[i].Socks5ProtocolProxyPort := 9150;
+    TConfiguration_DnsServerConfiguration[i].DnsOverHttpsProtocolConnectionType := ConfigDnsOverHttpsProtocolConnectionType;
+    TConfiguration_DnsServerConfiguration[i].DnsOverHttpsProtocolReuseConnections := True;
     TConfiguration_DnsServerConfiguration[i].IgnoreFailureResponsesFromServer := False;
     TConfiguration_DnsServerConfiguration[i].IgnoreNegativeResponsesFromServer := False;
 
@@ -305,8 +307,6 @@ begin
   TConfiguration_ServerUdpProtocolResponseTimeout := 4999;
   TConfiguration_ServerTcpProtocolResponseTimeout := 4999;
   TConfiguration_ServerTcpProtocolInternalTimeout := 2477;
-  TConfiguration_ServerTcpProtocolPipeliningDisabled := True;
-  TConfiguration_ServerTcpProtocolPipeliningSessionLifetime := 10;
   TConfiguration_ServerSocks5ProtocolProxyFirstByteTimeout := 2477;
   TConfiguration_ServerSocks5ProtocolProxyOtherBytesTimeout := 2477;
   TConfiguration_ServerSocks5ProtocolProxyRemoteConnectTimeout := 2477;
@@ -616,30 +616,6 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class function TConfiguration.GetServerTcpProtocolPipeliningSessionLifetime: Integer;
-
-begin
-
-  Result := TConfiguration_ServerTcpProtocolPipeliningSessionLifetime;
-
-end;
-
-// --------------------------------------------------------------------------
-//
-// --------------------------------------------------------------------------
-
-class function TConfiguration.GetServerTcpProtocolPipeliningDisabled: Boolean;
-
-begin
-
-  Result := TConfiguration_ServerTcpProtocolPipeliningDisabled;
-
-end;
-
-// --------------------------------------------------------------------------
-//
-// --------------------------------------------------------------------------
-
 class function TConfiguration.GetServerSocks5ProtocolProxyFirstByteTimeout: Integer;
 
 begin
@@ -858,15 +834,55 @@ begin
 
             TConfiguration_DnsServerConfiguration[DnsServerIndex].IsEnabled := True;
 
-            S := IniFile.ReadString('GlobalSection', DNS_SERVER_INDEX_DESCRIPTION[DnsServerIndex] + 'ServerProxyAddress', ''); if (S <> '') then begin
+            if (TConfiguration_DnsServerConfiguration[DnsServerIndex].Protocol = Socks5Protocol) then begin
 
-              TConfiguration_DnsServerConfiguration[DnsServerIndex].ProxyAddress := TDualIPAddressUtility.Parse(S);
+              S := IniFile.ReadString('GlobalSection', DNS_SERVER_INDEX_DESCRIPTION[DnsServerIndex] + 'ServerSocks5ProtocolProxyAddress', ''); if (S <> '') then begin
 
-              S := IniFile.ReadString('GlobalSection', DNS_SERVER_INDEX_DESCRIPTION[DnsServerIndex] + 'ServerProxyPort', ''); if (S <> '') then begin
+                TConfiguration_DnsServerConfiguration[DnsServerIndex].Socks5ProtocolProxyAddress := TDualIPAddressUtility.Parse(S);
 
-                TConfiguration_DnsServerConfiguration[DnsServerIndex].ProxyPort := StrToInt(S);
+                S := IniFile.ReadString('GlobalSection', DNS_SERVER_INDEX_DESCRIPTION[DnsServerIndex] + 'ServerSocks5ProtocolProxyPort', ''); if (S <> '') then begin
+
+                  TConfiguration_DnsServerConfiguration[DnsServerIndex].Socks5ProtocolProxyPort := StrToInt(S);
+
+                end;
+
+              end else begin
+
+                S := IniFile.ReadString('GlobalSection', DNS_SERVER_INDEX_DESCRIPTION[DnsServerIndex] + 'ServerProxyAddress', ''); if (S <> '') then begin
+
+                  TConfiguration_DnsServerConfiguration[DnsServerIndex].Socks5ProtocolProxyAddress := TDualIPAddressUtility.Parse(S);
+
+                  S := IniFile.ReadString('GlobalSection', DNS_SERVER_INDEX_DESCRIPTION[DnsServerIndex] + 'ServerProxyPort', ''); if (S <> '') then begin
+
+                    TConfiguration_DnsServerConfiguration[DnsServerIndex].Socks5ProtocolProxyPort := StrToInt(S);
+
+                  end;
+
+                end;
 
               end;
+
+            end else if (TConfiguration_DnsServerConfiguration[DnsServerIndex].Protocol = DnsOverHttpsProtocol) then begin
+
+              S := IniFile.ReadString('GlobalSection', DNS_SERVER_INDEX_DESCRIPTION[DnsServerIndex] + 'ServerDoHProtocolHost', ''); if (S <> '') then begin
+
+                TConfiguration_DnsServerConfiguration[DnsServerIndex].DnsOverHttpsProtocolHost := S;
+
+              end;
+
+              S := IniFile.ReadString('GlobalSection', DNS_SERVER_INDEX_DESCRIPTION[DnsServerIndex] + 'ServerDoHProtocolPath', ''); if (S <> '') then begin
+
+                TConfiguration_DnsServerConfiguration[DnsServerIndex].DnsOverHttpsProtocolPath := S;
+
+              end;
+
+              S := IniFile.ReadString('GlobalSection', DNS_SERVER_INDEX_DESCRIPTION[DnsServerIndex] + 'ServerDoHProtocolConnectionType', ''); if (S <> '') then begin
+
+                TConfiguration_DnsServerConfiguration[DnsServerIndex].DnsOverHttpsProtocolConnectionType := TDnsProtocolUtility.ParseDnsOverHttpsProtocolConnectionType(S);
+
+              end;
+
+              TConfiguration_DnsServerConfiguration[DnsServerIndex].DnsOverHttpsProtocolReuseConnections := UpperCase(IniFile.ReadString('GlobalSection', DNS_SERVER_INDEX_DESCRIPTION[DnsServerIndex] + 'ServerDoHProtocolReuseConnections', 'YES')) = 'YES';
 
             end;
 
@@ -893,7 +909,7 @@ begin
               if (StringList.Count > 0) then begin
                 for i := 0 to (StringList.Count - 1) do begin
                   if (StringList[i] <> '') then begin
-                    W := TDnsQueryTypeUtility.Parse(StringList[i]); if (W > 0) then begin
+                    W := TDnsProtocolUtility.ParseDnsQueryType(StringList[i]); if (W > 0) then begin
                       if (TConfiguration_DnsServerConfiguration[DnsServerIndex].QueryTypeAffinityMask = nil) then TConfiguration_DnsServerConfiguration[DnsServerIndex].QueryTypeAffinityMask := TList.Create; TConfiguration_DnsServerConfiguration[DnsServerIndex].QueryTypeAffinityMask.Add(Pointer(W));
                     end;
                   end;
@@ -957,8 +973,6 @@ begin
     TConfiguration_ServerUdpProtocolResponseTimeout := IniFile.ReadInteger('GlobalSection', 'ServerUdpProtocolResponseTimeout', TConfiguration_ServerUdpProtocolResponseTimeout);
     TConfiguration_ServerTcpProtocolResponseTimeout := IniFile.ReadInteger('GlobalSection', 'ServerTcpProtocolResponseTimeout', TConfiguration_ServerTcpProtocolResponseTimeout);
     TConfiguration_ServerTcpProtocolInternalTimeout := IniFile.ReadInteger('GlobalSection', 'ServerTcpProtocolInternalTimeout', TConfiguration_ServerTcpProtocolInternalTimeout);
-    // TConfiguration_ServerTcpProtocolPipeliningDisabled := UpperCase(IniFile.ReadString('GlobalSection', 'ServerTcpProtocolPipeliningDisabled', '')) = 'YES';
-    // TConfiguration_ServerTcpProtocolPipeliningSessionLifetime := IniFile.ReadInteger('GlobalSection', 'ServerTcpProtocolPipeliningSessionLifetime', TConfiguration_ServerTcpProtocolPipeliningSessionLifetime);
     TConfiguration_ServerSocks5ProtocolProxyFirstByteTimeout := IniFile.ReadInteger('GlobalSection', 'ServerSocks5ProtocolProxyFirstByteTimeout', TConfiguration_ServerSocks5ProtocolProxyFirstByteTimeout);
     TConfiguration_ServerSocks5ProtocolProxyOtherBytesTimeout := IniFile.ReadInteger('GlobalSection', 'ServerSocks5ProtocolProxyOtherBytesTimeout', TConfiguration_ServerSocks5ProtocolProxyOtherBytesTimeout);
     TConfiguration_ServerSocks5ProtocolProxyRemoteConnectTimeout := IniFile.ReadInteger('GlobalSection', 'ServerSocks5ProtocolProxyRemoteConnectTimeout', TConfiguration_ServerSocks5ProtocolProxyRemoteConnectTimeout);

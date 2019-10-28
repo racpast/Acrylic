@@ -17,7 +17,7 @@ interface
 
 uses
   Classes,
-  CommunicationChannels;
+  IpUtils;
 
 // --------------------------------------------------------------------------
 //

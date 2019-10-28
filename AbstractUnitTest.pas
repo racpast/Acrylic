@@ -45,7 +45,7 @@ type
     public
       procedure ExecuteTest; virtual;
     public
-      class procedure ControlTestExecution(RealUnitTest: TAbstractUnitTest);
+      class function ControlTestExecution(RealUnitTest: TAbstractUnitTest): Boolean;
   end;
 
 // --------------------------------------------------------------------------
@@ -101,18 +101,20 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class procedure TAbstractUnitTest.ControlTestExecution(RealUnitTest: TAbstractUnitTest);
+class function TAbstractUnitTest.ControlTestExecution(RealUnitTest: TAbstractUnitTest): Boolean;
 
 var
   ClassName: String;
 
 begin
 
+  Result := False;
+
   ClassName := RealUnitTest.ClassName; try
 
     TTracer.Trace(TracePriorityInfo, ClassName + ': Started...');
 
-    try RealUnitTest.ExecuteTest finally RealUnitTest.Free end;
+    try RealUnitTest.ExecuteTest finally RealUnitTest.Free end; Result := True;
 
     TTracer.Trace(TracePriorityInfo, ClassName + ': Succeeded.');
 

@@ -18,7 +18,8 @@ interface
 uses
   Classes,
   SyncObjs,
-  CommunicationChannels;
+  CommunicationChannels,
+  IpUtils;
 
 // --------------------------------------------------------------------------
 //

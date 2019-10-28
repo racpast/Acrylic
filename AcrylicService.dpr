@@ -30,6 +30,7 @@ uses
   HitLogger in 'HitLogger.pas',
   HostsCache in 'HostsCache.pas',
   HostsCacheBinaryTrees in 'HostsCacheBinaryTrees.pas',
+  IpUtils in 'IpUtils.pas',
   MD5 in 'MD5.pas',
   MemoryManager in 'MemoryManager.pas',
   MemoryStore in 'MemoryStore.pas',
@@ -37,7 +38,8 @@ uses
   PCRE in 'PCRE.pas',
   PerlRegEx in 'PerlRegEx.pas',
   SessionCache in 'SessionCache.pas',
-  Tracer in 'Tracer.pas';
+  Tracer in 'Tracer.pas',
+  WinSock in 'WinSock.pas';
 
 // --------------------------------------------------------------------------
 //

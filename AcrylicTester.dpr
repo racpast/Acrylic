@@ -37,21 +37,30 @@ uses
   HitLogger in 'HitLogger.pas',
   HostsCache in 'HostsCache.pas',
   HostsCacheBinaryTrees in 'HostsCacheBinaryTrees.pas',
+  IpUtils in 'IpUtils.pas',
   MD5 in 'MD5.pas',
   MemoryManager in 'MemoryManager.pas',
   MemoryStore in 'MemoryStore.pas',
   PatternMatching in 'PatternMatching.pas',
   PerlRegEx in 'PerlRegEx.pas',
   SessionCache in 'SessionCache.pas',
-  Tracer in 'Tracer.pas';
+  Tracer in 'Tracer.pas',
+  WinSock in 'WinSock.pas';
 
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
 
-const
-  TAddressCacheUnitTest_KCacheItems = 2000;
-  THostsCacheUnitTest_KHostsItems = 2000;
+var
+  TAddressCacheUnitTestKCacheItems: Integer = 2000;
+  THostsCacheUnitTestKHostsItems: Integer = 2000;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+var
+  AtLeastOneTestFailed: Boolean;
 
 // --------------------------------------------------------------------------
 //
@@ -72,6 +81,9 @@ begin
 
   DecimalSeparator := '.';
 
+  if ((ParamCount >= 1) and (ParamStr(1) <> '')) then TAddressCacheUnitTestKCacheItems := StrToInt(ParamStr(1));
+  if ((ParamCount >= 2) and (ParamStr(2) <> '')) then THostsCacheUnitTestKHostsItems := StrToInt(ParamStr(2));
+
   WriteLn('==============================================================================');
   WriteLn('Acrylic DNS Proxy Tester');
   WriteLn('==============================================================================');
@@ -80,15 +92,17 @@ begin
 
   if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'Acrylic version ' + AcrylicVersionNumber + ' released on ' + AcrylicReleaseDate + '.');
 
-  TAbstractUnitTest.ControlTestExecution(TMD5UnitTest.Create);
-  TAbstractUnitTest.ControlTestExecution(TCommunicationChannelsUnitTest.Create);
-  TAbstractUnitTest.ControlTestExecution(TSessionCacheUnitTest.Create);
-  TAbstractUnitTest.ControlTestExecution(TAddressCacheUnitTest.Create);
-  TAbstractUnitTest.ControlTestExecution(THostsCacheUnitTest.Create);
-  TAbstractUnitTest.ControlTestExecution(TRegularExpressionUnitTest.Create);
+  AtLeastOneTestFailed := False;
+
+  if not TAbstractUnitTest.ControlTestExecution(TMD5UnitTest.Create)                   then AtLeastOneTestFailed := True;
+  if not TAbstractUnitTest.ControlTestExecution(TCommunicationChannelsUnitTest.Create) then AtLeastOneTestFailed := True;
+  if not TAbstractUnitTest.ControlTestExecution(TSessionCacheUnitTest.Create)          then AtLeastOneTestFailed := True;
+  if not TAbstractUnitTest.ControlTestExecution(TAddressCacheUnitTest.Create)          then AtLeastOneTestFailed := True;
+  if not TAbstractUnitTest.ControlTestExecution(THostsCacheUnitTest.Create)            then AtLeastOneTestFailed := True;
+  if not TAbstractUnitTest.ControlTestExecution(TRegularExpressionUnitTest.Create)     then AtLeastOneTestFailed := True;
+
+  if TTracer.IsEnabled then if AtLeastOneTestFailed then TTracer.Trace(TracePriorityInfo, 'AT LEAST ONE TEST FAILED!') else TTracer.Trace(TracePriorityInfo, 'ALL TESTS SUCCEEDED!');
 
   TTracer.Finalize; TConfiguration.Finalize;
-
-  WriteLn('Press ENTER To Quit.'); ReadLn;
 
 end.

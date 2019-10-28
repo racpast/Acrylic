@@ -15,7 +15,7 @@ For more informations please use the "Acrylic Home Page" shortcut available from
 https://mayakron.altervista.org/acrylic.php
 
 Installed version is:
-1.0.2 released on May 31, 2019.
+1.1.0 released on September 30, 2019.
 
 ========================================================================================================================
 ACRYLIC DNS PROXY UI
@@ -44,9 +44,7 @@ The Acrylic DNS Proxy UI desktop application understands the following command l
   OpenAcrylicHostsFile
     Opens the Acrylic HOSTS file right after the application's startup.
 
-The Acrylic DNS Proxy UI desktop application icon has been designed by:
-
-http://www.aha-soft.com/
+Note: The Acrylic DNS Proxy UI desktop application icon has been designed by http://www.aha-soft.com/
 
 ========================================================================================================================
 ACRYLIC DNS PROXY CONSOLE
@@ -58,7 +56,7 @@ You may want to use the console version if you don't want to install anything on
 
 You cannot have both versions running at the same time because they will try to listen from the same UDP or TCP ports and this can't happen. In this case you might see an error message similar to the following one written into the AcrylicDebug.txt file (in the case of the Windows service version) or written to the standard output (in the case of the console version):
 
-TDnsResolver.Execute: TDualUdpCommunicationChannel.Bind: Binding to IPv4 address 0.0.0.0 and port 53 failed with Windows Sockets error code 10048.
+Binding to IPv4 address 0.0.0.0 and port 53 failed with Windows Sockets error code 10048.
 
 The console version of Acrylic currently understands the following command line options:
 

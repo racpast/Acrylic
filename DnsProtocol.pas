@@ -16,7 +16,7 @@ interface
 // --------------------------------------------------------------------------
 
 uses
-  CommunicationChannels;
+  IpUtils;
 
 // --------------------------------------------------------------------------
 //
@@ -47,18 +47,14 @@ const
 // --------------------------------------------------------------------------
 
 type
-  TDnsProtocol = (UdpProtocol, TcpProtocol, Socks5Protocol);
+  TDnsProtocol = (UdpProtocol, TcpProtocol, Socks5Protocol, DnsOverHttpsProtocol);
 
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
 
 type
-  TDnsQueryTypeUtility = class
-    public
-      class function Parse(const Text: String): Word;
-      class function ToString(Value: Word): String;
-  end;
+  TDnsOverHttpsProtocolConnectionType = (ConfigDnsOverHttpsProtocolConnectionType, DirectDnsOverHttpsProtocolConnectionType);
 
 // --------------------------------------------------------------------------
 //
@@ -68,6 +64,10 @@ type
   TDnsProtocolUtility = class
     public
       class function  ParseDnsProtocol(const Text: String): TDnsProtocol;
+      class function  ParseDnsOverHttpsProtocolConnectionType(const Text: String): TDnsOverHttpsProtocolConnectionType;
+    public
+      class function  ParseDnsQueryType(const Text: String): Word;
+      class function  DnsQueryTypeToString(Value: Word): String;
     private
       class function  GetWordFromPacket(Buffer: Pointer; Offset: Integer; BufferLen: Integer): Word;
       class function  GetIPv4AddressFromPacket(Buffer: Pointer; Offset: Integer; BufferLen: Integer): TIPv4Address;
@@ -121,7 +121,37 @@ uses
 //
 // --------------------------------------------------------------------------
 
-class function TDnsQueryTypeUtility.Parse(const Text: String): Word;
+class function TDnsProtocolUtility.ParseDnsProtocol(const Text: String): TDnsProtocol;
+
+var
+  UpperCaseText: String;
+
+begin
+
+  UpperCaseText := UpperCase(Text); if (UpperCaseText = 'UDP') then Result := UdpProtocol else if (UpperCaseText = 'DOH') then Result := DnsOverHttpsProtocol else if (UpperCaseText = 'TCP') then Result := TcpProtocol else if (UpperCaseText = 'SOCKS5') then Result := Socks5Protocol else Result := UdpProtocol;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class function TDnsProtocolUtility.ParseDnsOverHttpsProtocolConnectionType(const Text: String): TDnsOverHttpsProtocolConnectionType;
+
+var
+  UpperCaseText: String;
+
+begin
+
+  UpperCaseText := UpperCase(Text); if (UpperCaseText = 'CONFIG') then Result := ConfigDnsOverHttpsProtocolConnectionType else if (UpperCaseText = 'DIRECT') then Result := DirectDnsOverHttpsProtocolConnectionType else Result := ConfigDnsOverHttpsProtocolConnectionType;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class function TDnsProtocolUtility.ParseDnsQueryType(const Text: String): Word;
 
 begin
 
@@ -142,7 +172,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class function TDnsQueryTypeUtility.ToString(Value: Word): String;
+class function TDnsProtocolUtility.DnsQueryTypeToString(Value: Word): String;
 
 begin
 
@@ -158,21 +188,6 @@ begin
     DNS_QUERY_TYPE_TXT  : Result := 'TXT';
     else                  Result := IntToStr(Value);
   end;
-
-end;
-
-// --------------------------------------------------------------------------
-//
-// --------------------------------------------------------------------------
-
-class function TDnsProtocolUtility.ParseDnsProtocol(const Text: String): TDnsProtocol;
-
-var
-  UpperCaseText: String;
-
-begin
-
-  UpperCaseText := UpperCase(Text); if (UpperCaseText = 'SOCKS5') then Result := Socks5Protocol else if (UpperCaseText = 'TCP') then Result := TcpProtocol else Result := UdpProtocol;
 
 end;
 
@@ -664,7 +679,7 @@ class function TDnsProtocolUtility.PrintRequestPacketDescriptionAsStringFromPack
 
 begin
 
-  if (IncludePacketBytesAlways) then Result := 'Q[1]=' + DomainName + ';T[1]=' + TDnsQueryTypeUtility.ToString(QueryType) + ';' + TDnsProtocolUtility.PrintGenericPacketBytesAsStringFromPacket(Buffer, BufferLen) else Result := 'Q[1]=' + DomainName + ';T[1]=' + TDnsQueryTypeUtility.ToString(QueryType);
+  if (IncludePacketBytesAlways) then Result := 'Q[1]=' + DomainName + ';T[1]=' + TDnsProtocolUtility.DnsQueryTypeToString(QueryType) + ';' + TDnsProtocolUtility.PrintGenericPacketBytesAsStringFromPacket(Buffer, BufferLen) else Result := 'Q[1]=' + DomainName + ';T[1]=' + TDnsProtocolUtility.DnsQueryTypeToString(QueryType);
 
 end;
 
@@ -703,7 +718,7 @@ begin
           AnTyp := TDnsProtocolUtility.GetWordFromPacket(Buffer, OffsetL1, BufferLen); Inc(OffsetL1, 8);
           AnDta := TDnsProtocolUtility.GetWordFromPacket(Buffer, OffsetL1, BufferLen); Inc(OffsetL1, 2);
 
-          FValue := FValue + ';T[' + IntToStr(Index) + ']=' + TDnsQueryTypeUtility.ToString(AnTyp);
+          FValue := FValue + ';T[' + IntToStr(Index) + ']=' + TDnsProtocolUtility.DnsQueryTypeToString(AnTyp);
 
           if (AnDta > 0) then begin
 

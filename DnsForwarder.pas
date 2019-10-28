@@ -147,6 +147,25 @@ type
 //
 // --------------------------------------------------------------------------
 
+type
+  TDnsOverHttpsDnsForwarder = class(TThread)
+    private
+      ReferenceTime: TDateTime;
+      DnsServerIndex: Integer;
+      DnsServerConfiguration: TDnsServerConfiguration;
+      Buffer: Pointer;
+      BufferLen: Integer;
+      SessionId: Word;
+    public
+      constructor Create(ReferenceTime: TDateTime; DnsServerIndex: Integer; DnsServerConfiguration: TDnsServerConfiguration; Buffer: Pointer; BufferLen: Integer; SessionId: Word);
+      procedure   Execute; override;
+      destructor  Destroy; override;
+  end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
 implementation
 
 // --------------------------------------------------------------------------
@@ -157,6 +176,7 @@ uses
   CommunicationChannels,
   DnsProtocol,
   DnsResolver,
+  IpUtils,
   MemoryManager,
   Tracer;
 
@@ -235,7 +255,7 @@ begin
 
       Socks5Protocol:
 
-        if DnsServerConfiguration.ProxyAddress.IsIPv6Address then begin
+        if DnsServerConfiguration.Socks5ProtocolProxyAddress.IsIPv6Address then begin
 
           DnsForwarderThread := TIPv6Socks5DnsForwarder.Create(ReferenceTime, DnsServerIndex, DnsServerConfiguration, Buffer, BufferLen, SessionId);
 
@@ -250,6 +270,22 @@ begin
         end else begin
 
           DnsForwarderThread := TIPv4Socks5DnsForwarder.Create(ReferenceTime, DnsServerIndex, DnsServerConfiguration, Buffer, BufferLen, SessionId);
+
+          if (DnsForwarderThread <> nil) then begin
+
+            DnsForwarderThread.Resume;
+
+            Result := True;
+
+          end;
+
+        end;
+
+      DnsOverHttpsProtocol:
+
+        begin
+
+          DnsForwarderThread := TDnsOverHttpsDnsForwarder.Create(ReferenceTime, DnsServerIndex, DnsServerConfiguration, Buffer, BufferLen, SessionId);
 
           if (DnsForwarderThread <> nil) then begin
 
@@ -430,21 +466,21 @@ end;
 procedure TIPv4TcpDnsForwarder.Execute;
 
 var
-  CommunicationChannel: TIPv4TcpClientCommunicationChannel; ExchangeSucceeded: Boolean;
+  CommunicationChannel: TIPv4TcpClientCommunicationChannel;
 
 begin
 
   try
 
-    CommunicationChannel := TIPv4TcpClientCommunicationManager.AcquireCommunicationChannel(Self.ReferenceTime, Self.DnsServerIndex); ExchangeSucceeded := False; try
+    CommunicationChannel := TIPv4TcpClientCommunicationChannel.Create; try
 
-      if not CommunicationChannel.Connected then CommunicationChannel.Connect(Self.DnsServerConfiguration.Address.IPv4Address, Self.DnsServerConfiguration.Port);
+      CommunicationChannel.Connect(Self.DnsServerConfiguration.Address.IPv4Address, Self.DnsServerConfiguration.Port);
 
       CommunicationChannel.SendWrappedDnsPacket(Self.Buffer, Self.BufferLen);
 
       if CommunicationChannel.ReceiveWrappedDnsPacket(TConfiguration.GetServerTcpProtocolResponseTimeout, TConfiguration.GetServerTcpProtocolInternalTimeout, MAX_DNS_BUFFER_LEN, Self.Buffer, Self.BufferLen) then begin
 
-        TDnsResolver.GetInstance.HandleDnsResponse(Now, Self.Buffer, Self.BufferLen, Self.DnsServerIndex); ExchangeSucceeded := True;
+        TDnsResolver.GetInstance.HandleDnsResponse(Now, Self.Buffer, Self.BufferLen, Self.DnsServerIndex);
 
       end else begin
 
@@ -454,7 +490,7 @@ begin
 
     finally
 
-      TIPv4TcpClientCommunicationManager.ReleaseCommunicationChannel(Self.ReferenceTime, Self.DnsServerIndex, CommunicationChannel, ExchangeSucceeded);
+      CommunicationChannel.Free;
 
     end;
 
@@ -501,21 +537,21 @@ end;
 procedure TIPv6TcpDnsForwarder.Execute;
 
 var
-  CommunicationChannel: TIPv6TcpClientCommunicationChannel; ExchangeSucceeded: Boolean;
+  CommunicationChannel: TIPv6TcpClientCommunicationChannel;
 
 begin
 
   try
 
-    CommunicationChannel := TIPv6TcpClientCommunicationManager.AcquireCommunicationChannel(Self.ReferenceTime, Self.DnsServerIndex); ExchangeSucceeded := False; try
+    CommunicationChannel := TIPv6TcpClientCommunicationChannel.Create; try
 
-      if not CommunicationChannel.Connected then CommunicationChannel.Connect(Self.DnsServerConfiguration.Address.IPv6Address, Self.DnsServerConfiguration.Port);
+      CommunicationChannel.Connect(Self.DnsServerConfiguration.Address.IPv6Address, Self.DnsServerConfiguration.Port);
 
       CommunicationChannel.SendWrappedDnsPacket(Self.Buffer, Self.BufferLen);
 
       if CommunicationChannel.ReceiveWrappedDnsPacket(TConfiguration.GetServerTcpProtocolResponseTimeout, TConfiguration.GetServerTcpProtocolInternalTimeout, MAX_DNS_BUFFER_LEN, Self.Buffer, Self.BufferLen) then begin
 
-        TDnsResolver.GetInstance.HandleDnsResponse(Now, Self.Buffer, Self.BufferLen, Self.DnsServerIndex); ExchangeSucceeded := True;
+        TDnsResolver.GetInstance.HandleDnsResponse(Now, Self.Buffer, Self.BufferLen, Self.DnsServerIndex);
 
       end else begin
 
@@ -525,7 +561,7 @@ begin
 
     finally
 
-      TIPv6TcpClientCommunicationManager.ReleaseCommunicationChannel(Self.ReferenceTime, Self.DnsServerIndex, CommunicationChannel, ExchangeSucceeded);
+      CommunicationChannel.Free;
 
     end;
 
@@ -582,7 +618,7 @@ begin
 
     try
 
-      CommunicationChannel.Connect(Self.DnsServerConfiguration.ProxyAddress.IPv4Address, Self.DnsServerConfiguration.ProxyPort);
+      CommunicationChannel.Connect(Self.DnsServerConfiguration.Socks5ProtocolProxyAddress.IPv4Address, Self.DnsServerConfiguration.Socks5ProtocolProxyPort);
 
       if CommunicationChannel.PerformSocks5Handshake(TConfiguration.GetServerSocks5ProtocolProxyFirstByteTimeout, TConfiguration.GetServerSocks5ProtocolProxyOtherBytesTimeout, TConfiguration.GetServerSocks5ProtocolProxyRemoteConnectTimeout, Self.DnsServerConfiguration.Address, Self.DnsServerConfiguration.Port) then begin
 
@@ -659,7 +695,7 @@ begin
 
     try
 
-      CommunicationChannel.Connect(Self.DnsServerConfiguration.ProxyAddress.IPv6Address, Self.DnsServerConfiguration.ProxyPort);
+      CommunicationChannel.Connect(Self.DnsServerConfiguration.Socks5ProtocolProxyAddress.IPv6Address, Self.DnsServerConfiguration.Socks5ProtocolProxyPort);
 
       if CommunicationChannel.PerformSocks5Handshake(TConfiguration.GetServerSocks5ProtocolProxyFirstByteTimeout, TConfiguration.GetServerSocks5ProtocolProxyOtherBytesTimeout, TConfiguration.GetServerSocks5ProtocolProxyRemoteConnectTimeout, Self.DnsServerConfiguration.Address, Self.DnsServerConfiguration.Port) then begin
 
@@ -696,6 +732,71 @@ end;
 // --------------------------------------------------------------------------
 
 destructor TIPv6Socks5DnsForwarder.Destroy;
+
+begin
+
+  TMemoryManager.FreeMemory(Self.Buffer, MAX_DNS_BUFFER_LEN);
+
+  inherited Destroy;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+constructor TDnsOverHttpsDnsForwarder.Create(ReferenceTime: TDateTime; DnsServerIndex: Integer; DnsServerConfiguration: TDnsServerConfiguration; Buffer: Pointer; BufferLen: Integer; SessionId: Word);
+
+begin
+
+  inherited Create(True); Self.FreeOnTerminate := True;
+
+  Self.ReferenceTime := ReferenceTime; Self.DnsServerIndex := DnsServerIndex; Self.DnsServerConfiguration := DnsServerConfiguration; Self.Buffer := TMemoryManager.GetMemory(MAX_DNS_BUFFER_LEN); Move(Buffer^, Self.Buffer^, BufferLen); Self.BufferLen := BufferLen; Self.SessionId := SessionId;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+procedure TDnsOverHttpsDnsForwarder.Execute;
+
+var
+  CommunicationChannel: TDnsOverHttpsClientCommunicationChannel;
+
+begin
+
+  try
+
+    CommunicationChannel := TDnsOverHttpsClientCommunicationChannel.Create;
+
+    try
+
+      if CommunicationChannel.SendToAndReceiveFrom(Self.Buffer, Self.BufferLen, TDualIPAddressUtility.ToString(Self.DnsServerConfiguration.Address), Self.DnsServerConfiguration.Port, Self.DnsServerConfiguration.DnsOverHttpsProtocolPath, Self.DnsServerConfiguration.DnsOverHttpsProtocolHost, Self.DnsServerConfiguration.DnsOverHttpsProtocolConnectionType, Self.DnsServerConfiguration.DnsOverHttpsProtocolReuseConnections, 0, MAX_DNS_BUFFER_LEN, Self.Buffer, Self.BufferLen) then begin
+
+        TDnsResolver.GetInstance.HandleDnsResponse(Now, Self.Buffer, Self.BufferLen, Self.DnsServerIndex);
+
+      end;
+
+    finally
+
+      CommunicationChannel.Free;
+
+    end;
+
+  except
+
+    on E: Exception do if TTracer.IsEnabled then TTracer.Trace(TracePriorityError, 'TDnsOverHttpsDnsForwarder.Execute: ' + E.Message);
+
+  end;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+destructor TDnsOverHttpsDnsForwarder.Destroy;
 
 begin
 
