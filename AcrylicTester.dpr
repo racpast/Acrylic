@@ -28,6 +28,7 @@ uses
   Configuration in 'Configuration.pas',
   ConsoleTracerAgent in 'ConsoleTracerAgent.pas',
   DnsForwarder in 'DnsForwarder.pas',
+  DnsOverHttpsCache in 'DnsOverHttpsCache.pas',
   DnsProtocol in 'DnsProtocol.pas',
   DnsResolver in 'DnsResolver.pas',
   Environment in 'Environment.pas',
@@ -68,6 +69,7 @@ var
 
 {$I MD5UnitTest.pas }
 {$I CommunicationChannelsUnitTest.pas }
+{$I DnsOverHttpsCacheUnitTest.pas }
 {$I SessionCacheUnitTest.pas }
 {$I AddressCacheUnitTest.pas }
 {$I HostsCacheUnitTest.pas }
@@ -96,6 +98,7 @@ begin
 
   if not TAbstractUnitTest.ControlTestExecution(TMD5UnitTest.Create)                   then AtLeastOneTestFailed := True;
   if not TAbstractUnitTest.ControlTestExecution(TCommunicationChannelsUnitTest.Create) then AtLeastOneTestFailed := True;
+  if not TAbstractUnitTest.ControlTestExecution(TDnsOverHttpsCacheUnitTest.Create)     then AtLeastOneTestFailed := True;
   if not TAbstractUnitTest.ControlTestExecution(TSessionCacheUnitTest.Create)          then AtLeastOneTestFailed := True;
   if not TAbstractUnitTest.ControlTestExecution(TAddressCacheUnitTest.Create)          then AtLeastOneTestFailed := True;
   if not TAbstractUnitTest.ControlTestExecution(THostsCacheUnitTest.Create)            then AtLeastOneTestFailed := True;

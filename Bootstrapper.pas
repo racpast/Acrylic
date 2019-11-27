@@ -37,6 +37,7 @@ uses
   AddressCache,
   CommunicationChannels,
   Configuration,
+  DnsOverHttpsCache,
   Environment,
   HostsCache,
   DnsResolver,
@@ -53,7 +54,7 @@ begin
 
   if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StartSystem: Initializing...');
 
-  TCommunicationChannel.Initialize; TSessionCache.Initialize; TAddressCache.Initialize; THostsCache.Initialize;
+  TCommunicationChannel.Initialize; TDnsOverHttpsCache.Initialize; TSessionCache.Initialize; TAddressCache.Initialize; THostsCache.Initialize;
 
   if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StartSystem: Done initializing.');
 
@@ -123,7 +124,7 @@ begin
 
   if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StopSystem: Finalizing...');
 
-  THostsCache.Finalize; TAddressCache.Finalize; TSessionCache.Finalize; TCommunicationChannel.Finalize;
+  THostsCache.Finalize; TAddressCache.Finalize; TSessionCache.Finalize; TDnsOverHttpsCache.Finalize; TCommunicationChannel.Finalize;
 
   if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TBootstrapper.StopSystem: Done finalizing.');
 

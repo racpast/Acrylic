@@ -296,7 +296,7 @@ begin
 
       for ListIndex := 0 to (THostsCache_IPv4Patterns.Count - 1) do begin
         if TPatternMatching.Match(PChar(HostName), PChar(THostsCache_IPv4Patterns.Strings[ListIndex])) then begin
-          IPv4Address := Integer(THostsCache_IPv4Patterns.Objects[ListIndex]); Result := True; Exit;
+          IPv4Address := TIPv4Address(THostsCache_IPv4Patterns.Objects[ListIndex]); Result := True; Exit;
         end;
       end;
 
@@ -307,7 +307,7 @@ begin
       for ListIndex := 0 to (THostsCache_IPv4Expressions.Count - 1) do begin
         try
           if THostsCache_IPv4Expressions.ExecRegularExpression(ListIndex, HostName) then begin
-            IPv4Address := Integer(THostsCache_IPv4Expressions.GetAssociatedObject(ListIndex)); Result := True; Exit;
+            IPv4Address := TIPv4Address(THostsCache_IPv4Expressions.GetAssociatedObject(ListIndex)); Result := True; Exit;
           end;
         except
         end;

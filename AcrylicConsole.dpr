@@ -25,6 +25,7 @@ uses
   Configuration in 'Configuration.pas',
   ConsoleTracerAgent in 'ConsoleTracerAgent.pas',
   DnsForwarder in 'DnsForwarder.pas',
+  DnsOverHttpsCache in 'DnsOverHttpsCache.pas',
   DnsProtocol in 'DnsProtocol.pas',
   DnsResolver in 'DnsResolver.pas',
   Environment in 'Environment.pas',

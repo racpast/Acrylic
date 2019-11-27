@@ -772,7 +772,7 @@ begin
 
     try
 
-      if CommunicationChannel.SendToAndReceiveFrom(Self.Buffer, Self.BufferLen, TDualIPAddressUtility.ToString(Self.DnsServerConfiguration.Address), Self.DnsServerConfiguration.Port, Self.DnsServerConfiguration.DnsOverHttpsProtocolPath, Self.DnsServerConfiguration.DnsOverHttpsProtocolHost, Self.DnsServerConfiguration.DnsOverHttpsProtocolConnectionType, Self.DnsServerConfiguration.DnsOverHttpsProtocolReuseConnections, 0, MAX_DNS_BUFFER_LEN, Self.Buffer, Self.BufferLen) then begin
+      if CommunicationChannel.SendToAndReceiveFrom(Self.Buffer, Self.BufferLen, Self.DnsServerConfiguration.DnsOverHttpsProtocolHost, Self.DnsServerConfiguration.Port, Self.DnsServerConfiguration.DnsOverHttpsProtocolPath, Self.DnsServerConfiguration.DnsOverHttpsProtocolHost, Self.DnsServerConfiguration.DnsOverHttpsProtocolConnectionType, Self.DnsServerConfiguration.DnsOverHttpsProtocolReuseConnections, 0, MAX_DNS_BUFFER_LEN, Self.Buffer, Self.BufferLen) then begin
 
         TDnsResolver.GetInstance.HandleDnsResponse(Now, Self.Buffer, Self.BufferLen, Self.DnsServerIndex);
 

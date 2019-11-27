@@ -119,6 +119,7 @@ implementation
 uses
   IniFiles,
   SysUtils,
+  DnsOverHttpsCache,
   Environment,
   HitLogger,
   PatternMatching,
@@ -741,7 +742,7 @@ end;
 class function TConfiguration.IsCacheException(const Value: String): Boolean;
 
 var
-  i: Integer; S: String;
+  i: Integer;
 
 begin
 
@@ -751,9 +752,7 @@ begin
 
     for i := 0 to (TConfiguration_CacheExceptions.Count - 1) do begin
 
-      S := TConfiguration_CacheExceptions.Strings[i];
-
-      if TPatternMatching.Match(PChar(Value), PChar(S)) then begin Result := True; Exit; end;
+      if TPatternMatching.Match(PChar(Value), PChar(TConfiguration_CacheExceptions.Strings[i])) then begin Result := True; Exit; end;
 
     end;
 
@@ -768,7 +767,7 @@ end;
 class procedure TConfiguration.LoadFromFile(const FileName: String);
 
 var
-  IniFile: TMemIniFile; StringList: TStringList; DnsServerIndex: Integer; i: Integer; S: String; W: Word;
+  IniFile: TMemIniFile; StringList: TStringList; DnsServerIndex: Integer; DnsServerAddress: TDualIPAddress; i: Integer; S: String; W: Word;
 
 begin
 
@@ -822,7 +821,9 @@ begin
 
       S := IniFile.ReadString('GlobalSection', DNS_SERVER_INDEX_DESCRIPTION[DnsServerIndex] + 'ServerAddress', ''); if (S <> '') then begin
 
-        TConfiguration_DnsServerConfiguration[DnsServerIndex].Address := TDualIPAddressUtility.Parse(S);
+        DnsServerAddress := TDualIPAddressUtility.Parse(S);
+
+        TConfiguration_DnsServerConfiguration[DnsServerIndex].Address := DnsServerAddress;
 
         S := IniFile.ReadString('GlobalSection', DNS_SERVER_INDEX_DESCRIPTION[DnsServerIndex] + 'ServerPort', ''); if (S <> '') then begin
 
@@ -883,6 +884,8 @@ begin
               end;
 
               TConfiguration_DnsServerConfiguration[DnsServerIndex].DnsOverHttpsProtocolReuseConnections := UpperCase(IniFile.ReadString('GlobalSection', DNS_SERVER_INDEX_DESCRIPTION[DnsServerIndex] + 'ServerDoHProtocolReuseConnections', 'YES')) = 'YES';
+
+              if DnsServerAddress.IsIPv6Address then TDnsOverHttpsCache.AddIPv6Entry(TConfiguration_DnsServerConfiguration[DnsServerIndex].DnsOverHttpsProtocolHost, DnsServerAddress.IPv6Address) else TDnsOverHttpsCache.AddIPv4Entry(TConfiguration_DnsServerConfiguration[DnsServerIndex].DnsOverHttpsProtocolHost, DnsServerAddress.IPv4Address);
 
             end;
 
