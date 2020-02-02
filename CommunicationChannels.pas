@@ -136,7 +136,8 @@ type
   TDnsOverHttpsClientCommunicationChannel = class
     public
       constructor Create;
-      function    SendToAndReceiveFrom(RequestBuffer: Pointer; RequestBufferLen: Integer; const DestinationAddress: String; DestinationPort: Word; const DestinationPath: String; const DestinationHost: String; ConnectionType: TDnsOverHttpsProtocolConnectionType; ReuseConnections: Boolean; ResponseTimeout: Integer; MaxResponseBufferLen: Integer; var ResponseBuffer: Pointer; var ResponseBufferLen: Integer): Boolean;
+      function    SendToAndReceiveFromUsingWinInet(RequestBuffer: Pointer; RequestBufferLen: Integer; const DestinationAddress: String; DestinationPort: Word; const DestinationPath: String; const DestinationHost: String; ConnectionType: TDnsOverHttpsProtocolConnectionType; ReuseConnections: Boolean; ResponseTimeout: Integer; MaxResponseBufferLen: Integer; var ResponseBuffer: Pointer; var ResponseBufferLen: Integer): Boolean;
+      function    SendToAndReceiveFromUsingWinHttp(RequestBuffer: Pointer; RequestBufferLen: Integer; const DestinationAddress: String; DestinationPort: Word; const DestinationPath: String; const DestinationHost: String; ConnectionType: TDnsOverHttpsProtocolConnectionType; ReuseConnections: Boolean; ResponseTimeout: Integer; MaxResponseBufferLen: Integer; var ResponseBuffer: Pointer; var ResponseBufferLen: Integer): Boolean;
       destructor  Destroy; override;
   end;
 
@@ -154,6 +155,7 @@ uses
   SysUtils,
   WinInet,
   AcrylicVersionInfo,
+  WinHttp,
   WinSock;
 
 // --------------------------------------------------------------------------
@@ -1161,7 +1163,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-function TDnsOverHttpsClientCommunicationChannel.SendToAndReceiveFrom(RequestBuffer: Pointer; RequestBufferLen: Integer; const DestinationAddress: String; DestinationPort: Word; const DestinationPath: String; const DestinationHost: String; ConnectionType: TDnsOverHttpsProtocolConnectionType; ReuseConnections: Boolean; ResponseTimeout: Integer; MaxResponseBufferLen: Integer; var ResponseBuffer: Pointer; var ResponseBufferLen: Integer): Boolean;
+function TDnsOverHttpsClientCommunicationChannel.SendToAndReceiveFromUsingWinInet(RequestBuffer: Pointer; RequestBufferLen: Integer; const DestinationAddress: String; DestinationPort: Word; const DestinationPath: String; const DestinationHost: String; ConnectionType: TDnsOverHttpsProtocolConnectionType; ReuseConnections: Boolean; ResponseTimeout: Integer; MaxResponseBufferLen: Integer; var ResponseBuffer: Pointer; var ResponseBufferLen: Integer): Boolean;
 
 var
   InternetConnectionType: Cardinal; InternetHandle: HINTERNET; InternetConnectHandle: Pointer; InternetHttpOpenRequestFlags: Cardinal; InternetHttpOpenRequestHandle: Pointer; InternetHttpOpenRequestSecurityFlags: Cardinal; InternetHttpOpenRequestSecurityFlagsBufferLength: Cardinal; HttpRequestHeaders: String; NumberOfBytesRead: Cardinal;
@@ -1170,7 +1172,7 @@ begin
 
   Result := False;
 
-  if (ConnectionType = ConfigDnsOverHttpsProtocolConnectionType) then InternetConnectionType := INTERNET_OPEN_TYPE_PRECONFIG else if (ConnectionType = DirectDnsOverHttpsProtocolConnectionType) then InternetConnectionType := INTERNET_OPEN_TYPE_DIRECT else InternetConnectionType := INTERNET_OPEN_TYPE_PRECONFIG;
+  if (ConnectionType = SystemDnsOverHttpsProtocolConnectionType) then InternetConnectionType := INTERNET_OPEN_TYPE_PRECONFIG else if (ConnectionType = DirectDnsOverHttpsProtocolConnectionType) then InternetConnectionType := INTERNET_OPEN_TYPE_DIRECT else InternetConnectionType := INTERNET_OPEN_TYPE_PRECONFIG;
 
   InternetHandle := WinInet.InternetOpen(PChar('AcrylicDNSProxy/' + AcrylicVersionNumber + #0), InternetConnectionType, nil, nil, 0);
 
@@ -1253,6 +1255,105 @@ begin
   finally
 
     WinInet.InternetCloseHandle(InternetHandle);
+
+  end;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+function TDnsOverHttpsClientCommunicationChannel.SendToAndReceiveFromUsingWinHttp(RequestBuffer: Pointer; RequestBufferLen: Integer; const DestinationAddress: String; DestinationPort: Word; const DestinationPath: String; const DestinationHost: String; ConnectionType: TDnsOverHttpsProtocolConnectionType; ReuseConnections: Boolean; ResponseTimeout: Integer; MaxResponseBufferLen: Integer; var ResponseBuffer: Pointer; var ResponseBufferLen: Integer): Boolean;
+
+var
+  InternetConnectionType: Cardinal; UserAgentWideString: WideString; InternetHandle: Pointer; DestinationAddressWideString: WideString; InternetConnectHandle: Pointer; InternetHttpOpenRequestFlags: Cardinal; InternetHttpOpenRequestVerbWideString: WideString; InternetHttpOpenRequestDestinationPathWideString: WideString; InternetHttpOpenRequestHandle: Pointer; InternetHttpSendRequestHeadersWideString: WideString; NumberOfBytesRead: Cardinal;
+
+begin
+
+  Result := False;
+
+  if (ConnectionType = SystemDnsOverHttpsProtocolConnectionType) then InternetConnectionType := WINHTTP_ACCESS_TYPE_DEFAULT_PROXY else if (ConnectionType = DirectDnsOverHttpsProtocolConnectionType) then InternetConnectionType := WINHTTP_ACCESS_TYPE_NO_PROXY else InternetConnectionType := WINHTTP_ACCESS_TYPE_DEFAULT_PROXY;
+
+  UserAgentWideString := 'AcrylicDNSProxy/' + AcrylicVersionNumber + #0;
+
+  InternetHandle := WinHttpOpen(PWideChar(UserAgentWideString), InternetConnectionType, nil, nil, 0);
+
+  if (InternetHandle = nil) then begin
+
+    raise Exception.Create('TDnsOverHttpsClientCommunicationChannel.SendToAndReceiveFrom: WinHttpOpen failed with error code ' + IntToStr(GetLastError) + '.');
+
+  end;
+
+  try
+
+    DestinationAddressWideString := DestinationAddress + #0;
+
+    InternetConnectHandle := WinHttpConnect(InternetHandle, PWideChar(DestinationAddressWideString), DestinationPort, 0);
+
+    if (InternetConnectHandle = nil) then begin
+
+      raise Exception.Create('TDnsOverHttpsClientCommunicationChannel.SendToAndReceiveFrom: WinHttpConnect failed with error code ' + IntToStr(GetLastError) + '.');
+
+    end;
+
+    try
+
+      InternetHttpOpenRequestFlags := WINHTTP_FLAG_SECURE or WINHTTP_FLAG_BYPASS_PROXY_CACHE;
+
+      InternetHttpOpenRequestVerbWideString := 'POST' + #0;
+
+      InternetHttpOpenRequestDestinationPathWideString := DestinationPath + #0;
+
+      InternetHttpOpenRequestHandle := WinHttpOpenRequest(InternetConnectHandle, PWideChar(InternetHttpOpenRequestVerbWideString), PWideChar(InternetHttpOpenRequestDestinationPathWideString), nil, nil, nil, InternetHttpOpenRequestFlags);
+
+      if (InternetHttpOpenRequestHandle = nil) then begin
+
+        raise Exception.Create('TDnsOverHttpsClientCommunicationChannel.SendToAndReceiveFrom: WinHttpOpenRequest failed with error code ' + IntToStr(GetLastError) + '.');
+
+      end;
+
+      try
+
+        InternetHttpSendRequestHeadersWideString := 'Host: ' + DestinationHost + #10 + 'Content-Type: application/dns-message' + #10 + 'Accept: application/dns-message' + #10;
+
+        if not WinHttpSendRequest(InternetHttpOpenRequestHandle, PWideChar(InternetHttpSendRequestHeadersWideString), Length(InternetHttpSendRequestHeadersWideString), RequestBuffer, RequestBufferLen, RequestBufferLen, 0) then begin
+
+          raise Exception.Create('TDnsOverHttpsClientCommunicationChannel.SendToAndReceiveFrom: WinHttpSendRequest failed with error code ' + IntToStr(GetLastError) + '.');
+
+        end;
+
+        if not WinHttpReceiveResponse(InternetHttpOpenRequestHandle, nil) then begin
+
+          raise Exception.Create('TDnsOverHttpsClientCommunicationChannel.SendToAndReceiveFrom: WinHttpReceiveResponse failed with error code ' + IntToStr(GetLastError) + '.');
+
+        end;
+
+        if not WinHttpReadData(InternetHttpOpenRequestHandle, ResponseBuffer, MaxResponseBufferLen, NumberOfBytesRead) then begin
+
+          raise Exception.Create('TDnsOverHttpsClientCommunicationChannel.SendToAndReceiveFrom: WinHttpReadData failed with error code ' + IntToStr(GetLastError) + '.');
+
+        end;
+
+        ResponseBufferLen := NumberOfBytesRead;
+
+        Result := NumberOfBytesRead > 0;
+
+      finally
+
+        WinHttpCloseHandle(InternetHttpOpenRequestHandle);
+
+      end;
+
+    finally
+
+      WinHttpCloseHandle(InternetConnectHandle);
+
+    end;
+
+  finally
+
+    WinHttpCloseHandle(InternetHandle);
 
   end;
 

@@ -54,7 +54,7 @@ type
 // --------------------------------------------------------------------------
 
 type
-  TDnsOverHttpsProtocolConnectionType = (ConfigDnsOverHttpsProtocolConnectionType, DirectDnsOverHttpsProtocolConnectionType);
+  TDnsOverHttpsProtocolConnectionType = (SystemDnsOverHttpsProtocolConnectionType, DirectDnsOverHttpsProtocolConnectionType);
 
 // --------------------------------------------------------------------------
 //
@@ -143,7 +143,7 @@ var
 
 begin
 
-  UpperCaseText := UpperCase(Text); if (UpperCaseText = 'CONFIG') then Result := ConfigDnsOverHttpsProtocolConnectionType else if (UpperCaseText = 'DIRECT') then Result := DirectDnsOverHttpsProtocolConnectionType else Result := ConfigDnsOverHttpsProtocolConnectionType;
+  UpperCaseText := UpperCase(Text); if (UpperCaseText = 'SYSTEM') or (UpperCaseText = 'CONFIG') then Result := SystemDnsOverHttpsProtocolConnectionType else if (UpperCaseText = 'DIRECT') then Result := DirectDnsOverHttpsProtocolConnectionType else Result := SystemDnsOverHttpsProtocolConnectionType;
 
 end;
 

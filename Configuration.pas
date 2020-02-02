@@ -45,6 +45,7 @@ type
     DnsOverHttpsProtocolPath: String;
     DnsOverHttpsProtocolConnectionType: TDnsOverHttpsProtocolConnectionType;
     DnsOverHttpsProtocolReuseConnections: Boolean;
+    DnsOverHttpsProtocolUseWinHttp: Boolean;
     IgnoreFailureResponsesFromServer: Boolean;
     IgnoreNegativeResponsesFromServer: Boolean;
   end;
@@ -274,8 +275,9 @@ begin
     TConfiguration_DnsServerConfiguration[i].Socks5ProtocolProxyAddress.IsIPv6Address := False;
     TConfiguration_DnsServerConfiguration[i].Socks5ProtocolProxyAddress.IPv4Address := LOCALHOST_IPV4_ADDRESS;
     TConfiguration_DnsServerConfiguration[i].Socks5ProtocolProxyPort := 9150;
-    TConfiguration_DnsServerConfiguration[i].DnsOverHttpsProtocolConnectionType := ConfigDnsOverHttpsProtocolConnectionType;
+    TConfiguration_DnsServerConfiguration[i].DnsOverHttpsProtocolConnectionType := SystemDnsOverHttpsProtocolConnectionType;
     TConfiguration_DnsServerConfiguration[i].DnsOverHttpsProtocolReuseConnections := True;
+    TConfiguration_DnsServerConfiguration[i].DnsOverHttpsProtocolUseWinHttp := False;
     TConfiguration_DnsServerConfiguration[i].IgnoreFailureResponsesFromServer := False;
     TConfiguration_DnsServerConfiguration[i].IgnoreNegativeResponsesFromServer := False;
 
@@ -884,6 +886,8 @@ begin
               end;
 
               TConfiguration_DnsServerConfiguration[DnsServerIndex].DnsOverHttpsProtocolReuseConnections := UpperCase(IniFile.ReadString('GlobalSection', DNS_SERVER_INDEX_DESCRIPTION[DnsServerIndex] + 'ServerDoHProtocolReuseConnections', 'YES')) = 'YES';
+
+              TConfiguration_DnsServerConfiguration[DnsServerIndex].DnsOverHttpsProtocolUseWinHttp := UpperCase(IniFile.ReadString('GlobalSection', DNS_SERVER_INDEX_DESCRIPTION[DnsServerIndex] + 'ServerDoHProtocolUseWinHttp', 'YES')) = 'YES';
 
               if DnsServerAddress.IsIPv6Address then TDnsOverHttpsCache.AddIPv6Entry(TConfiguration_DnsServerConfiguration[DnsServerIndex].DnsOverHttpsProtocolHost, DnsServerAddress.IPv6Address) else TDnsOverHttpsCache.AddIPv4Entry(TConfiguration_DnsServerConfiguration[DnsServerIndex].DnsOverHttpsProtocolHost, DnsServerAddress.IPv4Address);
 

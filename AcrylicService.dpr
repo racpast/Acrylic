@@ -40,6 +40,7 @@ uses
   PerlRegEx in 'PerlRegEx.pas',
   SessionCache in 'SessionCache.pas',
   Tracer in 'Tracer.pas',
+  WinHttp in 'WinHttp.pas',
   WinSock in 'WinSock.pas';
 
 // --------------------------------------------------------------------------

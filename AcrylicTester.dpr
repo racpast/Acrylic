@@ -46,6 +46,7 @@ uses
   PerlRegEx in 'PerlRegEx.pas',
   SessionCache in 'SessionCache.pas',
   Tracer in 'Tracer.pas',
+  WinHttp in 'WinHttp.pas',
   WinSock in 'WinSock.pas';
 
 // --------------------------------------------------------------------------
@@ -107,5 +108,7 @@ begin
   if TTracer.IsEnabled then if AtLeastOneTestFailed then TTracer.Trace(TracePriorityInfo, 'AT LEAST ONE TEST FAILED!') else TTracer.Trace(TracePriorityInfo, 'ALL TESTS SUCCEEDED!');
 
   TTracer.Finalize; TConfiguration.Finalize;
+
+  if AtLeastOneTestFailed then ExitCode := 1 else ExitCode := 0;
 
 end.

@@ -772,9 +772,21 @@ begin
 
     try
 
-      if CommunicationChannel.SendToAndReceiveFrom(Self.Buffer, Self.BufferLen, Self.DnsServerConfiguration.DnsOverHttpsProtocolHost, Self.DnsServerConfiguration.Port, Self.DnsServerConfiguration.DnsOverHttpsProtocolPath, Self.DnsServerConfiguration.DnsOverHttpsProtocolHost, Self.DnsServerConfiguration.DnsOverHttpsProtocolConnectionType, Self.DnsServerConfiguration.DnsOverHttpsProtocolReuseConnections, 0, MAX_DNS_BUFFER_LEN, Self.Buffer, Self.BufferLen) then begin
+      if Self.DnsServerConfiguration.DnsOverHttpsProtocolUseWinHttp then begin
 
-        TDnsResolver.GetInstance.HandleDnsResponse(Now, Self.Buffer, Self.BufferLen, Self.DnsServerIndex);
+        if CommunicationChannel.SendToAndReceiveFromUsingWinHttp(Self.Buffer, Self.BufferLen, Self.DnsServerConfiguration.DnsOverHttpsProtocolHost, Self.DnsServerConfiguration.Port, Self.DnsServerConfiguration.DnsOverHttpsProtocolPath, Self.DnsServerConfiguration.DnsOverHttpsProtocolHost, Self.DnsServerConfiguration.DnsOverHttpsProtocolConnectionType, Self.DnsServerConfiguration.DnsOverHttpsProtocolReuseConnections, 0, MAX_DNS_BUFFER_LEN, Self.Buffer, Self.BufferLen) then begin
+
+          TDnsResolver.GetInstance.HandleDnsResponse(Now, Self.Buffer, Self.BufferLen, Self.DnsServerIndex);
+
+        end;
+
+      end else begin
+
+        if CommunicationChannel.SendToAndReceiveFromUsingWinInet(Self.Buffer, Self.BufferLen, Self.DnsServerConfiguration.DnsOverHttpsProtocolHost, Self.DnsServerConfiguration.Port, Self.DnsServerConfiguration.DnsOverHttpsProtocolPath, Self.DnsServerConfiguration.DnsOverHttpsProtocolHost, Self.DnsServerConfiguration.DnsOverHttpsProtocolConnectionType, Self.DnsServerConfiguration.DnsOverHttpsProtocolReuseConnections, 0, MAX_DNS_BUFFER_LEN, Self.Buffer, Self.BufferLen) then begin
+
+          TDnsResolver.GetInstance.HandleDnsResponse(Now, Self.Buffer, Self.BufferLen, Self.DnsServerIndex);
+
+        end;
 
       end;
 
