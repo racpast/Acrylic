@@ -231,8 +231,6 @@ function InstallAcrylicService: Boolean;
 
 begin
 
-  ExecuteCommand('NetSh.exe advfirewall firewall add rule name="Allow Acrylic DNS Proxy Service" dir=in action=allow program="' + AcrylicServiceExeFilePath + '"');
-
   Result := ExecuteCommand('"' + AcrylicServiceExeFilePath + '" /INSTALL /SILENT') = 0;
 
 end;
@@ -248,8 +246,6 @@ begin
   StopAcrylicService;
 
   Result := ExecuteCommand('"' + AcrylicServiceExeFilePath + '" /UNINSTALL /SILENT') = 0;
-
-  ExecuteCommand('NetSh.exe advfirewall firewall delete rule name="Allow Acrylic DNS Proxy Service"');
 
 end;
 

@@ -8,7 +8,7 @@
 ; General
 ;--------------------------------
 
-Name "Acrylic DNS Proxy (1.2.0)"
+Name "Acrylic DNS Proxy (1.2.1)"
 
 OutFile "Acrylic.exe"
 
@@ -138,12 +138,12 @@ Function PerformInstallSystemChecks
 
   DetailPrint "Performing system checks..."
 
-  IfFileExists "$INSTDIR\AcrylicService.exe" NO01
-  IfFileExists "$INSTDIR\AcrylicConsole.exe" NO01
+  IfFileExists "$INSTDIR\AcrylicService.exe" KO01
+  IfFileExists "$INSTDIR\AcrylicConsole.exe" KO01
 
   Goto GOON
 
-NO01:
+KO01:
 
   MessageBox MB_OK|MB_ICONSTOP "An old version of Acrylic has been detected at the designated destination folder.$\n$\nYou must uninstall any old version of Acrylic before installing a new one. You may also want to backup your old AcrylicConfiguration.ini and AcrylicHosts.txt files, as the installation process will overwrite them with new content."
 

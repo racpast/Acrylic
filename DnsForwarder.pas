@@ -356,7 +356,7 @@ begin
 
   except
 
-    on E: Exception do if TTracer.IsEnabled then TTracer.Trace(TracePriorityError, 'TIPv4UdpDnsForwarder.Execute: ' + E.Message);
+    on E: Exception do if TTracer.IsEnabled then TTracer.Trace(TracePriorityError, 'TIPv4UdpDnsForwarder.Execute: The following error occurred while forwarding request ID ' + IntToStr(Self.SessionId) + ' to server ' + IntToStr(Self.DnsServerIndex + 1) + ': ' + E.Message);
 
   end;
 
@@ -425,7 +425,7 @@ begin
 
   except
 
-    on E: Exception do if TTracer.IsEnabled then TTracer.Trace(TracePriorityError, 'TIPv4UdpDnsForwarder.Execute: ' + E.Message);
+    on E: Exception do if TTracer.IsEnabled then TTracer.Trace(TracePriorityError, 'TIPv4UdpDnsForwarder.Execute: The following error occurred while forwarding request ID ' + IntToStr(Self.SessionId) + ' to server ' + IntToStr(Self.DnsServerIndex + 1) + ': ' + E.Message);
 
   end;
 
@@ -798,7 +798,7 @@ begin
 
   except
 
-    on E: Exception do if TTracer.IsEnabled then TTracer.Trace(TracePriorityError, 'TDnsOverHttpsDnsForwarder.Execute: ' + E.Message);
+    on E: Exception do if TTracer.IsEnabled then TTracer.Trace(TracePriorityError, 'TDnsOverHttpsDnsForwarder.Execute: The following error occurred while forwarding request ID ' + IntToStr(Self.SessionId) + ' to server ' + IntToStr(Self.DnsServerIndex + 1) + ': ' + E.Message);
 
   end;
 

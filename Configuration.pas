@@ -277,7 +277,7 @@ begin
     TConfiguration_DnsServerConfiguration[i].Socks5ProtocolProxyPort := 9150;
     TConfiguration_DnsServerConfiguration[i].DnsOverHttpsProtocolConnectionType := SystemDnsOverHttpsProtocolConnectionType;
     TConfiguration_DnsServerConfiguration[i].DnsOverHttpsProtocolReuseConnections := True;
-    TConfiguration_DnsServerConfiguration[i].DnsOverHttpsProtocolUseWinHttp := False;
+    TConfiguration_DnsServerConfiguration[i].DnsOverHttpsProtocolUseWinHttp := True;
     TConfiguration_DnsServerConfiguration[i].IgnoreFailureResponsesFromServer := False;
     TConfiguration_DnsServerConfiguration[i].IgnoreNegativeResponsesFromServer := False;
 

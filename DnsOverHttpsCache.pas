@@ -108,7 +108,7 @@ begin
 
   if (TDnsOverHttpsCache_IPv4List <> nil) then begin
 
-    if (TDnsOverHttpsCache_IPv4List.Find(HostName, ListIndex)) then begin
+    ListIndex := TDnsOverHttpsCache_IPv4List.IndexOf(HostName); if (ListIndex >= 0) then begin
 
       IPv4Address := TIPv4Address(TDnsOverHttpsCache_IPv4List.Objects[ListIndex]);
 
@@ -137,7 +137,7 @@ begin
 
   if (TDnsOverHttpsCache_IPv6List <> nil) then begin
 
-    if (TDnsOverHttpsCache_IPv6List.Find(HostName, ListIndex)) then begin
+    ListIndex := TDnsOverHttpsCache_IPv6List.IndexOf(HostName); if (ListIndex >= 0) then begin
 
       IPv6Address := PIPv6Address(TDnsOverHttpsCache_IPv6List.Objects[ListIndex])^;
 
