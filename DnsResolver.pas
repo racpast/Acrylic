@@ -354,7 +354,7 @@ begin
 
           end else begin
 
-            TDnsProtocolUtility.BuildNegativeResponsePacket(DomainName, QueryType, Output, OutputLen);
+            if (QueryType = DNS_QUERY_TYPE_PTR) then TDnsProtocolUtility.BuildNegativeResponsePacket(DomainName, QueryType, Output, OutputLen) else TDnsProtocolUtility.BuildPositiveResponsePacket(DomainName, QueryType, Output, OutputLen);
 
             TDnsProtocolUtility.SetIdIntoPacket(OriginalSessionId, Output); Self.CommunicationChannel.SendTo(Output, OutputLen, Address, Port);
 
@@ -476,7 +476,7 @@ begin
 
                 end else begin
 
-                  TDnsProtocolUtility.BuildNegativeResponsePacket(DomainName, QueryType, Output, OutputLen);
+                  if (QueryType = DNS_QUERY_TYPE_PTR) then TDnsProtocolUtility.BuildNegativeResponsePacket(DomainName, QueryType, Output, OutputLen) else TDnsProtocolUtility.BuildPositiveResponsePacket(DomainName, QueryType, Output, OutputLen);
 
                   TDnsProtocolUtility.SetIdIntoPacket(OriginalSessionId, Output); Self.CommunicationChannel.SendTo(Output, OutputLen, Address, Port);
 
@@ -532,7 +532,7 @@ begin
 
             end else begin
 
-              TDnsProtocolUtility.BuildNegativeResponsePacket(DomainName, QueryType, Output, OutputLen);
+              if (QueryType = DNS_QUERY_TYPE_PTR) then TDnsProtocolUtility.BuildNegativeResponsePacket(DomainName, QueryType, Output, OutputLen) else TDnsProtocolUtility.BuildPositiveResponsePacket(DomainName, QueryType, Output, OutputLen);
 
               TDnsProtocolUtility.SetIdIntoPacket(OriginalSessionId, Output); Self.CommunicationChannel.SendTo(Output, OutputLen, Address, Port);
 
