@@ -26,13 +26,14 @@ uses
 type
   THitLogger = class
     public
-      class procedure SetProperties(const FileName: String; const FileWhat: String; FullDump: Boolean; MinPendingHits: Integer; MaxPendingHits: Integer);
+      class procedure SetProperties(const FileName: String; const FileWhat: String; FullDump: Boolean; MaxPendingHits: Integer);
     public
       class function  IsEnabled: Boolean;
       class function  GetFileWhat: String;
       class function  GetFullDump: Boolean;
-      class procedure AddHit(When: TDateTime; const Treatment: String; Client: TDualIPAddress; const Description: String);
-      class procedure WriteAllPendingHitsToDisk(Force: Boolean; Async: Boolean);
+      class procedure AddIPv4Hit(When: TDateTime; Client: TIPv4Address; const StatusCode: String; const DnsServerIndex: String; const DnsServerResponseTime: String; const Description: String);
+      class procedure AddIPv6Hit(When: TDateTime; Client: TIPv6Address; const StatusCode: String; const DnsServerIndex: String; const DnsServerResponseTime: String; const Description: String);
+      class procedure WriteAllPendingHitsToDisk(Async: Boolean);
   end;
 
 // --------------------------------------------------------------------------
@@ -91,15 +92,7 @@ var
 // --------------------------------------------------------------------------
 
 var
-  THitLogger_DateTemplatePresent: Boolean;
-
-// --------------------------------------------------------------------------
-//
-// --------------------------------------------------------------------------
-
-var
-  THitLogger_MinPendingHits: Integer;
-  THitLogger_MaxPendingHits: Integer;
+  THitLogger_DateTemplate: Boolean;
 
 // --------------------------------------------------------------------------
 //
@@ -113,13 +106,20 @@ var
 // --------------------------------------------------------------------------
 
 var
+  THitLogger_MaxPendingHits: Integer;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+var
   THitLogger_LastAsyncWriter: THitLoggerAsyncWriter;
 
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
 
-class procedure THitLogger.SetProperties(const FileName: String; const FileWhat: String; FullDump: Boolean; MinPendingHits: Integer; MaxPendingHits: Integer);
+class procedure THitLogger.SetProperties(const FileName: String; const FileWhat: String; FullDump: Boolean; MaxPendingHits: Integer);
 
 begin
 
@@ -129,7 +129,7 @@ begin
 
     THitLogger_FileName := FileName;
 
-    THitLogger_DateTemplatePresent := Pos('%DATE%', FileName) > 0;
+    THitLogger_DateTemplate := Pos('%DATE%', FileName) > 0;
 
     if (Pos('%TEMP%', FileName) > 0) then THitLogger_FileName := StringReplace(THitLogger_FileName, '%TEMP%', TEnvironmentVariables.Get('TEMP', '%TEMP%'), [rfReplaceAll]);
     if (Pos('%APPDATA%', FileName) > 0) then THitLogger_FileName := StringReplace(THitLogger_FileName, '%APPDATA%', TEnvironmentVariables.Get('APPDATA', '%APPDATA%'), [rfReplaceAll]);
@@ -139,7 +139,6 @@ begin
 
     THitLogger_FullDump := FullDump;
 
-    THitLogger_MinPendingHits := MinPendingHits;
     THitLogger_MaxPendingHits := MaxPendingHits;
 
   end;
@@ -186,11 +185,11 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class procedure THitLogger.AddHit(When: TDateTime; const Treatment: String; Client: TDualIPAddress; const Description: String);
+class procedure THitLogger.AddIPv4Hit(When: TDateTime; Client: TIPv4Address; const StatusCode: String; const DnsServerIndex: String; const DnsServerResponseTime: String; const Description: String);
 
 begin
 
-  if (THitLogger_BufferList = nil) then begin THitLogger_BufferList := TStringList.Create; THitLogger_BufferList.Capacity := THitLogger_MaxPendingHits; end; THitLogger_BufferList.Add(FormatDateTime('yyyy-mm-dd HH":"nn":"ss.zzz', When) + #9 + TDualIPAddressUtility.ToString(Client) + #9 + Treatment + #9 + Description); if (THitLogger_BufferList.Count >= THitLogger_MaxPendingHits) then Self.WriteAllPendingHitsToDisk(True, True);
+  if (THitLogger_BufferList = nil) then begin THitLogger_BufferList := TStringList.Create; THitLogger_BufferList.Capacity := THitLogger_MaxPendingHits; end; THitLogger_BufferList.Add(FormatDateTime('yyyy-mm-dd HH":"nn":"ss.zzz', When) + #9 + TIPv4AddressUtility.ToString(Client) + #9 + StatusCode + #9 + DnsServerIndex + #9 + DnsServerResponseTime + #9 + Description); if (THitLogger_BufferList.Count >= THitLogger_MaxPendingHits) then Self.WriteAllPendingHitsToDisk(True);
 
 end;
 
@@ -198,7 +197,19 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class procedure THitLogger.WriteAllPendingHitsToDisk(Force: Boolean; Async: Boolean);
+class procedure THitLogger.AddIPv6Hit(When: TDateTime; Client: TIPv6Address; const StatusCode: String; const DnsServerIndex: String; const DnsServerResponseTime: String; const Description: String);
+
+begin
+
+  if (THitLogger_BufferList = nil) then begin THitLogger_BufferList := TStringList.Create; THitLogger_BufferList.Capacity := THitLogger_MaxPendingHits; end; THitLogger_BufferList.Add(FormatDateTime('yyyy-mm-dd HH":"nn":"ss.zzz', When) + #9 + TIPv6AddressUtility.ToString(Client) + #9 + StatusCode + #9 + DnsServerIndex + #9 + DnsServerResponseTime + #9 + Description); if (THitLogger_BufferList.Count >= THitLogger_MaxPendingHits) then Self.WriteAllPendingHitsToDisk(True);
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class procedure THitLogger.WriteAllPendingHitsToDisk(Async: Boolean);
 
 var
   HitLoggerBufferListCount: Integer; FileName: String; Contents: String;
@@ -209,41 +220,37 @@ begin
 
     HitLoggerBufferListCount := THitLogger_BufferList.Count;
 
-    if (Force or (HitLoggerBufferListCount >= THitLogger_MinPendingHits)) then begin
+    if (HitLoggerBufferListCount > 0) then begin
 
       if (THitLogger_LastAsyncWriter <> nil) then begin
 
-        while not THitLogger_LastAsyncWriter.IsDone do Sleep(50); THitLogger_LastAsyncWriter.Free; THitLogger_LastAsyncWriter := nil;
+        while not THitLogger_LastAsyncWriter.IsDone do Sleep(20); THitLogger_LastAsyncWriter.Free; THitLogger_LastAsyncWriter := nil;
 
       end;
 
-      if (HitLoggerBufferListCount > 0) then begin
+      FileName := THitLogger_FileName; if THitLogger_DateTemplate then FileName := StringReplace(FileName, '%DATE%', FormatDateTime('yyyymmdd', Now), [rfReplaceAll]);
 
-        FileName := THitLogger_FileName; if THitLogger_DateTemplatePresent then FileName := StringReplace(FileName, '%DATE%', FormatDateTime('yyyymmdd', Now), [rfReplaceAll]);
+      Contents := THitLogger_BufferList.Text;
 
-        Contents := THitLogger_BufferList.Text;
+      try
 
-        try
+        if Async then begin
 
-          if Async then begin
+          THitLogger_LastAsyncWriter := THitLoggerAsyncWriter.Create(FileName, Contents); if (THitLogger_LastAsyncWriter <> nil) then THitLogger_LastAsyncWriter.Resume else TFileIO.AppendAllText(FileName, Contents);
 
-            THitLogger_LastAsyncWriter := THitLoggerAsyncWriter.Create(FileName, Contents); if (THitLogger_LastAsyncWriter <> nil) then THitLogger_LastAsyncWriter.Resume else TFileIO.AppendAllText(FileName, Contents);
+        end else begin
 
-          end else begin
-
-            TFileIO.AppendAllText(FileName, Contents);
-
-          end;
-
-        except
-
-          on E: Exception do if TTracer.IsEnabled then TTracer.Trace(TracePriorityError, 'THitLogger.WriteAllPendingHitsToDisk: ' + E.Message);
+          TFileIO.AppendAllText(FileName, Contents);
 
         end;
 
-        THitLogger_BufferList.Clear;
+      except
+
+        on E: Exception do if TTracer.IsEnabled then TTracer.Trace(TracePriorityError, 'THitLogger.WriteAllPendingHitsToDisk: The following error occurred during execution: ' + E.Message);
 
       end;
+
+      THitLogger_BufferList.Clear;
 
     end;
 
@@ -277,7 +284,7 @@ begin
 
   except
 
-    on E: Exception do if TTracer.IsEnabled then TTracer.Trace(TracePriorityError, 'THitLoggerAsyncWriter.Execute: ' + E.Message);
+    on E: Exception do if TTracer.IsEnabled then TTracer.Trace(TracePriorityError, 'THitLoggerAsyncWriter.Execute: The following error occurred during execution: ' + E.Message);
 
   end;
 

@@ -47,7 +47,7 @@ interface
 // --------------------------------------------------------------------------
 
 type
-  TMD5Digest = packed Array [0..15] of Byte;
+  TMD5Digest = array [0..3] of Cardinal;
 
 // --------------------------------------------------------------------------
 //
@@ -57,7 +57,7 @@ type
   TMD5 = class
     public
       class function Compute(Buffer: Pointer; Size: Integer): TMD5Digest;
-      class function Compare(MD5Digest1, MD5Digest2: TMD5Digest): Integer;
+      class function Compare(const MD5Digest1, MD5Digest2: TMD5Digest): Integer;
   end;
 
 // --------------------------------------------------------------------------
@@ -82,9 +82,9 @@ implementation
 {$define BASM16}
 {$define WINCRT}
 {$define G_OPT}
-{$undef  CONST}
-{$undef  Q_OPT}
-{$undef  V7PLUS}
+{$undef CONST}
+{$undef Q_OPT}
+{$undef V7PLUS}
 {$endif}
 
 {$ifdef VER15}
@@ -92,38 +92,38 @@ implementation
 {$define BASM16}
 {$define WINCRT}
 {$define G_OPT}
-{$undef  CONST}
-{$undef  Q_OPT}
-{$undef  V7PLUS}
+{$undef CONST}
+{$undef Q_OPT}
+{$undef V7PLUS}
 {$endif}
 
 {$ifdef VER50}
 {$define BIT16}
 {$define VER5X}
-{$undef  BASM}
-{$undef  CONST}
-{$undef  Q_OPT}
-{$undef  X_OPT}
-{$undef  V7PLUS}
+{$undef BASM}
+{$undef CONST}
+{$undef Q_OPT}
+{$undef X_OPT}
+{$undef V7PLUS}
 {$endif}
 
 {$ifdef VER55}
 {$define BIT16}
 {$define VER5X}
-{$undef  BASM}
-{$undef  CONST}
-{$undef  Q_OPT}
-{$undef  X_OPT}
-{$undef  V7PLUS}
+{$undef BASM}
+{$undef CONST}
+{$undef Q_OPT}
+{$undef X_OPT}
+{$undef V7PLUS}
 {$endif}
 
 {$ifdef VER60}
 {$define BIT16}
-{$undef  CONST}
-{$undef  Q_OPT}
+{$undef CONST}
+{$undef Q_OPT}
 {$define G_OPT}
 {$define BASM16}
-{$undef  V7PLUS}
+{$undef V7PLUS}
 {$endif}
 
 {$ifdef VER70}
@@ -319,7 +319,7 @@ implementation
 {$define HAS_OVERLOAD}
 {$undef N_OPT}
 {$ifdef VER1}
-{$undef  J_OPT}
+{$undef J_OPT}
 {$define HAS_INT64}
 {$define HAS_CARD32}
 {$define HAS_MSG}
@@ -526,7 +526,7 @@ implementation
 
 {$ifdef X_OPT}
 {$ifopt X+}{$define ExtendedSyntax_on}{$endif}
-{$ifopt X-}{$undef  RESULT}{$endif}
+{$ifopt X-}{$undef RESULT}{$endif}
 {$endif}
 
 {$ifdef CONDITIONALEXPRESSIONS}
@@ -673,19 +673,13 @@ type Extended = Double;
 {$endif}
 {$endif}
 
-const
-  MaxBlockLen = 128;
-  MaxDigestLen = 64;
-  MaxStateLen = 16;
-  MaxOIDLen = 11;
-
 type
-  THashState = packed Array [0..MaxStateLen-1] of LongInt;
-  THashBuffer = packed Array [0..MaxBlockLen-1] of Byte;
-  THashDigest = packed Array [0..MaxDigestLen-1] of Byte;
+  THashState = packed Array [0..15] of Integer;
+  THashBuffer = packed Array [0..127] of Byte;
+  THashDigest = packed Array [0..63] of Byte;
   PHashDigest = ^THashDigest;
-  THashBuf32 = packed Array [0..MaxBlockLen  div 4 -1] of LongInt;
-  THashDig32 = packed Array [0..MaxDigestLen div 4 -1] of LongInt;
+  THashBuf32 = packed Array [0..31] of Integer;
+  THashDig32 = packed Array [0..15] of Integer;
   THMacBuffer = packed Array [0..143] of Byte;
 
 const
@@ -701,7 +695,7 @@ type
                  end;
 
 type
-  TOID_Vec = packed Array [1..MaxOIDLen] of LongInt;
+  TOID_Vec = packed Array [1..11] of LongInt;
   POID_Vec = ^TOID_Vec;
 
 const
@@ -713,7 +707,7 @@ const
 {$endif}
 
 const
-  MD5_BlockLen  = 64;
+  MD5_BlockLen = 64;
 
 const
   MD5_OID : TOID_Vec = (1, 2, 840, 113549, 2, 5, -1, -1, -1, -1, -1);
@@ -735,23 +729,6 @@ const
 
 {$i-}
 
-{$ifndef BIT16}
-
-{$ifdef PurePascal}
-
-procedure UpdateLen(var whi, wlo: LongInt; BLen: LongInt);
-
-var
-  tmp: int64;
-
-begin
-  tmp := int64(cardinal(wlo))+Blen;
-  wlo := LongInt(tmp and $FFFFFFFF);
-  Inc(whi,LongInt(tmp shr 32));
-end;
-
-{$else}
-
 procedure UpdateLen(var whi, wlo: LongInt; BLen: LongInt);
 
 begin
@@ -765,8 +742,6 @@ begin
   end;
 
 end;
-
-{$endif}
 
 procedure MD5Transform(var Hash: THashState; const Buffer: THashBuf32);
 
@@ -855,225 +830,96 @@ begin
 
 end;
 
-{$else}
-
-{$ifdef BASM16}
-
-procedure UpdateLen(var whi, wlo: LongInt; BLen: LongInt); assembler;
-
-asm
-          les   di,[wlo]
-  db $66; mov   ax,Word ptr [BLen]
-  db $66; sub   dx,dx
-  db $66; add   es:[di],ax
-          les   di,[whi]
-  db $66; adc   es:[di],dx
-end;
-
-function LRot32(X: LongInt; c: Word): LongInt;
-
-inline
-(
-  $59/              { pop    cx      }
-  $66/$58/          { pop    eax     }
-  $66/$D3/$C0/      { rol    eax,cl  }
-  $66/$8B/$D0/      { mov    edx,eax }
-  $66/$C1/$EA/$10   { shr    edx,16  }
-);
-
-{$else}
-
-procedure UpdateLen(var whi, wlo: LongInt; BLen: LongInt);
-
-inline
-(
-  $58/                  { pop  ax            }
-  $5A/                  { pop  dx            }
-  $5B/                  { pop  bx            }
-  $07/                  { pop  es            }
-  $26/$01/$07/          { add  es:[bx],ax    }
-  $26/$11/$57/$02/      { adc  es:[bx+02],dx }
-  $5B/                  { pop  bx            }
-  $07/                  { pop  es            }
-  $26/$83/$17/$00/      { adc  es:[bx],0     }
-  $26/$83/$57/$02/$00   { adc  es:[bx+02],0  }
-);
-
-function LRot32(X: LongInt; c: Word): LongInt;
-
-inline
-(
-  $59/           {   pop    cx    }
-  $58/           {   pop    ax    }
-  $5A/           {   pop    dx    }
-
-  $83/$F9/$10/   {   cmp    cx,16 }
-  $72/$06/       {   jb     L     }
-  $92/           {   xchg   dx,ax }
-  $83/$E9/$10/   {   sub    cx,16 }
-  $74/$09/       {   je     X     }
-
-  $2B/$DB/       { S:sub    bx,bx }
-  $D1/$D0/       { L:rcl    ax,1  }
-  $D1/$D2/       {   rcl    dx,1  }
-  $13/$C3/       {   adc    ax,bx }
-  $49/           {   Dec    cx    }
-  $75/$F7        {   jne    L     }
-);               { X:             }
-
-{$endif BASM16}
-
-const
-  PX: Array [0..63] of Word = ( 0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 1, 6, 11, 0, 5, 10, 15, 4, 9, 14, 3, 8, 13, 2, 7, 12, 5, 8, 11, 14, 1, 4, 7, 10, 13, 0, 3, 6, 9, 12, 15, 2, 0, 7, 14, 5, 12, 3, 10, 1, 8, 15, 6, 13, 4, 11, 2, 9);
-
-procedure MD5Transform(var Hash: THashState;{$ifdef CONST} const{$else} var{$endif} Buffer: THashBuf32);
-
-var
-  A, B, C, D: LongInt; i, k: Integer;
+procedure MD5Initialize(var Context: THashContext);
 
 begin
 
-  A := Hash[0];
-  B := Hash[1];
-  C := Hash[2];
-  D := Hash[3];
+  FillChar(Context, SizeOf(Context), 0);
 
-  k := 0;
-
-  for i := 0 to 3 do begin
-    Inc(A, Buffer[k] + T[k] + (D xor (B and (C xor D)))); A := LRot32(A,  7) + B; Inc(k);
-    Inc(D, Buffer[k] + T[k] + (C xor (A and (B xor C)))); D := LRot32(D, 12) + A; Inc(k);
-    Inc(C, Buffer[k] + T[k] + (B xor (D and (A xor B)))); C := LRot32(C, 17) + D; Inc(k);
-    Inc(B, Buffer[k] + T[k] + (A xor (C and (D xor A)))); B := LRot32(B, 22) + C; Inc(k);
-  end;
-
-  for i := 0 to 3 do begin
-    Inc(A, Buffer[PX[k]] + T[k] + (C xor (D and (B xor C)))); A := LRot32(A,  5) + B; Inc(k);
-    Inc(D, Buffer[PX[k]] + T[k] + (B xor (C and (A xor B)))); D := LRot32(D,  9) + A; Inc(k);
-    Inc(C, Buffer[PX[k]] + T[k] + (A xor (B and (D xor A)))); C := LRot32(C, 14) + D; Inc(k);
-    Inc(B, Buffer[PX[k]] + T[k] + (D xor (A and (C xor D)))); B := LRot32(B, 20) + C; Inc(k);
-  end;
-
-  for i := 0 to 3 do begin
-    Inc(A, Buffer[PX[k]] + T[k] + (B xor C xor D)); A := LRot32(A,  4) + B; Inc(k);
-    Inc(D, Buffer[PX[k]] + T[k] + (A xor B xor C)); D := LRot32(D, 11) + A; Inc(k);
-    Inc(C, Buffer[PX[k]] + T[k] + (D xor A xor B)); C := LRot32(C, 16) + D; Inc(k);
-    Inc(B, Buffer[PX[k]] + T[k] + (C xor D xor A)); B := LRot32(B, 23) + C; Inc(k);
-  end;
-
-  for i := 0 to 3 do begin
-    Inc(A, Buffer[PX[k]] + T[k] + (C xor (B or not D))); A := LRot32(A,  6) + B; Inc(k);
-    Inc(D, Buffer[PX[k]] + T[k] + (B xor (A or not C))); D := LRot32(D, 10) + A; Inc(k);
-    Inc(C, Buffer[PX[k]] + T[k] + (A xor (D or not B))); C := LRot32(C, 15) + D; Inc(k);
-    Inc(B, Buffer[PX[k]] + T[k] + (D xor (C or not A))); B := LRot32(B, 21) + C; Inc(k);
-  end;
-
-  Inc(Hash[0], A);
-  Inc(Hash[1], B);
-  Inc(Hash[2], C);
-  Inc(Hash[3], D);
-
-end;
-
-{$endif}
-
-procedure MD5Init(var Context: THashContext);
-begin
-  fillchar(Context,SizeOf(Context),0);
   with Context do begin
+
      Hash[0] := LongInt($67452301);
      Hash[1] := LongInt($EFCDAB89);
      Hash[2] := LongInt($98BADCFE);
      Hash[3] := LongInt($10325476);
+
   end;
+
 end;
 
-procedure MD5UpdateXL(var Context: THashContext; Msg: Pointer; Len: LongInt);
+procedure MD5Update(var Context: THashContext; Msg: Pointer; Len: LongInt);
+
 var
   i: Integer;
+
 begin
-  if Len<=$1FFFFFFF then UpdateLen(Context.MLen[1], Context.MLen[0], Len shl 3)
-  else begin
-    for i:=1 to 8 do UpdateLen(Context.MLen[1], Context.MLen[0], Len)
+
+  if (Len <= $1FFFFFFF) then UpdateLen(Context.MLen[1], Context.MLen[0], Len shl 3) else begin
+    for i := 1 to 8 do UpdateLen(Context.MLen[1], Context.MLen[0], Len)
   end;
 
-  while Len > 0 do begin
+  while (Len > 0) do begin
+
     Context.Buffer[Context.Index]:= pByte(Msg)^;
+
     Inc(Ptr2Inc(Msg));
+
     Inc(Context.Index);
+
     Dec(Len);
-    if Context.Index=MD5_BlockLen then begin
+
+    if (Context.Index = MD5_BlockLen) then begin
+
       Context.Index:= 0;
+
       MD5Transform(Context.Hash, THashBuf32(Context.Buffer));
-      while Len>=MD5_BlockLen do begin
+
+      while (Len >= MD5_BlockLen) do begin
+
         MD5Transform(Context.Hash, THashBuf32(Msg^));
-        Inc(Ptr2Inc(Msg),MD5_BlockLen);
-        Dec(Len,MD5_BlockLen);
+
+        Inc(Ptr2Inc(Msg), MD5_BlockLen);
+
+        Dec(Len, MD5_BlockLen);
+
       end;
+
     end;
+
   end;
+
 end;
 
-procedure MD5Update(var Context: THashContext; Msg: Pointer; Len: Word);
-begin
-  MD5UpdateXL(Context, Msg, Len);
-end;
+procedure MD5Finalize(var Context: THashContext; BData: Byte; BitLen: Integer);
 
-procedure MD5FinalBitsEx(var Context: THashContext; var Digest: THashDigest; BData: Byte; bitlen: Integer);
 var
   i: Integer;
-begin
-  if (bitlen>0) and (bitlen<=7) then begin
-    Context.Buffer[Context.Index]:= (BData and BitAPI_Mask[bitlen]) or BitAPI_PBit[bitlen];
-    UpdateLen(Context.MLen[1], Context.MLen[0], bitlen);
-  end
-  else Context.Buffer[Context.Index]:= $80;
 
-  for i:=Context.Index+1 to 63 do Context.Buffer[i] := 0;
-  if Context.Index>= 56 then begin
+begin
+
+  if (BitLen > 0) and (BitLen <= 7) then begin
+
+    Context.Buffer[Context.Index] := (BData and BitAPI_Mask[BitLen]) or BitAPI_PBit[BitLen];
+
+    UpdateLen(Context.MLen[1], Context.MLen[0], BitLen);
+
+  end else Context.Buffer[Context.Index] := $80;
+
+  for i := Context.Index + 1 to 63 do Context.Buffer[i] := 0;
+
+  if Context.Index >= 56 then begin
+
     MD5Transform(Context.Hash, THashBuf32(Context.Buffer));
-    fillchar(Context.Buffer,56,0);
+
+    FillChar(Context.Buffer, 56, 0);
+
   end;
+
   THashBuf32(Context.Buffer)[14] := Context.MLen[0];
   THashBuf32(Context.Buffer)[15] := Context.MLen[1];
+
   MD5Transform(Context.Hash, THashBuf32(Context.Buffer));
-  Move(Context.Hash,Digest,SizeOf(Digest));
-  fillchar(Context,SizeOf(Context),0);
-end;
 
-procedure MD5FinalBits(var Context: THashContext; var Digest: TMD5Digest; BData: Byte; bitlen: Integer);
-var
-  tmp: THashDigest;
-begin
-  MD5FinalBitsEx(Context, tmp, BData, bitlen);
-  Move(tmp, Digest, SizeOf(Digest));
-end;
-
-procedure MD5FinalEx(var Context: THashContext; var Digest: THashDigest);
-begin
-  MD5FinalBitsEx(Context,Digest,0,0);
-end;
-
-procedure MD5Final(var Context: THashContext; var Digest: TMD5Digest);
-var
-  tmp: THashDigest;
-begin
-  MD5FinalBitsEx(Context, tmp, 0, 0);
-  Move(tmp, Digest, SizeOf(Digest));
-end;
-
-procedure MD5FullXL(var Digest: TMD5Digest; Msg: Pointer; Len: LongInt);
-var
-  Context: THashContext;
-begin
-  MD5Init(Context);
-  MD5UpdateXL(Context, Msg, Len);
-  MD5Final(Context, Digest);
-end;
-
-procedure MD5Full(var Digest: TMD5Digest; Msg: Pointer; Len: Word);
-begin
-  MD5FullXL(Digest, Msg, Len);
 end;
 
 // --------------------------------------------------------------------------
@@ -1083,11 +929,19 @@ end;
 class function TMD5.Compute(Buffer: Pointer; Size: Integer): TMD5Digest;
 
 var
-  MD5Digest: TMD5Digest;
+  Context: THashContext; MD5Digest: TMD5Digest;
 
 begin
 
-  if (Size <= 65536) then MD5Full(MD5Digest, Buffer, Size) else MD5FullXL(MD5Digest, Buffer, Size); Result := MD5Digest;
+  MD5Initialize(Context);
+
+  MD5Update(Context, Buffer, Size);
+
+  MD5Finalize(Context, 0, 0);
+
+  Move(Context.Hash, MD5Digest, SizeOf(MD5Digest));
+
+  Result := MD5Digest;
 
 end;
 
@@ -1095,26 +949,14 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class function TMD5.Compare(MD5Digest1, MD5Digest2: TMD5Digest): Integer;
+class function TMD5.Compare(const MD5Digest1, MD5Digest2: TMD5Digest): Integer;
 
 begin
 
-  if (MD5Digest1[ 0] > MD5Digest2[ 0]) then begin Result := -1; Exit; end else if (MD5Digest1[ 0] < MD5Digest2[ 0]) then begin Result := 1; Exit; end;
-  if (MD5Digest1[ 1] > MD5Digest2[ 1]) then begin Result := -1; Exit; end else if (MD5Digest1[ 1] < MD5Digest2[ 1]) then begin Result := 1; Exit; end;
-  if (MD5Digest1[ 2] > MD5Digest2[ 2]) then begin Result := -1; Exit; end else if (MD5Digest1[ 2] < MD5Digest2[ 2]) then begin Result := 1; Exit; end;
-  if (MD5Digest1[ 3] > MD5Digest2[ 3]) then begin Result := -1; Exit; end else if (MD5Digest1[ 3] < MD5Digest2[ 3]) then begin Result := 1; Exit; end;
-  if (MD5Digest1[ 4] > MD5Digest2[ 4]) then begin Result := -1; Exit; end else if (MD5Digest1[ 4] < MD5Digest2[ 4]) then begin Result := 1; Exit; end;
-  if (MD5Digest1[ 5] > MD5Digest2[ 5]) then begin Result := -1; Exit; end else if (MD5Digest1[ 5] < MD5Digest2[ 5]) then begin Result := 1; Exit; end;
-  if (MD5Digest1[ 6] > MD5Digest2[ 6]) then begin Result := -1; Exit; end else if (MD5Digest1[ 6] < MD5Digest2[ 6]) then begin Result := 1; Exit; end;
-  if (MD5Digest1[ 7] > MD5Digest2[ 7]) then begin Result := -1; Exit; end else if (MD5Digest1[ 7] < MD5Digest2[ 7]) then begin Result := 1; Exit; end;
-  if (MD5Digest1[ 8] > MD5Digest2[ 8]) then begin Result := -1; Exit; end else if (MD5Digest1[ 8] < MD5Digest2[ 8]) then begin Result := 1; Exit; end;
-  if (MD5Digest1[ 9] > MD5Digest2[ 9]) then begin Result := -1; Exit; end else if (MD5Digest1[ 9] < MD5Digest2[ 9]) then begin Result := 1; Exit; end;
-  if (MD5Digest1[10] > MD5Digest2[10]) then begin Result := -1; Exit; end else if (MD5Digest1[10] < MD5Digest2[10]) then begin Result := 1; Exit; end;
-  if (MD5Digest1[11] > MD5Digest2[11]) then begin Result := -1; Exit; end else if (MD5Digest1[11] < MD5Digest2[11]) then begin Result := 1; Exit; end;
-  if (MD5Digest1[12] > MD5Digest2[12]) then begin Result := -1; Exit; end else if (MD5Digest1[12] < MD5Digest2[12]) then begin Result := 1; Exit; end;
-  if (MD5Digest1[13] > MD5Digest2[13]) then begin Result := -1; Exit; end else if (MD5Digest1[13] < MD5Digest2[13]) then begin Result := 1; Exit; end;
-  if (MD5Digest1[14] > MD5Digest2[14]) then begin Result := -1; Exit; end else if (MD5Digest1[14] < MD5Digest2[14]) then begin Result := 1; Exit; end;
-  if (MD5Digest1[15] > MD5Digest2[15]) then begin Result := -1; Exit; end else if (MD5Digest1[15] < MD5Digest2[15]) then begin Result := 1; Exit; end;
+  if (MD5Digest1[0] > MD5Digest2[0]) then begin Result := -1; Exit; end else if (MD5Digest1[0] < MD5Digest2[0]) then begin Result := 1; Exit; end;
+  if (MD5Digest1[1] > MD5Digest2[1]) then begin Result := -1; Exit; end else if (MD5Digest1[1] < MD5Digest2[1]) then begin Result := 1; Exit; end;
+  if (MD5Digest1[2] > MD5Digest2[2]) then begin Result := -1; Exit; end else if (MD5Digest1[2] < MD5Digest2[2]) then begin Result := 1; Exit; end;
+  if (MD5Digest1[3] > MD5Digest2[3]) then begin Result := -1; Exit; end else if (MD5Digest1[3] < MD5Digest2[3]) then begin Result := 1; Exit; end;
 
   Result := 0;
 

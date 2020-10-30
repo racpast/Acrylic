@@ -39,7 +39,7 @@ type
       class function  ExecuteCommandAndCaptureOutput(const CommandLine: String; var CommandOutput: String): Boolean;
       class procedure ReadOSVersion;
     public
-      class procedure ReadSystem;
+      class procedure ReadSystemInfo;
       class function  IsWindowsVistaOrWindowsServer2008OrHigher: Boolean;
   end;
 
@@ -71,7 +71,7 @@ const
 // --------------------------------------------------------------------------
 
 const
-  EXECUTE_COMMAND_MAX_WAIT_TIME = 30000;
+  EXECUTE_COMMAND_WAIT_TIME = 30000;
 
 // --------------------------------------------------------------------------
 //
@@ -88,7 +88,7 @@ begin
 
   SetLength(TempDirectoryPath, SAFE_MAX_PATH); GetTempPath(SAFE_MAX_PATH, PChar(TempDirectoryPath)); TempDirectoryPath := Trim(TempDirectoryPath);
 
-  SetLength(TempFilePath, SAFE_MAX_PATH); GetTempFileName(PChar(TempDirectoryPath), 'Cmd', 0, PChar(TempFilePath)); TempFilePath := Trim(TempFilePath);
+  SetLength(TempFilePath, SAFE_MAX_PATH); GetTempFileName(PChar(TempDirectoryPath), 'ADP', 0, PChar(TempFilePath)); TempFilePath := Trim(TempFilePath);
 
   try
 
@@ -121,7 +121,7 @@ begin
 
       try
 
-        if (WaitForSingleObject(ProcessInfo.hProcess, EXECUTE_COMMAND_MAX_WAIT_TIME) <> WAIT_OBJECT_0) then Exit;
+        if (WaitForSingleObject(ProcessInfo.hProcess, EXECUTE_COMMAND_WAIT_TIME) <> WAIT_OBJECT_0) then Exit;
 
       finally
 
@@ -261,7 +261,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class procedure TEnvironment.ReadSystem;
+class procedure TEnvironment.ReadSystemInfo;
 
 var
   CommandOutput: String;
@@ -280,7 +280,7 @@ begin
 
     try
 
-      if Self.ExecuteCommandAndCaptureOutput('IpConfig.exe /All', CommandOutput) then TTracer.Trace(TracePriorityInfo, CommandOutput);
+      if Self.ExecuteCommandAndCaptureOutput('IpConfig.exe /All', CommandOutput) then TTracer.Write(TracePriorityInfo, CommandOutput);
 
     except
 

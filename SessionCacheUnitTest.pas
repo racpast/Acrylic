@@ -34,7 +34,7 @@ end;
 procedure TSessionCacheUnitTest.ExecuteTest;
 
 var
-  TimeStamp: TDateTime; InitSeed: Integer; i, j: Integer; OriginalSessionId: Word; RequestHash: TMD5Digest; ClientAddress: TDualIPAddress; ClientPort: Word; IsSilentUpdate, IsCacheException: Boolean; const CacheItems = 65536;
+  TimeStamp: TDateTime; InitSeed: Integer; i, j: Integer; OriginalSessionId: Word; RequestHash: TMD5Digest; IPv4Address: TIPv4Address; Port: Word; IsSilentUpdate, IsCacheException: Boolean; const CacheItems = 65536;
 
 begin
 
@@ -50,7 +50,7 @@ begin
 
     BufferLen := Random(MAX_DNS_PACKET_LEN - MIN_DNS_PACKET_LEN + 1) + MIN_DNS_PACKET_LEN; for j := 0 to (BufferLen - 1) do PByteArray(Buffer)^[j] := Random(256);
 
-    TSessionCache.Insert(Time, Word(i), Word(i), TMD5.Compute(Buffer, BufferLen), TDualIPAddressUtility.CreateFromIPv4Address(i), Word(65535 - i), (i mod 2) = 0, (i mod 2) = 1);
+    TSessionCache.InsertIPv4Item(TimeStamp, Word(i), Word(i), TMD5.Compute(Buffer, BufferLen), i, Word(65535 - i), (i mod 2) = 0, (i mod 2) = 1);
 
   end;
 
@@ -60,7 +60,7 @@ begin
 
     BufferLen := Random(MAX_DNS_PACKET_LEN - MIN_DNS_PACKET_LEN + 1) + MIN_DNS_PACKET_LEN; for j := 0 to (BufferLen - 1) do PByteArray(Buffer)^[j] := Random(256);
 
-    if not(TSessionCache.Extract(Time, OriginalSessionId, Word(i), RequestHash, ClientAddress, ClientPort, IsSilentUpdate, IsCacheException)) then begin
+    if not(TSessionCache.ExtractIPv4Item(TimeStamp, OriginalSessionId, Word(i), RequestHash, IPv4Address, Port, IsSilentUpdate, IsCacheException)) then begin
       raise FailedUnitTestException.Create;
     end;
 
@@ -68,17 +68,17 @@ begin
       raise FailedUnitTestException.Create;
     end;
 
-    TSessionCache.Delete(Word(i));
+    TSessionCache.DeleteItem(Word(i));
 
     if (TMD5.Compare(RequestHash, TMD5.Compute(Buffer, BufferLen)) <> 0) then begin
       raise FailedUnitTestException.Create;
     end;
 
-    if not(TDualIPAddressUtility.AreEqual(ClientAddress, TDualIPAddressUtility.CreateFromIPv4Address(i))) then begin
+    if not(TIPv4AddressUtility.AreEqual(IPv4Address, i)) then begin
       raise FailedUnitTestException.Create;
     end;
 
-    if (ClientPort <> Word(65535 - i)) then begin
+    if (Port <> Word(65535 - i)) then begin
       raise FailedUnitTestException.Create;
     end;
 
@@ -92,7 +92,7 @@ begin
 
   end;
 
-  if TSessionCache.Extract(Time, OriginalSessionId, 0, RequestHash, ClientAddress, ClientPort, IsSilentUpdate, IsCacheException) then begin
+  if TSessionCache.ExtractIPv4Item(TimeStamp, OriginalSessionId, 0, RequestHash, IPv4Address, Port, IsSilentUpdate, IsCacheException) then begin
     raise FailedUnitTestException.Create;
   end;
 

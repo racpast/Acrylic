@@ -16,7 +16,7 @@ interface
 // --------------------------------------------------------------------------
 
 uses
-  IpUtils;
+  IPUtils;
 
 // --------------------------------------------------------------------------
 //
@@ -103,7 +103,8 @@ function IPv6Bind(S: Integer; var Addr: TIPv6SocketAddress; AddrLen: Integer): I
 function IPv4Connect(S: Integer; var Addr: TIPv4SocketAddress; AddrLen: Integer): Integer; stdcall; external WINDOWS_SOCKETS_DLL name 'connect';
 function IPv6Connect(S: Integer; var Addr: TIPv6SocketAddress; AddrLen: Integer): Integer; stdcall; external WINDOWS_SOCKETS_DLL name 'connect';
 function Select(NFDS: Integer; ReadFDS, WriteFDS, ExceptFDS: PFDSet; Timeout: PTimeVal): Integer; stdcall; external WINDOWS_SOCKETS_DLL name 'select';
-function Listen(S: Integer; BackLog: Integer): Integer; stdcall; external WINDOWS_SOCKETS_DLL name 'listen';
+function IPv4Listen(S: Integer; BackLog: Integer): Integer; stdcall; external WINDOWS_SOCKETS_DLL name 'listen';
+function IPv6Listen(S: Integer; BackLog: Integer): Integer; stdcall; external WINDOWS_SOCKETS_DLL name 'listen';
 function IPv4Accept(S: Integer; var Addr: TIPv4SocketAddress; var AddrLen: Integer): Integer; stdcall; external WINDOWS_SOCKETS_DLL name 'accept';
 function IPv6Accept(S: Integer; var Addr: TIPv6SocketAddress; var AddrLen: Integer): Integer; stdcall; external WINDOWS_SOCKETS_DLL name 'accept';
 function IPv4Recv(S: Integer; var Buf; Len, Flags: Integer): Integer; stdcall; external WINDOWS_SOCKETS_DLL name 'recv';

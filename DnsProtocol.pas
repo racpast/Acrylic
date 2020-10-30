@@ -16,7 +16,7 @@ interface
 // --------------------------------------------------------------------------
 
 uses
-  IpUtils;
+  IPUtils;
 
 // --------------------------------------------------------------------------
 //
@@ -65,7 +65,6 @@ type
     public
       class function  ParseDnsProtocol(const Text: String): TDnsProtocol;
       class function  ParseDnsOverHttpsProtocolConnectionType(const Text: String): TDnsOverHttpsProtocolConnectionType;
-    public
       class function  ParseDnsQueryType(const Text: String): Word;
       class function  DnsQueryTypeToString(Value: Word): String;
     private
@@ -73,22 +72,19 @@ type
       class function  GetIPv4AddressFromPacket(Buffer: Pointer; Offset: Integer; BufferLen: Integer): TIPv4Address;
       class function  GetIPv6AddressFromPacket(Buffer: Pointer; Offset: Integer; BufferLen: Integer): TIPv6Address;
     public
+      class function  GetIdFromPacket(Buffer: Pointer): Word;
+      class procedure SetIdIntoPacket(Value: Word; Buffer: Pointer);
       class function  GetStringFromPacket(Value: String; Buffer: Pointer; var OffsetL1: Integer; var OffsetLX: Integer; Level: Integer; BufferLen: Integer): String; overload;
       class function  GetStringFromPacket(Buffer: Pointer; var OffsetL1: Integer; var OffsetLX: Integer; BufferLen: Integer): String; overload;
       class function  GetStringFromPacket(Buffer: Pointer; var OffsetL1: Integer; BufferLen: Integer): String; overload;
       class procedure SetStringIntoPacket(const Value: String; Buffer: Pointer; var Offset: Integer; BufferLen: Integer);
-    public
-      class function  GetIdFromPacket(Buffer: Pointer): Word;
-      class procedure SetIdIntoPacket(Value: Word; Buffer: Pointer);
     public
       class procedure GetDomainNameAndQueryTypeFromRequestPacket(Buffer: Pointer; BufferLen: Integer; var DomainName: String; var QueryType: Word);
     public
       class function  IsPrivateReverseLookup(const DomainName: String): Boolean;
     public
       class procedure BuildNegativeResponsePacket(const DomainName: String; QueryType: Word; Buffer: Pointer; var BufferLen: Integer);
-      class procedure BuildPositiveResponsePacket(const DomainName: String; QueryType: Word; Buffer: Pointer; var BufferLen: Integer); overload;
-      class procedure BuildPositiveResponsePacket(const DomainName: String; QueryType: Word; HostAddress: TDualIPAddress; TimeToLive: Integer; Buffer: Pointer; var BufferLen: Integer); overload;
-    public
+      class procedure BuildPositiveNullResponsePacket(const DomainName: String; QueryType: Word; Buffer: Pointer; var BufferLen: Integer); overload;
       class procedure BuildPositiveIPv4ResponsePacket(const DomainName: String; QueryType: Word; HostAddress: TIPv4Address; TimeToLive: Integer; Buffer: Pointer; var BufferLen: Integer);
       class procedure BuildPositiveIPv6ResponsePacket(const DomainName: String; QueryType: Word; HostAddress: TIPv6Address; TimeToLive: Integer; Buffer: Pointer; var BufferLen: Integer);
     public
@@ -98,8 +94,12 @@ type
       class function  PrintResponsePacketDescriptionAsStringFromPacket(Buffer: Pointer; BufferLen: Integer; IncludePacketBytesAlways: Boolean): String;
       class function  PrintRequestPacketDescriptionAsStringFromPacket(const DomainName: String; QueryType: Word; Buffer: Pointer; BufferLen: Integer; IncludePacketBytesAlways: Boolean): String;
     public
+      class function  IsValidRequestPacket(Buffer: Pointer; BufferLen: Integer): Boolean;
+      class function  IsValidResponsePacket(Buffer: Pointer; BufferLen: Integer): Boolean;
+    public
       class function  IsFailureResponsePacket(Buffer: Pointer; BufferLen: Integer): Boolean;
       class function  IsNegativeResponsePacket(Buffer: Pointer; BufferLen: Integer): Boolean;
+      class function  IsTruncatedResponsePacket(Buffer: Pointer; BufferLen: Integer): Boolean;
   end;
 
 // --------------------------------------------------------------------------
@@ -486,7 +486,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class procedure TDnsProtocolUtility.BuildPositiveResponsePacket(const DomainName: String; QueryType: Word; Buffer: Pointer; var BufferLen: Integer);
+class procedure TDnsProtocolUtility.BuildPositiveNullResponsePacket(const DomainName: String; QueryType: Word; Buffer: Pointer; var BufferLen: Integer);
 
 var
   Offset: Integer;
@@ -633,18 +633,6 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class procedure TDnsProtocolUtility.BuildPositiveResponsePacket(const DomainName: String; QueryType: Word; HostAddress: TDualIPAddress; TimeToLive: Integer; Buffer: Pointer; var BufferLen: Integer);
-
-begin
-
-  if HostAddress.IsIPv6Address then TDnsProtocolUtility.BuildPositiveIPv6ResponsePacket(DomainName, QueryType, HostAddress.IPv6Address, TimeToLive, Buffer, BufferLen) else TDnsProtocolUtility.BuildPositiveIPv4ResponsePacket(DomainName, QueryType, HostAddress.IPv4Address, TimeToLive, Buffer, BufferLen);
-
-end;
-
-// --------------------------------------------------------------------------
-//
-// --------------------------------------------------------------------------
-
 class function TDnsProtocolUtility.PrintGenericPacketBytesAsStringFromPacket(Buffer: Pointer; BufferLen: Integer): String;
 
 var
@@ -677,9 +665,17 @@ end;
 
 class function TDnsProtocolUtility.PrintRequestPacketDescriptionAsStringFromPacket(const DomainName: String; QueryType: Word; Buffer: Pointer; BufferLen: Integer; IncludePacketBytesAlways: Boolean): String;
 
+var
+  OC: Byte; RD: Byte; QDC: Word;
+
 begin
 
-  if (IncludePacketBytesAlways) then Result := 'Q[1]=' + DomainName + ';T[1]=' + TDnsProtocolUtility.DnsQueryTypeToString(QueryType) + ';' + TDnsProtocolUtility.PrintGenericPacketBytesAsStringFromPacket(Buffer, BufferLen) else Result := 'Q[1]=' + DomainName + ';T[1]=' + TDnsProtocolUtility.DnsQueryTypeToString(QueryType);
+  OC := (PByteArray(Buffer)^[$02] shr 3) and $0F;
+  RD := PByteArray(Buffer)^[$02] and $01;
+
+  QDC := TDnsProtocolUtility.GetWordFromPacket(Buffer, $04, BufferLen);
+
+  if IncludePacketBytesAlways then Result := 'OC=' + IntToStr(OC) + ';RD=' + IntToStr(RD) + ';QDC=' + IntToStr(QDC) + ';Q[1]=' + DomainName + ';T[1]=' + TDnsProtocolUtility.DnsQueryTypeToString(QueryType) + ';' + TDnsProtocolUtility.PrintGenericPacketBytesAsStringFromPacket(Buffer, BufferLen) else Result := 'Q[1]=' + DomainName + ';T[1]=' + TDnsProtocolUtility.DnsQueryTypeToString(QueryType);
 
 end;
 
@@ -690,24 +686,31 @@ end;
 class function TDnsProtocolUtility.PrintResponsePacketDescriptionAsStringFromPacket(Buffer: Pointer; BufferLen: Integer; IncludePacketBytesAlways: Boolean): String;
 
 var
-  FValue: String; AValue: String; BValue: String; OffsetL1: Integer; RCode: Byte; QdCnt: Word; AnCnt: Word; Index: Integer; AnTyp: Word; AnDta: Word;
+  OC: Byte; RC: Byte; TC: Byte; RD: Byte; RA: Byte; AA: Byte; QDC: Word; ANC: Word; NSC: Word; ARC: Word; FValue: String; AValue: String; BValue: String; OffsetL1: Integer; Index: Integer; AnTyp: Word; AnDta: Word;
 
 begin
 
-  RCode := PByteArray(Buffer)^[$03] and $0F;
+  OC := (PByteArray(Buffer)^[$02] shr 3) and $0F;
+  RC := PByteArray(Buffer)^[$03] and $0F;
+  TC := (PByteArray(Buffer)^[$02] shr 1) and $01;
+  RD := PByteArray(Buffer)^[$02] and $01;
+  RA := (PByteArray(Buffer)^[$03] shr 7) and $01;
+  AA := (PByteArray(Buffer)^[$02] shr 2) and $01;
 
-  QdCnt := TDnsProtocolUtility.GetWordFromPacket(Buffer, $04, BufferLen);
-  AnCnt := TDnsProtocolUtility.GetWordFromPacket(Buffer, $06, BufferLen);
+  QDC := TDnsProtocolUtility.GetWordFromPacket(Buffer, $04, BufferLen);
+  ANC := TDnsProtocolUtility.GetWordFromPacket(Buffer, $06, BufferLen);
+  NSC := TDnsProtocolUtility.GetWordFromPacket(Buffer, $08, BufferLen);
+  ARC := TDnsProtocolUtility.GetWordFromPacket(Buffer, $0A, BufferLen);
 
-  FValue := 'RC=' + IntToStr(RCode) + ';QDC=' + IntToStr(QdCnt) + ';ANC=' + IntToStr(AnCnt);
+  FValue := 'OC=' + IntToStr(OC) + ';RC=' + IntToStr(RC) + ';TC=' + IntToStr(TC) + ';RD=' + IntToStr(RD) + ';RA=' + IntToStr(RA) + ';AA=' + IntToStr(AA) + ';QDC=' + IntToStr(QDC) + ';ANC=' + IntToStr(ANC) + ';NSC=' + IntToStr(NSC) + ';ARC=' + IntToStr(ARC);
 
-  if (RCode = 0) and (QdCnt = 1) and (AnCnt > 0) then begin // We are only able to understand this
+  if (RC = 0) and (TC = 0) and (QDC = 1) and ((ANC + NSC + ARC) > 0) then begin // We are only able to understand this
 
     OffsetL1 := $0C; AValue := TDnsProtocolUtility.GetStringFromPacket(Buffer, OffsetL1, BufferLen); Inc(OffsetL1, 4);
 
     FValue := FValue + ';' + 'Q[1]=' + AValue;
 
-    for Index := 1 to AnCnt do begin
+    for Index := 1 to (ANC + NSC + ARC) do begin
 
       if (OffsetL1 < BufferLen) then begin
 
@@ -811,7 +814,7 @@ begin
 
     end;
 
-    if (IncludePacketBytesAlways) then Result := FValue + ';' + TDnsProtocolUtility.PrintGenericPacketBytesAsStringFromPacket(Buffer, BufferLen) else Result := FValue;
+    if IncludePacketBytesAlways then Result := FValue + ';' + TDnsProtocolUtility.PrintGenericPacketBytesAsStringFromPacket(Buffer, BufferLen) else Result := FValue;
 
   end else begin
 
@@ -825,14 +828,44 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class function TDnsProtocolUtility.IsFailureResponsePacket(Buffer: Pointer; BufferLen: Integer): Boolean;
+class function TDnsProtocolUtility.IsValidRequestPacket(Buffer: Pointer; BufferLen: Integer): Boolean;
 
 var
-  RCode: Byte;
+  QR: Byte;
 
 begin
 
-  RCode := PByteArray(Buffer)^[$03] and $0F; Result := not((RCode = 0) or (RCode = 3));
+  QR := (PByteArray(Buffer)^[$02] shr 7) and $01; Result := (QR = 0);
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class function TDnsProtocolUtility.IsValidResponsePacket(Buffer: Pointer; BufferLen: Integer): Boolean;
+
+var
+  QR: Byte;
+
+begin
+
+  QR := (PByteArray(Buffer)^[$02] shr 7) and $01; Result := (QR = 1);
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class function TDnsProtocolUtility.IsFailureResponsePacket(Buffer: Pointer; BufferLen: Integer): Boolean;
+
+var
+  RC: Byte;
+
+begin
+
+  RC := PByteArray(Buffer)^[$03] and $0F; Result := not((RC = 0) or (RC = 3));
 
 end;
 
@@ -843,11 +876,23 @@ end;
 class function TDnsProtocolUtility.IsNegativeResponsePacket(Buffer: Pointer; BufferLen: Integer): Boolean;
 
 var
-  RCode: Byte;
+  RC: Byte;
 
 begin
 
-  RCode := PByteArray(Buffer)^[$03] and $0F; Result := (RCode = 3);
+  RC := PByteArray(Buffer)^[$03] and $0F; Result := (RC = 3);
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class function TDnsProtocolUtility.IsTruncatedResponsePacket(Buffer: Pointer; BufferLen: Integer): Boolean;
+
+begin
+
+  Result := (PByteArray(Buffer)^[$02] and $02) > 0;
 
 end;
 

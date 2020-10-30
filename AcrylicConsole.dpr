@@ -16,10 +16,11 @@ program
 // --------------------------------------------------------------------------
 
 uses
+  Classes,
   SysUtils,
+  Windows,
   AcrylicVersionInfo in 'AcrylicVersionInfo.pas',
   AddressCache in 'AddressCache.pas',
-  Bootstrapper in 'Bootstrapper.pas',
   CommonUtils in 'CommonUtils.pas',
   CommunicationChannels in 'CommunicationChannels.pas',
   Configuration in 'Configuration.pas',
@@ -36,7 +37,7 @@ uses
   HitLogger in 'HitLogger.pas',
   HostsCache in 'HostsCache.pas',
   HostsCacheBinaryTrees in 'HostsCacheBinaryTrees.pas',
-  IpUtils in 'IpUtils.pas',
+  IPUtils in 'IPUtils.pas',
   MD5 in 'MD5.pas',
   MemoryManager in 'MemoryManager.pas',
   MemoryStore in 'MemoryStore.pas',
@@ -71,6 +72,8 @@ begin
 
   DecimalSeparator := '.';
 
+  SetConsoleCtrlHandler(nil, True);
+
   if ((ParamCount = 1) and (ParamStr(1) = '/?')) then begin
 
     WriteLn('==============================================================================');
@@ -82,9 +85,9 @@ begin
     WriteLn;
     WriteLn('Options:');
     WriteLn('  /NoBanner');
-    WriteLn('    Does not write the application banner to the console on startup.');
+    WriteLn('    Does not write the application banner to the console.');
     WriteLn('  /NoLog');
-    WriteLn('    Does not write the application log to the console while running.');
+    WriteLn('    Does not write the application log to the console.');
     WriteLn;
     WriteLn('Examples:');
     WriteLn('  AcrylicConsole.exe');
@@ -103,7 +106,7 @@ begin
 
   end;
 
-  if not NoBanner then begin
+  if not(NoBanner) then begin
 
     WriteLn('==============================================================================');
     WriteLn('Acrylic DNS Proxy Console                                  Press ENTER To Quit');
@@ -115,11 +118,11 @@ begin
 
   if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'Acrylic version is ' + AcrylicVersionNumber + ' released on ' + AcrylicReleaseDate + '.');
 
-  TBootstrapper.StartSystem;
+  TDnsResolver.StartResolver;
 
   ReadLn; // Wait until the ENTER key is pressed
 
-  TBootstrapper.StopSystem;
+  TDnsResolver.StopResolver;
 
   TTracer.Finalize; TConfiguration.Finalize;
 

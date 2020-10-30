@@ -281,12 +281,20 @@ var
 // --------------------------------------------------------------------------
 
 function StringEndsWith(const Input: String; InputLength: Integer; const Value: String; ValueLength: Integer): Boolean;
+function StringToBoolean(const Value: String): Boolean;
 
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
 
 implementation
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+uses
+  SysUtils;
 
 // --------------------------------------------------------------------------
 //
@@ -300,6 +308,21 @@ var
 begin
 
   if (InputLength < ValueLength) then begin Result := False; Exit; end; for Index := 1 to ValueLength do if (Input[Index + InputLength - ValueLength] <> Value[Index]) then begin Result := False; Exit; end; Result := True;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+function StringToBoolean(const Value: String): Boolean;
+
+var
+  UpperCaseValue: String;
+
+begin
+
+  UpperCaseValue := UpperCase(Value); Result := (UpperCaseValue = 'YES') or (UpperCaseValue = 'TRUE') or (UpperCaseValue = '1');
 
 end;
 

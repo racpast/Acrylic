@@ -54,8 +54,8 @@ uses
   Windows,
   Registry,
   AcrylicVersionInfo,
-  Bootstrapper,
   Configuration,
+  DnsResolver,
   Environment,
   FileTracerAgent,
   Tracer;
@@ -147,7 +147,7 @@ begin
 
     if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'Acrylic version is ' + AcrylicVersionNumber + ' released on ' + AcrylicReleaseDate + '.');
 
-    TBootstrapper.StartSystem;
+    TDnsResolver.StartResolver;
 
     Started := True;
 
@@ -175,7 +175,7 @@ begin
 
   try
 
-    TBootstrapper.StopSystem; TTracer.Finalize; TConfiguration.Finalize;
+    TDnsResolver.StopResolver; TTracer.Finalize; TConfiguration.Finalize;
 
     Stopped := True;
 
@@ -201,7 +201,7 @@ begin
 
   try
 
-    TBootstrapper.StopSystem; TTracer.Finalize; TConfiguration.Finalize;
+    TDnsResolver.StopResolver; TTracer.Finalize; TConfiguration.Finalize;
 
   except
 

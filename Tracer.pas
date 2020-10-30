@@ -24,7 +24,8 @@ type
 
 type
   ITracerAgent = interface(IInterface)
-    procedure RenderTrace(Time: Double; Priority: TracePriority; const Message: String);
+    procedure RenderTrace(TimeStamp: TDateTime; Priority: TracePriority; const Message: String);
+    procedure RenderWrite(const Message: String);
     procedure CloseTrace;
   end;
 
@@ -43,6 +44,7 @@ type
       class procedure SetMinimumTracingPriority(Priority: TracePriority);
     public
       class procedure Trace(Priority: TracePriority; const Message: String);
+      class procedure Write(Priority: TracePriority; const Message: String);
   end;
 
 // --------------------------------------------------------------------------
@@ -141,6 +143,26 @@ begin
   end else begin
 
     raise Exception.Create('TTracer.Trace: The tracer agent must be set before calling this method.');
+
+  end;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class procedure TTracer.Write(Priority: TracePriority; const Message: String);
+
+begin
+
+  if (TTracer_TracerAgent <> nil) then begin
+
+    if (Priority >= TTracer_MinimumTracingPriority) then TTracer_TracerAgent.RenderWrite(Message);
+
+  end else begin
+
+    raise Exception.Create('TTracer.Write: The tracer agent must be set before calling this method.');
 
   end;
 

@@ -464,7 +464,7 @@ function GetAcrylicDescriptionString: String;
 
 begin
 
-  Result := 'Acrylic is a local DNS proxy which improves the performance of your computer by caching the responses coming from your DNS servers and helps you fight unwanted ads through the use of a custom HOSTS file with support for wildcards and regular expressions.' + #13#10 + #13#10 + 'For more informations please use the "Acrylic Home Page" item available from the "Help" menu, or go directly to:' + #13#10 + #13#10 + 'https://mayakron.altervista.org/acrylic.php' + #13#10 + #13#10 + 'Installed version is:' + #13#10 + AcrylicVersionNumber + ' released on ' + AcrylicReleaseDate + '.';
+  Result := 'Acrylic is a local DNS proxy which improves the performance of your computer by caching the responses coming from your DNS servers and helps you fight unwanted ads through the use of a custom HOSTS file with support for wildcards and regular expressions.' + #13#10 + #13#10 + 'For more information please use the "Acrylic Home Page" item available from the "Help" menu, or go directly to:' + #13#10 + #13#10 + 'https://mayakron.altervista.org/support/acrylic/Home.htm' + #13#10 + #13#10 + 'Installed version is:' + #13#10 + AcrylicVersionNumber + ' released on ' + AcrylicReleaseDate + '.';
 
 end;
 

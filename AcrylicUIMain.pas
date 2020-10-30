@@ -972,7 +972,7 @@ procedure TMainForm.HelpAcrylicHomePageMainMenuItemClick(Sender: TObject);
 
 begin
 
-  ShellExecute(Self.Handle, 'open', 'https://mayakron.altervista.org/acrylic.php', nil, nil, SW_NORMAL);
+  ShellExecute(Self.Handle, 'open', 'https://mayakron.altervista.org/support/acrylic/Home.htm', nil, nil, SW_NORMAL);
 
 end;
 

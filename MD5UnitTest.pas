@@ -42,70 +42,64 @@ begin
 
   InitSeed := Round(Frac(TimeStamp) * 8640000.0);
 
-  TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Verifying with test vectors...');
-
-  Move('The quick brown fox jumps over the lazy dog', Self.Buffer^, 43); MD5Digest := TMD5.Compute(Self.Buffer, 43);
-
-  if (MD5Digest[ 0] <> $9E) then raise FailedUnitTestException.Create;
-  if (MD5Digest[ 1] <> $10) then raise FailedUnitTestException.Create;
-  if (MD5Digest[ 2] <> $7D) then raise FailedUnitTestException.Create;
-  if (MD5Digest[ 3] <> $9D) then raise FailedUnitTestException.Create;
-  if (MD5Digest[ 4] <> $37) then raise FailedUnitTestException.Create;
-  if (MD5Digest[ 5] <> $2B) then raise FailedUnitTestException.Create;
-  if (MD5Digest[ 6] <> $B6) then raise FailedUnitTestException.Create;
-  if (MD5Digest[ 7] <> $82) then raise FailedUnitTestException.Create;
-  if (MD5Digest[ 8] <> $6B) then raise FailedUnitTestException.Create;
-  if (MD5Digest[ 9] <> $D8) then raise FailedUnitTestException.Create;
-  if (MD5Digest[10] <> $1D) then raise FailedUnitTestException.Create;
-  if (MD5Digest[11] <> $35) then raise FailedUnitTestException.Create;
-  if (MD5Digest[12] <> $42) then raise FailedUnitTestException.Create;
-  if (MD5Digest[13] <> $A4) then raise FailedUnitTestException.Create;
-  if (MD5Digest[14] <> $19) then raise FailedUnitTestException.Create;
-  if (MD5Digest[15] <> $D6) then raise FailedUnitTestException.Create;
+  TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Testing vectors...');
 
   Move('abc', Self.Buffer^, 3); MD5Digest := TMD5.Compute(Self.Buffer, 3);
 
-  if (MD5Digest[ 0] <> $90) then raise FailedUnitTestException.Create;
-  if (MD5Digest[ 1] <> $01) then raise FailedUnitTestException.Create;
-  if (MD5Digest[ 2] <> $50) then raise FailedUnitTestException.Create;
-  if (MD5Digest[ 3] <> $98) then raise FailedUnitTestException.Create;
-  if (MD5Digest[ 4] <> $3C) then raise FailedUnitTestException.Create;
-  if (MD5Digest[ 5] <> $D2) then raise FailedUnitTestException.Create;
-  if (MD5Digest[ 6] <> $4F) then raise FailedUnitTestException.Create;
-  if (MD5Digest[ 7] <> $B0) then raise FailedUnitTestException.Create;
-  if (MD5Digest[ 8] <> $D6) then raise FailedUnitTestException.Create;
-  if (MD5Digest[ 9] <> $96) then raise FailedUnitTestException.Create;
-  if (MD5Digest[10] <> $3F) then raise FailedUnitTestException.Create;
-  if (MD5Digest[11] <> $7D) then raise FailedUnitTestException.Create;
-  if (MD5Digest[12] <> $28) then raise FailedUnitTestException.Create;
-  if (MD5Digest[13] <> $E1) then raise FailedUnitTestException.Create;
-  if (MD5Digest[14] <> $7F) then raise FailedUnitTestException.Create;
-  if (MD5Digest[15] <> $72) then raise FailedUnitTestException.Create;
+  if (MD5Digest[0] <> $98500190) then raise FailedUnitTestException.Create;
+  if (MD5Digest[1] <> $B04FD23C) then raise FailedUnitTestException.Create;
+  if (MD5Digest[2] <> $7D3F96D6) then raise FailedUnitTestException.Create;
+  if (MD5Digest[3] <> $727FE128) then raise FailedUnitTestException.Create;
+
+  Move('xyz', Self.Buffer^, 3); MD5Digest := TMD5.Compute(Self.Buffer, 3);
+
+  if (MD5Digest[0] <> $6FB36FD1) then raise FailedUnitTestException.Create;
+  if (MD5Digest[1] <> $78F81109) then raise FailedUnitTestException.Create;
+  if (MD5Digest[2] <> $61138c99) then raise FailedUnitTestException.Create;
+  if (MD5Digest[3] <> $5E70AF91) then raise FailedUnitTestException.Create;
+
+  Move('1234567890', Self.Buffer^, 10); MD5Digest := TMD5.Compute(Self.Buffer, 10);
+
+  if (MD5Digest[0] <> $FCF107E8) then raise FailedUnitTestException.Create;
+  if (MD5Digest[1] <> $2F132DF8) then raise FailedUnitTestException.Create;
+  if (MD5Digest[2] <> $CA18B09B) then raise FailedUnitTestException.Create;
+  if (MD5Digest[3] <> $9FA13867) then raise FailedUnitTestException.Create;
+
+  Move('The quick brown fox jumps over the lazy dog', Self.Buffer^, 43); MD5Digest := TMD5.Compute(Self.Buffer, 43);
+
+  if (MD5Digest[0] <> $9D7D109E) then raise FailedUnitTestException.Create;
+  if (MD5Digest[1] <> $82B62B37) then raise FailedUnitTestException.Create;
+  if (MD5Digest[2] <> $351DD86B) then raise FailedUnitTestException.Create;
+  if (MD5Digest[3] <> $D619A442) then raise FailedUnitTestException.Create;
 
   Move('abcdbcdecdefdefgefghfghighijhijkijkljklmklmnlmnomnopnopq', Self.Buffer^, 56); MD5Digest := TMD5.Compute(Self.Buffer, 56);
 
-  if (MD5Digest[ 0] <> $82) then raise FailedUnitTestException.Create;
-  if (MD5Digest[ 1] <> $15) then raise FailedUnitTestException.Create;
-  if (MD5Digest[ 2] <> $EF) then raise FailedUnitTestException.Create;
-  if (MD5Digest[ 3] <> $07) then raise FailedUnitTestException.Create;
-  if (MD5Digest[ 4] <> $96) then raise FailedUnitTestException.Create;
-  if (MD5Digest[ 5] <> $A2) then raise FailedUnitTestException.Create;
-  if (MD5Digest[ 6] <> $0B) then raise FailedUnitTestException.Create;
-  if (MD5Digest[ 7] <> $CA) then raise FailedUnitTestException.Create;
-  if (MD5Digest[ 8] <> $AA) then raise FailedUnitTestException.Create;
-  if (MD5Digest[ 9] <> $E1) then raise FailedUnitTestException.Create;
-  if (MD5Digest[10] <> $16) then raise FailedUnitTestException.Create;
-  if (MD5Digest[11] <> $D3) then raise FailedUnitTestException.Create;
-  if (MD5Digest[12] <> $87) then raise FailedUnitTestException.Create;
-  if (MD5Digest[13] <> $6C) then raise FailedUnitTestException.Create;
-  if (MD5Digest[14] <> $66) then raise FailedUnitTestException.Create;
-  if (MD5Digest[15] <> $4A) then raise FailedUnitTestException.Create;
+  if (MD5Digest[0] <> $07EF1582) then raise FailedUnitTestException.Create;
+  if (MD5Digest[1] <> $CA0BA296) then raise FailedUnitTestException.Create;
+  if (MD5Digest[2] <> $D316E1AA) then raise FailedUnitTestException.Create;
+  if (MD5Digest[3] <> $4A666C87) then raise FailedUnitTestException.Create;
 
-  TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Calculating 1 million hashes...');
+  Move('Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam in ultrices nulla, sed scelerisque tortor. In hendrerit semper dui interdum lobortis. Nullam aliquet pulvinar ligula sed porta. Duis vitae arcu a augue dignissim venenatis.', Self.Buffer^, 236); MD5Digest := TMD5.Compute(Self.Buffer, 236);
+
+  if (MD5Digest[0] <> $C76BB2F4) then raise FailedUnitTestException.Create;
+  if (MD5Digest[1] <> $8F188FE1) then raise FailedUnitTestException.Create;
+  if (MD5Digest[2] <> $F2924EB7) then raise FailedUnitTestException.Create;
+  if (MD5Digest[3] <> $ACDF3470) then raise FailedUnitTestException.Create;
+
+  Move('Sed dapibus posuere vestibulum. Vivamus sed mollis tellus. Pellentesque ultrices convallis nisl, non congue arcu gravida vitae. Suspendisse tristique dapibus mi ullamcorper tristique. Nam mattis vestibulum quam, nec vehicula felis blandit eu.', Self.Buffer^, 242); MD5Digest := TMD5.Compute(Self.Buffer, 242);
+
+  if (MD5Digest[0] <> $6C98C911) then raise FailedUnitTestException.Create;
+  if (MD5Digest[1] <> $E4C6933E) then raise FailedUnitTestException.Create;
+  if (MD5Digest[2] <> $5EA02B94) then raise FailedUnitTestException.Create;
+  if (MD5Digest[3] <> $23B408E5) then raise FailedUnitTestException.Create;
+
+  TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Done.');
+
+  TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Calculating hashes...');
 
   RandSeed := InitSeed;
 
-  for i := 0 to 999999 do begin
+  for i := 1 to 1000000 do begin
 
     BufferLen := Random(MAX_DNS_PACKET_LEN - MIN_DNS_PACKET_LEN + 1) + MIN_DNS_PACKET_LEN; for j := 0 to (BufferLen - 1) do PByteArray(Buffer)^[j] := Random(256);
 

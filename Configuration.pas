@@ -18,7 +18,7 @@ interface
 uses
   Classes,
   DnsProtocol,
-  IpUtils;
+  IPUtils;
 
 // --------------------------------------------------------------------------
 //
@@ -66,15 +66,18 @@ type
     public
       class function  GetDnsServerConfiguration(Index: Integer): TDnsServerConfiguration;
     public
+      class function  GetSinkholeIPv6Lookups: Boolean;
+      class function  GetForwardPrivateReverseLookups: Boolean;
+    public
       class function  GetAddressCacheFailureTime: Integer;
       class function  GetAddressCacheNegativeTime: Integer;
       class function  GetAddressCacheScavengingTime: Integer;
       class function  GetAddressCacheSilentUpdateTime: Integer;
-      class function  GetAddressCacheInMemoryOnly: Boolean;
       class function  GetAddressCachePeriodicPruningTime: Integer;
+      class function  GetAddressCacheDomainNameAffinityMask: TStringList;
+      class function  GetAddressCacheQueryTypeAffinityMask: TList;
+      class function  GetAddressCacheInMemoryOnly: Boolean;
       class function  GetAddressCacheDisabled: Boolean;
-    public
-      class function  GetForwardPrivateReverseLookups: Boolean;
     public
       class function  IsLocalIPv4BindingEnabled: Boolean;
     public
@@ -100,7 +103,6 @@ type
       class function  IsQueryTypeAffinityMatch(QueryType: Word; QueryTypeAffinityMask: TList): Boolean;
     public
       class function  IsAllowedAddress(const Value: String): Boolean;
-      class function  IsCacheException(const Value: String): Boolean;
     public
       class procedure Initialize;
       class procedure LoadFromFile(const FileName: String);
@@ -120,11 +122,22 @@ implementation
 uses
   IniFiles,
   SysUtils,
+  CommonUtils,
   DnsOverHttpsCache,
   Environment,
   HitLogger,
   PatternMatching,
   Tracer;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+var
+  TConfiguration_ConfigurationFileName: String;
+  TConfiguration_AddressCacheFileName: String;
+  TConfiguration_HostsCacheFileName: String;
+  TConfiguration_DebugLogFileName: String;
 
 // --------------------------------------------------------------------------
 //
@@ -145,6 +158,7 @@ var
 // --------------------------------------------------------------------------
 
 var
+  TConfiguration_SinkholeIPv6Lookups: Boolean;
   TConfiguration_ForwardPrivateReverseLookups: Boolean;
 
 // --------------------------------------------------------------------------
@@ -157,6 +171,8 @@ var
   TConfiguration_AddressCacheScavengingTime: Integer;
   TConfiguration_AddressCacheSilentUpdateTime: Integer;
   TConfiguration_AddressCachePeriodicPruningTime: Integer;
+  TConfiguration_AddressCacheDomainNameAffinityMask: TStringList;
+  TConfiguration_AddressCacheQueryTypeAffinityMask: TList;
   TConfiguration_AddressCacheInMemoryOnly: Boolean;
   TConfiguration_AddressCacheDisabled: Boolean;
 
@@ -219,7 +235,6 @@ var
   TConfiguration_HitLogFileName: String;
   TConfiguration_HitLogFileWhat: String;
   TConfiguration_HitLogFullDump: Boolean;
-  TConfiguration_HitLogMinPendingHits: Integer;
   TConfiguration_HitLogMaxPendingHits: Integer;
 
 // --------------------------------------------------------------------------
@@ -227,24 +242,7 @@ var
 // --------------------------------------------------------------------------
 
 var
-  TConfiguration_CacheExceptions: TStringList;
-
-// --------------------------------------------------------------------------
-//
-// --------------------------------------------------------------------------
-
-var
   TConfiguration_AllowedAddresses: TStringList;
-
-// --------------------------------------------------------------------------
-//
-// --------------------------------------------------------------------------
-
-var
-  TConfiguration_ConfigurationFileName: String;
-  TConfiguration_AddressCacheFileName: String;
-  TConfiguration_HostsCacheFileName: String;
-  TConfiguration_DebugLogFileName: String;
 
 // --------------------------------------------------------------------------
 //
@@ -260,7 +258,6 @@ begin
   TConfiguration_ConfigurationFileName := Self.MakeAbsolutePath('AcrylicConfiguration.ini');
   TConfiguration_AddressCacheFileName := Self.MakeAbsolutePath('AcrylicCache.dat');
   TConfiguration_HostsCacheFileName := Self.MakeAbsolutePath('AcrylicHosts.txt');
-
   TConfiguration_DebugLogFileName := Self.MakeAbsolutePath('AcrylicDebug.txt');
 
   for i := 0 to (MAX_NUM_DNS_SERVERS - 1) do begin
@@ -283,15 +280,17 @@ begin
 
   end;
 
+  TConfiguration_SinkholeIPv6Lookups := False;
   TConfiguration_ForwardPrivateReverseLookups := False;
 
-  TConfiguration_AddressCacheFailureTime := 10;
+  TConfiguration_AddressCacheFailureTime := 0;
   TConfiguration_AddressCacheNegativeTime := 10;
-  TConfiguration_AddressCacheScavengingTime := 960;
-  TConfiguration_AddressCacheSilentUpdateTime := 240;
-
-  TConfiguration_AddressCacheInMemoryOnly := False;
+  TConfiguration_AddressCacheScavengingTime := 2880;
+  TConfiguration_AddressCacheSilentUpdateTime := 1440;
   TConfiguration_AddressCachePeriodicPruningTime := 240;
+  TConfiguration_AddressCacheDomainNameAffinityMask := nil;
+  TConfiguration_AddressCacheQueryTypeAffinityMask := nil;
+  TConfiguration_AddressCacheInMemoryOnly := False;
   TConfiguration_AddressCacheDisabled := False;
 
   TConfiguration_IsLocalIPv4BindingEnabled := False;
@@ -318,12 +317,9 @@ begin
   TConfiguration_HitLogFileName := '';
   TConfiguration_HitLogFileWhat := '';
   TConfiguration_HitLogFullDump := False;
-  TConfiguration_HitLogMinPendingHits := 1;
-  TConfiguration_HitLogMaxPendingHits := 8192;
+  TConfiguration_HitLogMaxPendingHits := 256;
 
   TConfiguration_AllowedAddresses := nil;
-
-  TConfiguration_CacheExceptions := nil;
 
 end;
 
@@ -403,6 +399,18 @@ end;
 //
 // --------------------------------------------------------------------------
 
+class function TConfiguration.GetSinkholeIPv6Lookups: Boolean;
+
+begin
+
+  Result := TConfiguration_SinkholeIPv6Lookups;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
 class function TConfiguration.GetForwardPrivateReverseLookups: Boolean;
 
 begin
@@ -463,11 +471,11 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class function TConfiguration.GetAddressCacheInMemoryOnly: Boolean;
+class function TConfiguration.GetAddressCachePeriodicPruningTime: Integer;
 
 begin
 
-  Result := TConfiguration_AddressCacheInMemoryOnly;
+  Result := TConfiguration_AddressCachePeriodicPruningTime;
 
 end;
 
@@ -475,11 +483,35 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class function TConfiguration.GetAddressCachePeriodicPruningTime: Integer;
+class function TConfiguration.GetAddressCacheDomainNameAffinityMask: TStringList;
 
 begin
 
-  Result := TConfiguration_AddressCachePeriodicPruningTime;
+  Result := TConfiguration_AddressCacheDomainNameAffinityMask;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class function TConfiguration.GetAddressCacheQueryTypeAffinityMask: TList;
+
+begin
+
+  Result := TConfiguration_AddressCacheQueryTypeAffinityMask;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class function TConfiguration.GetAddressCacheInMemoryOnly: Boolean;
+
+begin
+
+  Result := TConfiguration_AddressCacheInMemoryOnly;
 
 end;
 
@@ -676,8 +708,6 @@ begin
 
   if (DomainNameAffinityMask <> nil) then begin
 
-    Result := False;
-
     for i := 0 to (DomainNameAffinityMask.Count - 1) do begin
 
       S := DomainNameAffinityMask[i];
@@ -689,6 +719,8 @@ begin
       end;
 
     end;
+
+    Result := False;
 
   end else begin
 
@@ -741,31 +773,6 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class function TConfiguration.IsCacheException(const Value: String): Boolean;
-
-var
-  i: Integer;
-
-begin
-
-  Result := False;
-
-  if (TConfiguration_CacheExceptions <> nil) then begin
-
-    for i := 0 to (TConfiguration_CacheExceptions.Count - 1) do begin
-
-      if TPatternMatching.Match(PChar(Value), PChar(TConfiguration_CacheExceptions.Strings[i])) then begin Result := True; Exit; end;
-
-    end;
-
-  end;
-
-end;
-
-// --------------------------------------------------------------------------
-//
-// --------------------------------------------------------------------------
-
 class procedure TConfiguration.LoadFromFile(const FileName: String);
 
 var
@@ -785,18 +792,6 @@ begin
         for i := 0 to (StringList.Count - 1) do begin
           if (StringList[i] <> '') then begin
             TTracer.Trace(TracePriorityInfo, 'TConfiguration.LoadFromFile: [GlobalSection] ' + StringList[i]);
-          end;
-        end;
-      end;
-
-      StringList.Free;
-
-      StringList := TStringList.Create;
-
-      IniFile.ReadSectionValues('CacheExceptionsSection', StringList); if (StringList.Count > 0) then begin
-        for i := 0 to (StringList.Count - 1) do begin
-          if (StringList[i] <> '') then begin
-            TTracer.Trace(TracePriorityInfo, 'TConfiguration.LoadFromFile: [CacheExceptionsSection] ' + StringList[i]);
           end;
         end;
       end;
@@ -885,11 +880,11 @@ begin
 
               end;
 
-              TConfiguration_DnsServerConfiguration[DnsServerIndex].DnsOverHttpsProtocolReuseConnections := UpperCase(IniFile.ReadString('GlobalSection', DNS_SERVER_INDEX_DESCRIPTION[DnsServerIndex] + 'ServerDoHProtocolReuseConnections', 'YES')) = 'YES';
+              TConfiguration_DnsServerConfiguration[DnsServerIndex].DnsOverHttpsProtocolReuseConnections := CommonUtils.StringToBoolean(IniFile.ReadString('GlobalSection', DNS_SERVER_INDEX_DESCRIPTION[DnsServerIndex] + 'ServerDoHProtocolReuseConnections', 'YES'));
 
-              TConfiguration_DnsServerConfiguration[DnsServerIndex].DnsOverHttpsProtocolUseWinHttp := UpperCase(IniFile.ReadString('GlobalSection', DNS_SERVER_INDEX_DESCRIPTION[DnsServerIndex] + 'ServerDoHProtocolUseWinHttp', 'YES')) = 'YES';
+              TConfiguration_DnsServerConfiguration[DnsServerIndex].DnsOverHttpsProtocolUseWinHttp := CommonUtils.StringToBoolean(IniFile.ReadString('GlobalSection', DNS_SERVER_INDEX_DESCRIPTION[DnsServerIndex] + 'ServerDoHProtocolUseWinHttp', 'YES'));
 
-              if DnsServerAddress.IsIPv6Address then TDnsOverHttpsCache.AddIPv6Entry(TConfiguration_DnsServerConfiguration[DnsServerIndex].DnsOverHttpsProtocolHost, DnsServerAddress.IPv6Address) else TDnsOverHttpsCache.AddIPv4Entry(TConfiguration_DnsServerConfiguration[DnsServerIndex].DnsOverHttpsProtocolHost, DnsServerAddress.IPv4Address);
+              if DnsServerAddress.IsIPv6Address then TDnsOverHttpsCache.AddIPv6Item(TConfiguration_DnsServerConfiguration[DnsServerIndex].DnsOverHttpsProtocolHost, DnsServerAddress.IPv6Address) else TDnsOverHttpsCache.AddIPv4Item(TConfiguration_DnsServerConfiguration[DnsServerIndex].DnsOverHttpsProtocolHost, DnsServerAddress.IPv4Address);
 
             end;
 
@@ -927,8 +922,8 @@ begin
 
             end;
 
-            TConfiguration_DnsServerConfiguration[DnsServerIndex].IgnoreFailureResponsesFromServer := UpperCase(IniFile.ReadString('GlobalSection', 'IgnoreFailureResponsesFrom' + DNS_SERVER_INDEX_DESCRIPTION[DnsServerIndex] + 'Server', '')) = 'YES';
-            TConfiguration_DnsServerConfiguration[DnsServerIndex].IgnoreNegativeResponsesFromServer := UpperCase(IniFile.ReadString('GlobalSection', 'IgnoreNegativeResponsesFrom' + DNS_SERVER_INDEX_DESCRIPTION[DnsServerIndex] + 'Server', '')) = 'YES';
+            TConfiguration_DnsServerConfiguration[DnsServerIndex].IgnoreFailureResponsesFromServer := CommonUtils.StringToBoolean(IniFile.ReadString('GlobalSection', 'IgnoreFailureResponsesFrom' + DNS_SERVER_INDEX_DESCRIPTION[DnsServerIndex] + 'Server', ''));
+            TConfiguration_DnsServerConfiguration[DnsServerIndex].IgnoreNegativeResponsesFromServer := CommonUtils.StringToBoolean(IniFile.ReadString('GlobalSection', 'IgnoreNegativeResponsesFrom' + DNS_SERVER_INDEX_DESCRIPTION[DnsServerIndex] + 'Server', ''));
 
           end;
 
@@ -938,16 +933,51 @@ begin
 
     end;
 
-    TConfiguration_ForwardPrivateReverseLookups := UpperCase(IniFile.ReadString('GlobalSection', 'ForwardPrivateReverseLookups', '')) = 'YES';
+    TConfiguration_SinkholeIPv6Lookups := CommonUtils.StringToBoolean(IniFile.ReadString('GlobalSection', 'SinkholeIPv6Lookups', ''));
+    TConfiguration_ForwardPrivateReverseLookups := CommonUtils.StringToBoolean(IniFile.ReadString('GlobalSection', 'ForwardPrivateReverseLookups', ''));
 
     TConfiguration_AddressCacheFailureTime := IniFile.ReadInteger('GlobalSection', 'AddressCacheFailureTime', TConfiguration_AddressCacheFailureTime);
     TConfiguration_AddressCacheNegativeTime := IniFile.ReadInteger('GlobalSection', 'AddressCacheNegativeTime', TConfiguration_AddressCacheNegativeTime);
     TConfiguration_AddressCacheScavengingTime := IniFile.ReadInteger('GlobalSection', 'AddressCacheScavengingTime', TConfiguration_AddressCacheScavengingTime);
     TConfiguration_AddressCacheSilentUpdateTime := IniFile.ReadInteger('GlobalSection', 'AddressCacheSilentUpdateTime', TConfiguration_AddressCacheSilentUpdateTime);
-
     TConfiguration_AddressCachePeriodicPruningTime := IniFile.ReadInteger('GlobalSection', 'AddressCachePeriodicPruningTime', TConfiguration_AddressCachePeriodicPruningTime);
-    TConfiguration_AddressCacheInMemoryOnly := UpperCase(IniFile.ReadString('GlobalSection', 'AddressCacheInMemoryOnly', '')) = 'YES';
-    TConfiguration_AddressCacheDisabled := UpperCase(IniFile.ReadString('GlobalSection', 'AddressCacheDisabled', '')) = 'YES';
+
+    S := IniFile.ReadString('GlobalSection', 'AddressCacheDomainNameAffinityMask', ''); if (S <> '') then begin
+
+      StringList := TStringList.Create; StringList.Delimiter := ';'; StringList.DelimitedText := S;
+
+        if (StringList.Count > 0) then begin
+          for i := 0 to (StringList.Count - 1) do begin
+            if (StringList[i] <> '') then begin
+              if (TConfiguration_AddressCacheDomainNameAffinityMask = nil) then TConfiguration_AddressCacheDomainNameAffinityMask := TStringList.Create; TConfiguration_AddressCacheDomainNameAffinityMask.Add(StringList[i]);
+            end;
+          end;
+        end;
+
+        StringList.Free;
+
+    end;
+
+    S := IniFile.ReadString('GlobalSection', 'AddressCacheQueryTypeAffinityMask', ''); if (S <> '') then begin
+
+      StringList := TStringList.Create; StringList.Delimiter := ';'; StringList.DelimitedText := S;
+
+        if (StringList.Count > 0) then begin
+          for i := 0 to (StringList.Count - 1) do begin
+            if (StringList[i] <> '') then begin
+              W := TDnsProtocolUtility.ParseDnsQueryType(StringList[i]); if (W > 0) then begin
+                if (TConfiguration_AddressCacheQueryTypeAffinityMask = nil) then TConfiguration_AddressCacheQueryTypeAffinityMask := TList.Create; TConfiguration_AddressCacheQueryTypeAffinityMask.Add(Pointer(W));
+              end;
+            end;
+          end;
+        end;
+
+      StringList.Free;
+
+    end;
+
+    TConfiguration_AddressCacheInMemoryOnly := CommonUtils.StringToBoolean(IniFile.ReadString('GlobalSection', 'AddressCacheInMemoryOnly', ''));
+    TConfiguration_AddressCacheDisabled := CommonUtils.StringToBoolean(IniFile.ReadString('GlobalSection', 'AddressCacheDisabled', ''));
 
     S := IniFile.ReadString('GlobalSection', 'LocalIPv4BindingAddress', ''); if (S <> '') then begin
 
@@ -961,7 +991,7 @@ begin
 
     S := IniFile.ReadString('GlobalSection', 'LocalIPv6BindingAddress', ''); if (S <> '') then begin
 
-      TConfiguration_IsLocalIPv6BindingEnabledOnWindowsVersionsPriorToWindowsVistaOrWindowsServer2008 := UpperCase(IniFile.ReadString('GlobalSection', 'LocalIPv6BindingEnabledOnWindowsVersionsPriorToWindowsVistaOrWindowsServer2008', '')) = 'YES';
+      TConfiguration_IsLocalIPv6BindingEnabledOnWindowsVersionsPriorToWindowsVistaOrWindowsServer2008 := CommonUtils.StringToBoolean(IniFile.ReadString('GlobalSection', 'LocalIPv6BindingEnabledOnWindowsVersionsPriorToWindowsVistaOrWindowsServer2008', ''));
 
       if TEnvironment.IsWindowsVistaOrWindowsServer2008OrHigher or TConfiguration_IsLocalIPv6BindingEnabledOnWindowsVersionsPriorToWindowsVistaOrWindowsServer2008 then begin
 
@@ -990,22 +1020,13 @@ begin
       TConfiguration_HitLogFileName := Self.MakeAbsolutePath(TConfiguration_HitLogFileName);
 
       TConfiguration_HitLogFileWhat := IniFile.ReadString('GlobalSection', 'HitLogFileWhat', '');
-      TConfiguration_HitLogFullDump := UpperCase(IniFile.ReadString('GlobalSection', 'HitLogFullDump', '')) = 'YES';
+      TConfiguration_HitLogFullDump := CommonUtils.StringToBoolean(IniFile.ReadString('GlobalSection', 'HitLogFullDump', ''));
 
-      TConfiguration_HitLogMinPendingHits := IniFile.ReadInteger('GlobalSection', 'HitLogMinPendingHits', TConfiguration_HitLogMinPendingHits);
       TConfiguration_HitLogMaxPendingHits := IniFile.ReadInteger('GlobalSection', 'HitLogMaxPendingHits', TConfiguration_HitLogMaxPendingHits);
 
-      THitLogger.SetProperties(TConfiguration_HitLogFileName, TConfiguration_HitLogFileWhat, TConfiguration_HitLogFullDump, TConfiguration_HitLogMinPendingHits, TConfiguration_HitLogMaxPendingHits);
+      THitLogger.SetProperties(TConfiguration_HitLogFileName, TConfiguration_HitLogFileWhat, TConfiguration_HitLogFullDump, TConfiguration_HitLogMaxPendingHits);
 
     end;
-
-    StringList := TStringList.Create;
-
-    IniFile.ReadSection('CacheExceptionsSection', StringList); if (StringList.Count > 0) then begin
-      TConfiguration_CacheExceptions := TStringList.Create; for i := 0 to (StringList.Count - 1) do TConfiguration_CacheExceptions.Add(Trim(IniFile.ReadString('CacheExceptionsSection', StringList.Strings[i], '')));
-    end;
-
-    StringList.Free;
 
     StringList := TStringList.Create;
 
@@ -1036,8 +1057,10 @@ var
 
 begin
 
-  if (TConfiguration_CacheExceptions <> nil) then TConfiguration_CacheExceptions.Free;
   if (TConfiguration_AllowedAddresses <> nil) then TConfiguration_AllowedAddresses.Free;
+
+  if (TConfiguration_AddressCacheQueryTypeAffinityMask <> nil) then TConfiguration_AddressCacheQueryTypeAffinityMask.Free;
+  if (TConfiguration_AddressCacheDomainNameAffinityMask <> nil) then TConfiguration_AddressCacheDomainNameAffinityMask.Free;
 
   for i := 0 to (MAX_NUM_DNS_SERVERS - 1) do begin
 

@@ -8,10 +8,10 @@ type
       BufferA: Pointer;
       BufferB: Pointer;
       BufferC: Pointer;
-    private
       BufferLenA: Integer;
       BufferLenB: Integer;
       BufferLenC: Integer;
+      CacheItems: Integer;
     public
       constructor  Create;
       procedure    ExecuteTest; override;
@@ -32,6 +32,8 @@ begin
   Self.BufferB := TMemoryManager.GetMemory(MAX_DNS_PACKET_LEN);
   Self.BufferC := TMemoryManager.GetMemory(MAX_DNS_PACKET_LEN);
 
+  Self.CacheItems := 1000000;
+
 end;
 
 // --------------------------------------------------------------------------
@@ -51,16 +53,18 @@ begin
 
   TAddressCache.Initialize;
 
+  TTracer.Trace(TracePriorityInfo, Self.ClassName + ': ' + IntToStr(Self.CacheItems) + ' cache items.');
+
   TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Starting massive insertion...');
 
   RandSeed := InitSeed;
 
-  for i := 0 to ((1000 * TAddressCacheUnitTestKCacheItems) - 1) do begin
+  for i := 0 to (Self.CacheItems - 1) do begin
 
-    BufferLenA := Random(512) + MIN_DNS_PACKET_LEN; for j := 0 to (BufferLenA - 1) do PByteArray(BufferA)^[j] := Random(256);
-    BufferLenB := Random(512) + MIN_DNS_PACKET_LEN; for j := 0 to (BufferLenB - 1) do PByteArray(BufferB)^[j] := Random(256);
+    Self.BufferLenA := Random(512) + MIN_DNS_PACKET_LEN; for j := 0 to (Self.BufferLenA - 1) do PByteArray(Self.BufferA)^[j] := Random(256);
+    Self.BufferLenB := Random(512) + MIN_DNS_PACKET_LEN; for j := 0 to (Self.BufferLenB - 1) do PByteArray(Self.BufferB)^[j] := Random(256);
 
-    TAddressCache.Add(TimeStamp, TMD5.Compute(BufferA, BufferLenA), BufferB, BufferLenB, AddressCacheItemOptionsResponseTypeIsPositive);
+    TAddressCache.AddItem(TimeStamp, TMD5.Compute(Self.BufferA, Self.BufferLenA), Self.BufferB, Self.BufferLenB, AddressCacheItemOptionsResponseTypeIsPositive);
 
   end;
 
@@ -70,16 +74,16 @@ begin
 
   RandSeed := InitSeed;
 
-  for i := 0 to ((1000 * TAddressCacheUnitTestKCacheItems) - 1) do begin
+  for i := 0 to (Self.CacheItems - 1) do begin
 
-    BufferLenA := Random(512) + MIN_DNS_PACKET_LEN; for j := 0 to (BufferLenA - 1) do PByteArray(BufferA)^[j] := Random(256);
-    BufferLenB := Random(512) + MIN_DNS_PACKET_LEN; for j := 0 to (BufferLenB - 1) do PByteArray(BufferB)^[j] := Random(256);
+    Self.BufferLenA := Random(512) + MIN_DNS_PACKET_LEN; for j := 0 to (Self.BufferLenA - 1) do PByteArray(Self.BufferA)^[j] := Random(256);
+    Self.BufferLenB := Random(512) + MIN_DNS_PACKET_LEN; for j := 0 to (Self.BufferLenB - 1) do PByteArray(Self.BufferB)^[j] := Random(256);
 
-    if not((TAddressCache.Find(TimeStamp, TMD5.Compute(BufferA, BufferLenA), BufferC, BufferLenC) = RecentEnough)) then begin
+    if not((TAddressCache.FindItem(TimeStamp, TMD5.Compute(Self.BufferA, Self.BufferLenA), Self.BufferC, Self.BufferLenC) = RecentEnough)) then begin
       raise FailedUnitTestException.Create;
     end;
 
-    if (BufferLenC <> BufferLenB) and not(CompareMem(BufferB, BufferC, BufferLenB)) then begin
+    if (Self.BufferLenC <> Self.BufferLenB) and not(CompareMem(Self.BufferB, Self.BufferC, Self.BufferLenB)) then begin
       raise FailedUnitTestException.Create;
     end;
 
@@ -105,16 +109,18 @@ begin
 
   TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Starting massive search...');
 
-  RandSeed := InitSeed; for i := 0 to ((1000 * TAddressCacheUnitTestKCacheItems) - 1) do begin
+  RandSeed := InitSeed;
 
-    BufferLenA := Random(512) + MIN_DNS_PACKET_LEN; for j := 0 to (BufferLenA - 1) do PByteArray(BufferA)^[j] := Random(256);
-    BufferLenB := Random(512) + MIN_DNS_PACKET_LEN; for j := 0 to (BufferLenB - 1) do PByteArray(BufferB)^[j] := Random(256);
+  for i := 0 to (Self.CacheItems - 1) do begin
 
-    if not((TAddressCache.Find(TimeStamp, TMD5.Compute(BufferA, BufferLenA), BufferC, BufferLenC) = RecentEnough)) then begin
+    Self.BufferLenA := Random(512) + MIN_DNS_PACKET_LEN; for j := 0 to (Self.BufferLenA - 1) do PByteArray(Self.BufferA)^[j] := Random(256);
+    Self.BufferLenB := Random(512) + MIN_DNS_PACKET_LEN; for j := 0 to (Self.BufferLenB - 1) do PByteArray(Self.BufferB)^[j] := Random(256);
+
+    if not((TAddressCache.FindItem(TimeStamp, TMD5.Compute(Self.BufferA, Self.BufferLenA), Self.BufferC, Self.BufferLenC) = RecentEnough)) then begin
       raise FailedUnitTestException.Create;
     end;
 
-    if (BufferLenC <> BufferLenB) and not(CompareMem(BufferB, BufferC, BufferLenB)) then begin
+    if (Self.BufferLenC <> Self.BufferLenB) and not(CompareMem(Self.BufferB, Self.BufferC, Self.BufferLenB)) then begin
       raise FailedUnitTestException.Create;
     end;
 
@@ -134,9 +140,9 @@ destructor TAddressCacheUnitTest.Destroy;
 
 begin
 
-  TMemoryManager.FreeMemory(BufferA, MAX_DNS_PACKET_LEN);
-  TMemoryManager.FreeMemory(BufferB, MAX_DNS_PACKET_LEN);
-  TMemoryManager.FreeMemory(BufferC, MAX_DNS_PACKET_LEN);
+  TMemoryManager.FreeMemory(Self.BufferC, MAX_DNS_PACKET_LEN);
+  TMemoryManager.FreeMemory(Self.BufferB, MAX_DNS_PACKET_LEN);
+  TMemoryManager.FreeMemory(Self.BufferA, MAX_DNS_PACKET_LEN);
 
   inherited Destroy;
 

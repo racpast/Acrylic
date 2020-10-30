@@ -26,10 +26,10 @@ type
   TDnsOverHttpsCache = class
     public
       class procedure Initialize;
-      class procedure AddIPv4Entry(const HostName: String; var IPv4Address: TIPv4Address);
-      class procedure AddIPv6Entry(const HostName: String; var IPv6Address: TIPv6Address);
-      class function  FindIPv4Entry(const HostName: String; var IPv4Address: TIPv4Address): Boolean;
-      class function  FindIPv6Entry(const HostName: String; var IPv6Address: TIPv6Address): Boolean;
+      class procedure AddIPv4Item(const HostName: String; var IPv4Address: TIPv4Address);
+      class procedure AddIPv6Item(const HostName: String; var IPv6Address: TIPv6Address);
+      class function  FindIPv4Item(const HostName: String; var IPv4Address: TIPv4Address): Boolean;
+      class function  FindIPv6Item(const HostName: String; var IPv6Address: TIPv6Address): Boolean;
       class procedure Finalize;
   end;
 
@@ -71,7 +71,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class procedure TDnsOverHttpsCache.AddIPv4Entry(const HostName: String; var IPv4Address: TIPv4Address);
+class procedure TDnsOverHttpsCache.AddIPv4Item(const HostName: String; var IPv4Address: TIPv4Address);
 
 begin
 
@@ -85,7 +85,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class procedure TDnsOverHttpsCache.AddIPv6Entry(const HostName: String; var IPv6Address: TIPv6Address);
+class procedure TDnsOverHttpsCache.AddIPv6Item(const HostName: String; var IPv6Address: TIPv6Address);
 
 begin
 
@@ -99,7 +99,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class function TDnsOverHttpsCache.FindIPv4Entry(const HostName: String; var IPv4Address: TIPv4Address): Boolean;
+class function TDnsOverHttpsCache.FindIPv4Item(const HostName: String; var IPv4Address: TIPv4Address): Boolean;
 
 var
   ListIndex: Integer;
@@ -128,7 +128,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class function TDnsOverHttpsCache.FindIPv6Entry(const HostName: String; var IPv6Address: TIPv6Address): Boolean;
+class function TDnsOverHttpsCache.FindIPv6Item(const HostName: String; var IPv6Address: TIPv6Address): Boolean;
 
 var
   ListIndex: Integer;

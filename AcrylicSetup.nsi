@@ -8,7 +8,7 @@
 ; General
 ;--------------------------------
 
-Name "Acrylic DNS Proxy (1.2.2)"
+Name "Acrylic DNS Proxy (2.0.0)"
 
 OutFile "Acrylic.exe"
 
@@ -80,7 +80,7 @@ Section "Acrylic" SecMain
 
   CreateDirectory "$SMPROGRAMS\Acrylic DNS Proxy"
 
-  CreateShortCut  "$SMPROGRAMS\Acrylic DNS Proxy\Acrylic Home Page.lnk" "https://mayakron.altervista.org/acrylic.php"
+  CreateShortCut  "$SMPROGRAMS\Acrylic DNS Proxy\Acrylic Home Page.lnk" "https://mayakron.altervista.org/support/acrylic/Home.htm"
   CreateShortCut  "$SMPROGRAMS\Acrylic DNS Proxy\Acrylic UI.lnk" "$INSTDIR\AcrylicUI.exe"
   CreateShortCut  "$SMPROGRAMS\Acrylic DNS Proxy\Uninstall.lnk" "$INSTDIR\Uninstall.exe"
 

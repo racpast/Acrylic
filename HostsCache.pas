@@ -16,7 +16,7 @@ interface
 // --------------------------------------------------------------------------
 
 uses
-  IpUtils;
+  IPUtils;
 
 // --------------------------------------------------------------------------
 //
@@ -27,10 +27,10 @@ type
     public
       class procedure Initialize;
       class procedure LoadFromFile(const FileName: String);
-      class function  FindFWHostsEntry(const HostName: String): Boolean;
-      class function  FindNXHostsEntry(const HostName: String): Boolean;
-      class function  FindIPv4HostsEntry(const HostName: String; var IPv4Address: TIPv4Address): Boolean;
-      class function  FindIPv6HostsEntry(const HostName: String; var IPv6Address: TIPv6Address): Boolean;
+      class function  FindFWItem(const HostName: String): Boolean;
+      class function  FindNXItem(const HostName: String): Boolean;
+      class function  FindIPv4Item(const HostName: String; var IPv4Address: TIPv4Address): Boolean;
+      class function  FindIPv6Item(const HostName: String; var IPv6Address: TIPv6Address): Boolean;
       class procedure Finalize;
     private
       class procedure InternalLoadFromFile(const FileName: String);
@@ -60,8 +60,7 @@ uses
   HostsCacheBinaryTrees,
   MemoryStore,
   PatternMatching,
-  PerlRegEx,
-  Tracer;
+  PerlRegEx;
 
 // --------------------------------------------------------------------------
 //
@@ -76,7 +75,7 @@ type
       List2: TList;
     public
       constructor Create;
-      procedure   Add(const Expression: String; Associated: TObject);
+      procedure   AddItem(const Expression: String; Associated: TObject);
       function    ExecRegularExpression(Index: Integer; const InputStr: String): Boolean;
       function    GetAssociatedObject(Index: Integer): TObject;
       procedure   BeginUpdate;
@@ -163,8 +162,6 @@ class procedure THostsCache.LoadFromFile(const FileName: String);
 
 begin
 
-  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'THostsCache.LoadFromFile: Loading hosts cache items...');
-
   THostsCache_FWExpressions.BeginUpdate; THostsCache_FWPatterns.BeginUpdate;
   THostsCache_NXExpressions.BeginUpdate; THostsCache_NXPatterns.BeginUpdate;
 
@@ -179,22 +176,20 @@ begin
   THostsCache_NXPatterns.EndUpdate; THostsCache_NXExpressions.EndUpdate;
   THostsCache_FWPatterns.EndUpdate; THostsCache_FWExpressions.EndUpdate;
 
-  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'THostsCache.LoadFromFile: Done loading hosts cache items.');
-
 end;
 
 // --------------------------------------------------------------------------
 //
 // --------------------------------------------------------------------------
 
-class function THostsCache.FindFWHostsEntry(const HostName: String): Boolean;
+class function THostsCache.FindFWItem(const HostName: String): Boolean;
 
 var
   ListIndex: Integer;
 
 begin
 
-  if (THostsCache_FWTree.Find(HostName)) then begin
+  if (THostsCache_FWTree.FindItem(HostName)) then begin
 
     Result := True; Exit;
 
@@ -233,14 +228,14 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class function THostsCache.FindNXHostsEntry(const HostName: String): Boolean;
+class function THostsCache.FindNXItem(const HostName: String): Boolean;
 
 var
   ListIndex: Integer;
 
 begin
 
-  if (THostsCache_NXTree.Find(HostName)) then begin
+  if (THostsCache_NXTree.FindItem(HostName)) then begin
 
     Result := True; Exit;
 
@@ -279,14 +274,14 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class function THostsCache.FindIPv4HostsEntry(const HostName: String; var IPv4Address: TIPv4Address): Boolean;
+class function THostsCache.FindIPv4Item(const HostName: String; var IPv4Address: TIPv4Address): Boolean;
 
 var
   ListIndex: Integer;
 
 begin
 
-  if (THostsCache_IPv4Tree.Find(HostName, IPv4Address)) then begin
+  if (THostsCache_IPv4Tree.FindItem(HostName, IPv4Address)) then begin
 
     Result := True; Exit;
 
@@ -325,14 +320,14 @@ end;
 //
 // --------------------------------------------------------------------------
 
-class function THostsCache.FindIPv6HostsEntry(const HostName: String; var IPv6Address: TIPv6Address): Boolean;
+class function THostsCache.FindIPv6Item(const HostName: String; var IPv6Address: TIPv6Address): Boolean;
 
 var
   TreeData: PIPv6Address; ListIndex: Integer;
 
 begin
 
-  if (THostsCache_IPv6Tree.Find(HostName, TreeData)) then begin
+  if (THostsCache_IPv6Tree.FindItem(HostName, TreeData)) then begin
 
     IPv6Address := TreeData^; Result := True; Exit;
 
@@ -400,7 +395,7 @@ begin
 
   if (FileStreamLineData[HostsLineIndexA] = '/') then begin
 
-    THostsCache_FWExpressions.Add(Copy(HostsLineTextData, 2, MaxInt), nil)
+    THostsCache_FWExpressions.AddItem(Copy(HostsLineTextData, 2, MaxInt), nil)
 
   end else if (FileStreamLineData[HostsLineIndexA] = '>') then begin
 
@@ -410,7 +405,7 @@ begin
 
     if (Pos('*', HostsLineTextData) > 0) or (Pos('?', HostsLineTextData) > 0) then THostsCache_FWPatterns.AddObject(HostsLineTextData, nil) else begin
 
-      THostsCache_FWTree.Add(HostsLineTextData);
+      THostsCache_FWTree.AddItem(HostsLineTextData);
 
     end;
 
@@ -420,7 +415,7 @@ begin
 
   end else begin
 
-    THostsCache_FWTree.Add(HostsLineTextData);
+    THostsCache_FWTree.AddItem(HostsLineTextData);
 
   end;
 
@@ -441,7 +436,7 @@ begin
 
   if (FileStreamLineData[HostsLineIndexA] = '/') then begin
 
-    THostsCache_NXExpressions.Add(Copy(HostsLineTextData, 2, MaxInt), nil)
+    THostsCache_NXExpressions.AddItem(Copy(HostsLineTextData, 2, MaxInt), nil)
 
   end else if (FileStreamLineData[HostsLineIndexA] = '>') then begin
 
@@ -451,7 +446,7 @@ begin
 
     if (Pos('*', HostsLineTextData) > 0) or (Pos('?', HostsLineTextData) > 0) then THostsCache_NXPatterns.AddObject(HostsLineTextData, nil) else begin
 
-      THostsCache_NXTree.Add(HostsLineTextData);
+      THostsCache_NXTree.AddItem(HostsLineTextData);
 
     end;
 
@@ -461,7 +456,7 @@ begin
 
   end else begin
 
-    THostsCache_NXTree.Add(HostsLineTextData);
+    THostsCache_NXTree.AddItem(HostsLineTextData);
 
   end;
 
@@ -482,7 +477,7 @@ begin
 
   if (FileStreamLineData[HostsLineIndexA] = '/') then begin
 
-    THostsCache_IPv4Expressions.Add(Copy(HostsLineTextData, 2, MaxInt), TObject(HostsLineAddressData))
+    THostsCache_IPv4Expressions.AddItem(Copy(HostsLineTextData, 2, MaxInt), TObject(HostsLineAddressData))
 
   end else if (FileStreamLineData[HostsLineIndexA] = '>') then begin
 
@@ -492,7 +487,7 @@ begin
 
     if (Pos('*', HostsLineTextData) > 0) or (Pos('?', HostsLineTextData) > 0) then THostsCache_IPv4Patterns.AddObject(HostsLineTextData, TObject(HostsLineAddressData)) else begin
 
-      THostsCache_IPv4Tree.Add(HostsLineTextData, HostsLineAddressData);
+      THostsCache_IPv4Tree.AddItem(HostsLineTextData, HostsLineAddressData);
 
     end;
 
@@ -502,7 +497,7 @@ begin
 
   end else begin
 
-    THostsCache_IPv4Tree.Add(HostsLineTextData, HostsLineAddressData);
+    THostsCache_IPv4Tree.AddItem(HostsLineTextData, HostsLineAddressData);
 
   end;
 
@@ -525,7 +520,7 @@ begin
 
   if (FileStreamLineData[HostsLineIndexA] = '/') then begin
 
-    THostsCache_IPv6Expressions.Add(Copy(HostsLineTextData, 2, MaxInt), TObject(PHostsLineAddressData))
+    THostsCache_IPv6Expressions.AddItem(Copy(HostsLineTextData, 2, MaxInt), TObject(PHostsLineAddressData))
 
   end else if (FileStreamLineData[HostsLineIndexA] = '>') then begin
 
@@ -535,7 +530,7 @@ begin
 
     if (Pos('*', HostsLineTextData) > 0) or (Pos('?', HostsLineTextData) > 0) then THostsCache_IPv6Patterns.AddObject(HostsLineTextData, TObject(PHostsLineAddressData)) else begin
 
-      THostsCache_IPv6Tree.Add(HostsLineTextData, PHostsLineAddressData);
+      THostsCache_IPv6Tree.AddItem(HostsLineTextData, PHostsLineAddressData);
 
     end;
 
@@ -545,7 +540,7 @@ begin
 
   end else begin
 
-    THostsCache_IPv6Tree.Add(HostsLineTextData, PHostsLineAddressData);
+    THostsCache_IPv6Tree.AddItem(HostsLineTextData, PHostsLineAddressData);
 
   end;
 
@@ -562,135 +557,143 @@ var
 
 begin
 
-  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'THostsCache.LoadFromFileEx: Loading hosts cache items from file "' + FileName + '"...');
+  FileStream := TFileStream.Create(FileName, fmOpenRead, fmShareDenyWrite); try
 
-  try
+    FileStreamLineEx := TFileStreamLineEx.Create(FileStream);
 
-    FileStream := TFileStream.Create(FileName, fmOpenRead, fmShareDenyWrite); try
+    repeat
 
-      FileStreamLineEx := TFileStreamLineEx.Create(FileStream);
+      FileStreamLineMoreAvailable := FileStreamLineEx.ReadLine(FileStreamLineData); FileStreamLineSize := Length(FileStreamLineData); if (FileStreamLineSize > 0) then begin
 
-      repeat
+        if (FileStreamLineData[1] = '@') then begin
 
-        FileStreamLineMoreAvailable := FileStreamLineEx.ReadLine(FileStreamLineData); FileStreamLineSize := Length(FileStreamLineData); if (FileStreamLineSize > 0) then begin
+          if (FileStreamLineSize >= 3) then begin
 
-          if (FileStreamLineData[1] = '@') then begin
+            if (FileStreamLineData[2] = ' ') then begin
 
-            if (FileStreamLineSize >= 3) then begin
+              FileNameEx := TConfiguration.MakeAbsolutePath(Copy(FileStreamLineData, 3, FileStreamLineSize - 2));
 
-              if (FileStreamLineData[2] = ' ') then begin
+              if FileExists(FileNameEx) then begin
 
-                FileNameEx := TConfiguration.MakeAbsolutePath(Copy(FileStreamLineData, 3, FileStreamLineSize - 2));
-
-                if FileExists(FileNameEx) then begin
-
-                  Self.InternalLoadFromFile(FileNameEx);
-
-                end;
+                Self.InternalLoadFromFile(FileNameEx);
 
               end;
 
             end;
 
-            Continue;
-
           end;
 
-          HostsLineIndexA := 1;
-          HostsLineIndexB := 1;
+          Continue;
 
-          HostsLineRecordType := 0; while (HostsLineIndexB <= FileStreamLineSize) do begin
+        end;
 
-            case (FileStreamLineData[HostsLineIndexB]) of
+        HostsLineIndexA := 1;
+        HostsLineIndexB := 1;
 
-              #9,
-              #32:
+        HostsLineRecordType := 0; while (HostsLineIndexB <= FileStreamLineSize) do begin
 
-              begin
+          case (FileStreamLineData[HostsLineIndexB]) of
 
-                if (HostsLineIndexB > HostsLineIndexA) then begin
+            #9,
+            #32:
 
-                  case (HostsLineRecordType) of
+            begin
 
-                    00: begin
+              if (HostsLineIndexB > HostsLineIndexA) then begin
 
-                      HostsLineAddressText := Copy(FileStreamLineData, HostsLineIndexA, HostsLineIndexB - HostsLineIndexA);
+                case (HostsLineRecordType) of
 
-                      if (HostsLineAddressText = 'FW') then begin
+                  00:
 
-                        HostsLineRecordType  := 10;
+                  begin
 
-                      end else if (HostsLineAddressText = 'NX') then begin
+                    HostsLineAddressText := Copy(FileStreamLineData, HostsLineIndexA, HostsLineIndexB - HostsLineIndexA);
 
-                        HostsLineRecordType  := 20;
+                    if (HostsLineAddressText = 'FW') then begin
 
-                      end else begin
+                      HostsLineRecordType  := 10;
 
-                        HostsLineRecordType  := 99;
+                    end else if (HostsLineAddressText = 'NX') then begin
 
-                        HostsLineAddressData := TDualIPAddressUtility.Parse(HostsLineAddressText);
+                      HostsLineRecordType  := 20;
 
-                      end;
+                    end else begin
 
-                    end;
+                      HostsLineRecordType  := 99;
 
-                    10: begin
-
-                      Self.InternalParseFWHostsLine(FileStreamLineData, HostsLineIndexA, HostsLineIndexB);
-
-                    end;
-
-                    20: begin
-
-                      Self.InternalParseNXHostsLine(FileStreamLineData, HostsLineIndexA, HostsLineIndexB);
-
-                    end;
-
-                    99: begin
-
-                      if HostsLineAddressData.IsIPv6Address then Self.InternalParseIPv6HostsLine(FileStreamLineData, HostsLineIndexA, HostsLineIndexB, HostsLineAddressData.IPv6Address) else Self.InternalParseIPv4HostsLine(FileStreamLineData, HostsLineIndexA, HostsLineIndexB, HostsLineAddressData.IPv4Address);
+                      HostsLineAddressData := TDualIPAddressUtility.Parse(HostsLineAddressText);
 
                     end;
 
                   end;
 
+                  10:
+
+                  begin
+
+                    Self.InternalParseFWHostsLine(FileStreamLineData, HostsLineIndexA, HostsLineIndexB);
+
+                  end;
+
+                  20:
+
+                  begin
+
+                    Self.InternalParseNXHostsLine(FileStreamLineData, HostsLineIndexA, HostsLineIndexB);
+
+                  end;
+
+                  99:
+
+                  begin
+
+                    if HostsLineAddressData.IsIPv6Address then Self.InternalParseIPv6HostsLine(FileStreamLineData, HostsLineIndexA, HostsLineIndexB, HostsLineAddressData.IPv6Address) else Self.InternalParseIPv4HostsLine(FileStreamLineData, HostsLineIndexA, HostsLineIndexB, HostsLineAddressData.IPv4Address);
+
+                  end;
+
                 end;
 
-                HostsLineIndexA := HostsLineIndexB + 1;
-
               end;
 
-              '#':
-
-              begin
-                Break;
-              end;
+              HostsLineIndexA := HostsLineIndexB + 1;
 
             end;
 
-            Inc(HostsLineIndexB);
+            '#':
 
-          end; if (HostsLineIndexB > HostsLineIndexA) then begin
+            begin
+              Break;
+            end;
 
-            case (HostsLineRecordType) of
+          end;
 
-              10: begin
+          Inc(HostsLineIndexB);
 
-                Self.InternalParseFWHostsLine(FileStreamLineData, HostsLineIndexA, HostsLineIndexB);
+        end; if (HostsLineIndexB > HostsLineIndexA) then begin
 
-              end;
+          case (HostsLineRecordType) of
 
-              20: begin
+            10:
 
-                Self.InternalParseNXHostsLine(FileStreamLineData, HostsLineIndexA, HostsLineIndexB);
+            begin
 
-              end;
+              Self.InternalParseFWHostsLine(FileStreamLineData, HostsLineIndexA, HostsLineIndexB);
 
-              99: begin
+            end;
 
-                if HostsLineAddressData.IsIPv6Address then Self.InternalParseIPv6HostsLine(FileStreamLineData, HostsLineIndexA, HostsLineIndexB, HostsLineAddressData.IPv6Address) else Self.InternalParseIPv4HostsLine(FileStreamLineData, HostsLineIndexA, HostsLineIndexB, HostsLineAddressData.IPv4Address);
+            20:
 
-              end;
+            begin
+
+              Self.InternalParseNXHostsLine(FileStreamLineData, HostsLineIndexA, HostsLineIndexB);
+
+            end;
+
+            99:
+
+            begin
+
+              if HostsLineAddressData.IsIPv6Address then Self.InternalParseIPv6HostsLine(FileStreamLineData, HostsLineIndexA, HostsLineIndexB, HostsLineAddressData.IPv6Address) else Self.InternalParseIPv4HostsLine(FileStreamLineData, HostsLineIndexA, HostsLineIndexB, HostsLineAddressData.IPv4Address);
 
             end;
 
@@ -698,21 +701,15 @@ begin
 
         end;
 
-      until not(FileStreamLineMoreAvailable);
+      end;
 
-    finally
+    until not(FileStreamLineMoreAvailable);
 
-      FileStream.Free;
+  finally
 
-    end;
-
-  except
-
-    on E: Exception do if TTracer.IsEnabled then TTracer.Trace(TracePriorityError, 'THostsCache.LoadFromFileEx: ' + E.Message);
+    FileStream.Free;
 
   end;
-
-  if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'THostsCache.LoadFromFileEx: Done loading hosts cache items from file "' + FileName + '".');
 
 end;
 
@@ -732,7 +729,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-procedure TRegularExpressionList.Add(const Expression: String; Associated: TObject);
+procedure TRegularExpressionList.AddItem(const Expression: String; Associated: TObject);
 
 var
   RegularExpression: TPerlRegEx;

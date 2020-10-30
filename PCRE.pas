@@ -35,15 +35,11 @@ unit PCRE;
 interface
 
 {$WEAKPACKAGEUNIT ON}
-
 {$DEFINE PCRE_STATICLINK}
-
 {$IFDEF PCRE_LINKDLL}
 {$DEFINE PCRE_EXPORT_CDECL}
 {$ENDIF}
-
 (*$HPPEMIT '#include "pcre.h"'*)
-
 const
   MAX_PATTERN_LENGTH = $10003;
   {$EXTERNALSYM MAX_PATTERN_LENGTH}
@@ -53,7 +49,6 @@ const
   {$EXTERNALSYM MAX_CAPTURE_COUNT}
   MAX_NESTING_DEPTH = 200;
   {$EXTERNALSYM MAX_NESTING_DEPTH}
-
 const
   (* Options *)
   PCRE_CASELESS = $00000001;
@@ -220,7 +215,6 @@ const
   {$EXTERNALSYM PCRE_EXTRA_TABLES}
   PCRE_EXTRA_MATCH_LIMIT_RECURSION = $0010;
   {$EXTERNALSYM PCRE_EXTRA_MATCH_LIMIT_RECURSION}
-
 type
   PPAnsiChar = ^PAnsiChar;
   {$EXTERNALSYM PPAnsiChar}
@@ -228,12 +222,10 @@ type
   {$EXTERNALSYM PPPAnsiChar}
   PInteger = ^Integer;
   {$EXTERNALSYM PInteger}
-
   real_pcre = packed record
   end;
   TPCRE = real_pcre;
   PPCRE = ^TPCRE;
-
   real_pcre_extra = packed record
     flags: Cardinal;
     study_data: Pointer;
@@ -244,7 +236,6 @@ type
   end;
   TPCREExtra = real_pcre_extra;
   PPCREExtra = ^TPCREExtra;
-
   pcre_callout_block = packed record
     version: Integer;
     callout_number: Integer;
@@ -259,7 +250,6 @@ type
     pattern_position: Integer;
     next_item_length: Integer;
   end;
-
   pcre_malloc_callback = function(Size: Integer): Pointer; {$IFDEF PCRE_EXPORT_CDECL} cdecl; {$ENDIF PCRE_EXPORT_CDECL}
   {$EXTERNALSYM pcre_malloc_callback}
   pcre_free_callback = procedure(P: Pointer); {$IFDEF PCRE_EXPORT_CDECL} cdecl; {$ENDIF PCRE_EXPORT_CDECL}
@@ -270,7 +260,6 @@ type
   {$EXTERNALSYM pcre_stack_free_callback}
   pcre_callout_callback = function(var callout_block: pcre_callout_block): Integer; {$IFDEF PCRE_EXPORT_CDECL} cdecl; {$ENDIF PCRE_EXPORT_CDECL}
   {$EXTERNALSYM pcre_callout_callback}
-
 var
   pcre_malloc_func: ^pcre_malloc_callback = nil;
   {$EXTERNALSYM pcre_malloc_func}
@@ -282,7 +271,6 @@ var
   {$EXTERNALSYM pcre_stack_free_func}
   pcre_callout_func: ^pcre_callout_callback = nil;
   {$EXTERNALSYM pcre_callout_func}
-
 procedure SetPCREMallocCallback(const Value: pcre_malloc_callback);
 {$EXTERNALSYM SetPCREMallocCallback}
 function GetPCREMallocCallback: pcre_malloc_callback;
@@ -313,13 +301,10 @@ function GetPCRECalloutCallback: pcre_callout_callback;
 {$EXTERNALSYM GetPCRECalloutCallback}
 function CallPCRECallout(var callout_block: pcre_callout_block): Integer;
 {$EXTERNALSYM CallPCRECallout}
-
 type
   TPCRELibNotLoadedHandler = procedure; {$IFDEF PCRE_EXPORT_CDECL} cdecl; {$ENDIF PCRE_EXPORT_CDECL}
-
 var
   LibNotLoadedHandler: TPCRELibNotLoadedHandler = nil;
-
 {$IFNDEF PCRE_LINKONREQUEST}
 function pcre_compile(const pattern: PAnsiChar; options: Integer; const errptr: PPAnsiChar; erroffset: PInteger; const tableptr: PAnsiChar): PPCRE; {$IFDEF PCRE_EXPORT_CDECL} cdecl; {$ENDIF PCRE_EXPORT_CDECL}
 {$EXTERNALSYM pcre_compile}
@@ -363,7 +348,6 @@ function pcre_version: PAnsiChar; {$IFDEF PCRE_EXPORT_CDECL} cdecl; {$ENDIF PCRE
 {$EXTERNALSYM pcre_version}
 procedure pcre_dispose(pattern, hints, chartable: Pointer); {$IFDEF PCRE_EXPORT_CDECL} cdecl; {$ENDIF PCRE_EXPORT_CDECL}
 {$ELSE}
-
 type
   pcre_compile_func = function(const pattern: PAnsiChar; options: Integer;  const errptr: PPAnsiChar; erroffset: PInteger; const tableptr: PAnsiChar): PPCRE; {$IFDEF PCRE_EXPORT_CDECL} cdecl; {$ENDIF PCRE_EXPORT_CDECL}
   {$EXTERNALSYM pcre_compile_func}
@@ -405,7 +389,6 @@ type
   {$EXTERNALSYM pcre_study_func}
   pcre_version_func = function: PAnsiChar; {$IFDEF PCRE_EXPORT_CDECL} cdecl; {$ENDIF PCRE_EXPORT_CDECL}
   {$EXTERNALSYM pcre_version_func}
-
 var
   pcre_compile: pcre_compile_func = nil;
   {$EXTERNALSYM pcre_compile}
@@ -447,9 +430,7 @@ var
   {$EXTERNALSYM pcre_study}
   pcre_version: pcre_version_func = nil;
   {$EXTERNALSYM pcre_version}
-
 {$ENDIF ~PCRE_LINKONREQUEST}
-
 function IsPCRELoaded: Boolean;
 function LoadPCRE: Boolean;
 procedure UnloadPCRE;
@@ -493,14 +474,12 @@ uses
 {$LINK pcre\pcre_version.obj}
 {$LINK pcre\pcre_xclass.obj}
 {$LINK pcre\pcre_default_tables.obj}
-
 var
   pcre_malloc_user: pcre_malloc_callback;
   pcre_free_user: pcre_free_callback;
   pcre_stack_malloc_user: pcre_stack_malloc_callback;
   pcre_stack_free_user: pcre_stack_free_callback;
   pcre_callout_user: pcre_callout_callback;
-
 function pcre_compile; external;
 function pcre_compile2; external;
 function pcre_config; external;
@@ -521,13 +500,10 @@ function pcre_maketables; external;
 function pcre_refcount; external;
 function pcre_study; external;
 function pcre_version; external;
-
 type
   size_t = Longint;
-
 const
   szMSVCRT = 'MSVCRT.DLL';
-
 function _memcpy(dest, src: Pointer; count: size_t): Pointer; cdecl; external szMSVCRT name 'memcpy';
 function _memmove(dest, src: Pointer; count: size_t): Pointer; cdecl; external szMSVCRT name 'memmove';
 function _memset(dest: Pointer; val: Integer; count: size_t): Pointer; cdecl; external szMSVCRT name 'memset';
@@ -548,84 +524,52 @@ function _isspace(__ch: Integer): Integer; cdecl; external szMSVCRT name 'isspac
 function _isupper(__ch: Integer): Integer; cdecl; external szMSVCRT name 'isupper';
 function _isxdigit(__ch: Integer): Integer; cdecl; external szMSVCRT name 'isxdigit';
 function _strchr(__s: PAnsiChar; __c: Integer): PAnsiChar; cdecl; external szMSVCRT name 'strchr';
-
 function malloc(size: size_t): Pointer; cdecl; external szMSVCRT name 'malloc';
-
 function pcre_malloc(Size: Integer): Pointer;
-
 begin
-
   if Assigned(pcre_malloc_user) then
     Result := pcre_malloc_user(Size)
   else
     Result := malloc(Size);
-
 end;
-
 function pcre_stack_malloc(Size: Integer): Pointer;
-
 begin
-
   if Assigned(pcre_stack_malloc_user) then
     Result := pcre_stack_malloc_user(Size)
   else
     Result := malloc(Size);
-
 end;
-
 function _malloc(size: size_t): Pointer;
-
 begin
-
   Result := pcre_malloc(size);
-
 end;
-
 procedure free(pBlock: Pointer); cdecl; external szMSVCRT name 'free';
-
 procedure pcre_free(P: Pointer);
-
 begin
-
   if Assigned(pcre_free_user) then
     pcre_free_user(P)
   else
     free(P);
-
 end;
-
 procedure pcre_stack_free(P: Pointer);
-
 begin
-
   if Assigned(pcre_stack_free_user) then
     pcre_stack_free_user(P)
   else
     free(P);
-
 end;
-
 procedure _free(pBlock: Pointer);
-
 begin
-
   pcre_free(pBlock);
-
 end;
-
 function pcre_callout(var callout_block: pcre_callout_block): Integer; cdecl;
-
 begin
-
   if Assigned(pcre_callout_user) then
     Result := pcre_callout_user(callout_block)
   else
     Result := 0;
-
 end;
-
 {$ELSE ~PCRE_STATICLINK}
-
 type
   {$IFDEF MSWINDOWS}
   TModuleHandle = HINST;
@@ -633,7 +577,6 @@ type
   {$IFDEF LINUX}
   TModuleHandle = Pointer;
   {$ENDIF LINUX}
-
 const
   {$IFDEF MSWINDOWS}
   libpcremodulename = 'pcrelib.dll';
@@ -667,39 +610,29 @@ const
   PCREStackFreeExportName = 'pcre_stack_free';
   PCRECalloutExportName = 'pcre_callout';
   INVALID_MODULEHANDLE_VALUE = TModuleHandle(0);
-
 var
   PCRELib: TModuleHandle = INVALID_MODULEHANDLE_VALUE;
 {$ENDIF ~PCRE_STATICLINK}
-
 procedure SetPCREMallocCallback(const Value: pcre_malloc_callback);
-
 begin
-
   {$IFDEF PCRE_STATICLINK}
   pcre_malloc_user := Value;
   {$ELSE ~PCRE_STATICLINK}
   if not Assigned(pcre_malloc_func) then
     LoadPCRE;
-
   if Assigned(pcre_malloc_func) then
     pcre_malloc_func^ := Value
   else if Assigned(LibNotLoadedHandler) then
     LibNotLoadedHandler;
   {$ENDIF ~PCRE_STATICLINK}
-
 end;
-
 function GetPCREMallocCallback: pcre_malloc_callback;
-
 begin
-
   {$IFDEF PCRE_STATICLINK}
   Result := pcre_malloc_user;
   {$ELSE ~PCRE_STATICLINK}
   if not Assigned(pcre_malloc_func) then
     LoadPCRE;
-
   if not Assigned(pcre_malloc_func) then
   begin
     Result := nil;
@@ -709,49 +642,35 @@ begin
   else
     Result := pcre_malloc_func^;
   {$ENDIF ~PCRE_STATICLINK}
-
 end;
-
 function CallPCREMalloc(Size: Integer): Pointer;
-
 begin
-
   {$IFDEF PCRE_STATICLINK}
   Result := pcre_malloc(Size);
   {$ELSE ~PCRE_STATICLINK}
   Result := pcre_malloc_func^(Size);
   {$ENDIF ~PCRE_STATICLINK}
-
 end;
-
 procedure SetPCREFreeCallback(const Value: pcre_free_callback);
-
 begin
-
   {$IFDEF PCRE_STATICLINK}
   pcre_free_user := Value;
   {$ELSE ~PCRE_STATICLINK}
   if not Assigned(pcre_free_func) then
     LoadPCRE;
-
   if Assigned(pcre_free_func) then
     pcre_free_func^ := Value
   else if Assigned(LibNotLoadedHandler) then
     LibNotLoadedHandler;
   {$ENDIF ~PCRE_STATICLINK}
-
 end;
-
 function GetPCREFreeCallback: pcre_free_callback;
-
 begin
-
   {$IFDEF PCRE_STATICLINK}
   Result := pcre_free_user;
   {$ELSE ~PCRE_STATICLINK}
   if not Assigned(pcre_free_func) then
     LoadPCRE;
-
   if not Assigned(pcre_free_func) then
   begin
     Result := nil;
@@ -761,13 +680,9 @@ begin
   else
     Result := pcre_free_func^
   {$ENDIF ~PCRE_STATICLINK}
-
 end;
-
 procedure CallPCREFree(P: Pointer);
-
 begin
-
   {$IFDEF PCRE_STATICLINK}
   pcre_free(P);
   {$ELSE ~PCRE_STATICLINK}
@@ -775,37 +690,27 @@ begin
     LoadPCRE;
   pcre_free_func^(P);
   {$ENDIF ~PCRE_STATICLINK}
-
 end;
-
 procedure SetPCREStackMallocCallback(const Value: pcre_stack_malloc_callback);
-
 begin
-
   {$IFDEF PCRE_STATICLINK}
   pcre_stack_malloc_user := Value;
   {$ELSE ~PCRE_STATICLINK}
   if not Assigned(pcre_stack_malloc_func) then
     LoadPCRE;
-
   if Assigned(pcre_stack_malloc_func) then
     pcre_stack_malloc_func^ := Value
   else if Assigned(LibNotLoadedHandler) then
     LibNotLoadedHandler;
   {$ENDIF ~PCRE_STATICLINK}
-
 end;
-
 function GetPCREStackMallocCallback: pcre_stack_malloc_callback;
-
 begin
-
   {$IFDEF PCRE_STATICLINK}
   Result := pcre_stack_malloc_user;
   {$ELSE ~PCRE_STATICLINK}
   if not Assigned(pcre_stack_malloc_func) then
     LoadPCRE;
-
   if not Assigned(pcre_stack_malloc_func) then
   begin
     Result := nil;
@@ -815,49 +720,35 @@ begin
   else
     Result := pcre_stack_malloc_func^;
   {$ENDIF ~PCRE_STATICLINK}
-
 end;
-
 function CallPCREStackMalloc(Size: Integer): Pointer;
-
 begin
-
   {$IFDEF PCRE_STATICLINK}
   Result := pcre_stack_malloc(Size);
   {$ELSE ~PCRE_STATICLINK}
   Result := pcre_stack_malloc_func^(Size);
   {$ENDIF ~PCRE_STATICLINK}
-
 end;
-
 procedure SetPCREStackFreeCallback(const Value: pcre_stack_free_callback);
-
 begin
-
   {$IFDEF PCRE_STATICLINK}
   pcre_stack_free_user := Value;
   {$ELSE ~PCRE_STATICLINK}
   if not Assigned(pcre_stack_free_func) then
     LoadPCRE;
-
   if Assigned(pcre_stack_free_func) then
     pcre_stack_free_func^ := Value
   else if Assigned(LibNotLoadedHandler) then
     LibNotLoadedHandler;
   {$ENDIF ~PCRE_STATICLINK}
-
 end;
-
 function GetPCREStackFreeCallback: pcre_stack_free_callback;
-
 begin
-
   {$IFDEF PCRE_STATICLINK}
   Result := pcre_stack_free_user;
   {$ELSE ~PCRE_STATICLINK}
   if not Assigned(pcre_stack_free_func) then
     LoadPCRE;
-
   if not Assigned(pcre_stack_free_func) then
   begin
     Result := nil;
@@ -867,49 +758,35 @@ begin
   else
     Result := pcre_stack_free_func^;
   {$ENDIF ~PCRE_STATICLINK}
-
 end;
-
 procedure CallPCREStackFree(P: Pointer);
-
 begin
-
   {$IFDEF PCRE_STATICLINK}
   pcre_stack_free(P);
   {$ELSE ~PCRE_STATICLINK}
   pcre_stack_free_func^(P);
   {$ENDIF ~PCRE_STATICLINK}
-
 end;
-
 procedure SetPCRECalloutCallback(const Value: pcre_callout_callback);
-
 begin
-
   {$IFDEF PCRE_STATICLINK}
   pcre_callout_user := Value;
   {$ELSE ~PCRE_STATICLINK}
   if not Assigned(pcre_callout_func) then
     LoadPCRE;
-
   if Assigned(pcre_callout_func) then
     pcre_callout_func^ := Value
   else if Assigned(LibNotLoadedHandler) then
     LibNotLoadedHandler;
   {$ENDIF ~PCRE_STATICLINK}
-
 end;
-
 function GetPCRECalloutCallback: pcre_callout_callback;
-
 begin
-
   {$IFDEF PCRE_STATICLINK}
   Result := pcre_callout_user;
   {$ELSE ~PCRE_STATICLINK}
   if not Assigned(pcre_callout_func) then
     LoadPCRE;
-
   if not Assigned(pcre_callout_func) then
   begin
     Result := nil;
@@ -919,26 +796,18 @@ begin
   else
     Result := pcre_callout_func^;
   {$ENDIF ~PCRE_STATICLINK}
-
 end;
-
 function CallPCRECallout(var callout_block: pcre_callout_block): Integer;
-
 begin
-
   {$IFDEF PCRE_STATICLINK}
   Result := pcre_callout(callout_block);
   {$ELSE ~PCRE_STATICLINK}
   Result := pcre_callout_func^(callout_block);
   {$ENDIF ~PCRE_STATICLINK}
-
 end;
-
 {$IFNDEF PCRE_STATICLINK}
 procedure InitPCREFuncPtrs(const Value: Pointer);
-
 begin
-
   {$IFDEF PCRE_LINKONREQUEST}
   @pcre_compile := Value;
   @pcre_compile2 := Value;
@@ -966,32 +835,21 @@ begin
   pcre_stack_malloc_func := nil;
   pcre_stack_free_func := nil;
   pcre_callout_func := nil;
-
 end;
-
 {$ENDIF ~PCRE_STATICLINK}
-
 function IsPCRELoaded: Boolean;
-
 begin
-
   {$IFDEF PCRE_STATICLINK}
   Result := True;
   {$ELSE ~PCRE_STATICLINK}
   Result := PCRELib <> INVALID_MODULEHANDLE_VALUE;
   {$ENDIF ~PCRE_STATICLINK}
-
 end;
-
 function LoadPCRE: Boolean;
 {$IFDEF PCRE_STATICLINK}
-
 begin
-
   Result := True;
-
 end;
-
 {$ELSE ~PCRE_STATICLINK}
   function GetSymbol(SymbolName: PAnsiChar): Pointer;
   begin
@@ -1002,13 +860,10 @@ end;
     Result := dlsym(PCRELib, PChar(SymbolName));
     {$ENDIF UNIX}
   end;
-
 begin
-
   Result := PCRELib <> INVALID_MODULEHANDLE_VALUE;
   if Result then
     Exit;
-
   if PCRELib = INVALID_MODULEHANDLE_VALUE then
     {$IFDEF MSWINDOWS}
     PCRELib := SafeLoadLibrary(libpcremodulename);
@@ -1049,15 +904,10 @@ begin
   end
   else
     InitPCREFuncPtrs(@LibNotLoadedHandler);
-
 end;
-
 {$ENDIF ~PCRE_STATICLINK}
-
 procedure UnloadPCRE;
-
 begin
-
   {$IFNDEF PCRE_STATICLINK}
   if PCRELib <> INVALID_MODULEHANDLE_VALUE then
     {$IFDEF MSWINDOWS}
@@ -1069,22 +919,15 @@ begin
   PCRELib := INVALID_MODULEHANDLE_VALUE;
   InitPCREFuncPtrs(@LibNotLoadedHandler);
   {$ENDIF ~PCRE_STATICLINK}
-
 end;
-
 {$IFDEF PCRE_STATICLINK}
 procedure pcre_dispose(pattern, hints, chartable: Pointer);
-
 begin
-
   if pattern <> nil then pcre_free(pattern);
   if hints <> nil then pcre_free(hints);
   if chartable <> nil then pcre_free(chartable);
-
 end;
-
 {$ENDIF PCRE_STATICLINK}
-
 {$IFDEF PCRE_LINKDLL}
 function pcre_compile; external libpcremodulename name PCRECompileExportName;
 function pcre_compile2; external libpcremodulename name PCRECompile2ExportName;

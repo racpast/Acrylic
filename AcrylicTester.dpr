@@ -22,7 +22,6 @@ uses
   AbstractUnitTest in 'AbstractUnitTest.pas',
   AcrylicVersionInfo in 'AcrylicVersionInfo.pas',
   AddressCache in 'AddressCache.pas',
-  Bootstrapper in 'Bootstrapper.pas',
   CommonUtils in 'CommonUtils.pas',
   CommunicationChannels in 'CommunicationChannels.pas',
   Configuration in 'Configuration.pas',
@@ -38,7 +37,7 @@ uses
   HitLogger in 'HitLogger.pas',
   HostsCache in 'HostsCache.pas',
   HostsCacheBinaryTrees in 'HostsCacheBinaryTrees.pas',
-  IpUtils in 'IpUtils.pas',
+  IPUtils in 'IPUtils.pas',
   MD5 in 'MD5.pas',
   MemoryManager in 'MemoryManager.pas',
   MemoryStore in 'MemoryStore.pas',
@@ -48,14 +47,6 @@ uses
   Tracer in 'Tracer.pas',
   WinHttp in 'WinHttp.pas',
   WinSock in 'WinSock.pas';
-
-// --------------------------------------------------------------------------
-//
-// --------------------------------------------------------------------------
-
-var
-  TAddressCacheUnitTestKCacheItems: Integer = 2000;
-  THostsCacheUnitTestKHostsItems: Integer = 2000;
 
 // --------------------------------------------------------------------------
 //
@@ -83,9 +74,6 @@ var
 begin
 
   DecimalSeparator := '.';
-
-  if ((ParamCount >= 1) and (ParamStr(1) <> '')) then TAddressCacheUnitTestKCacheItems := StrToInt(ParamStr(1));
-  if ((ParamCount >= 2) and (ParamStr(2) <> '')) then THostsCacheUnitTestKHostsItems := StrToInt(ParamStr(2));
 
   WriteLn('==============================================================================');
   WriteLn('Acrylic DNS Proxy Tester');

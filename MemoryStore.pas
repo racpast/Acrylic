@@ -25,10 +25,10 @@ uses
 // --------------------------------------------------------------------------
 
 const
-  MEMORY_STORE_64KB_BLOCK_SIZE   = 65536;
-  MEMORY_STORE_128KB_BLOCK_SIZE  = 131072;
-  MEMORY_STORE_256KB_BLOCK_SIZE  = 262144;
-  MEMORY_STORE_512KB_BLOCK_SIZE  = 524288;
+  MEMORY_STORE_64KB_BLOCK_SIZE = 65536;
+  MEMORY_STORE_128KB_BLOCK_SIZE = 131072;
+  MEMORY_STORE_256KB_BLOCK_SIZE = 262144;
+  MEMORY_STORE_512KB_BLOCK_SIZE = 524288;
   MEMORY_STORE_1024KB_BLOCK_SIZE = 1048576;
 
 // --------------------------------------------------------------------------

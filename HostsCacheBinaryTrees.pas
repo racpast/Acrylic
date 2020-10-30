@@ -16,7 +16,7 @@ interface
 // --------------------------------------------------------------------------
 
 uses
-  IpUtils,
+  IPUtils,
   MD5,
   MemoryStore;
 
@@ -45,8 +45,8 @@ type
       BinaryTreeRoot: PHostsCacheIPv4AddressBinaryTreeItem;
     public
       constructor Create(MemoryStore: TType1MemoryStore);
-      procedure   Add(Name: String; Data: TIPv4Address);
-      function    Find(Name: String; var Data: TIPv4Address): Boolean;
+      procedure   AddItem(Name: String; Data: TIPv4Address);
+      function    FindItem(Name: String; var Data: TIPv4Address): Boolean;
       destructor  Destroy; override;
   end;
 
@@ -75,8 +75,8 @@ type
       BinaryTreeRoot: PHostsCacheIPv6AddressBinaryTreeItem;
     public
       constructor Create(MemoryStore: TType1MemoryStore);
-      procedure   Add(Name: String; Data: PIPv6Address);
-      function    Find(Name: String; var Data: PIPv6Address): Boolean;
+      procedure   AddItem(Name: String; Data: PIPv6Address);
+      function    FindItem(Name: String; var Data: PIPv6Address): Boolean;
       destructor  Destroy; override;
   end;
 
@@ -104,8 +104,8 @@ type
       BinaryTreeRoot: PHostsCacheNameOnlyBinaryTreeItem;
     public
       constructor Create(MemoryStore: TType1MemoryStore);
-      procedure   Add(Name: String);
-      function    Find(Name: String): Boolean;
+      procedure   AddItem(Name: String);
+      function    FindItem(Name: String): Boolean;
       destructor  Destroy; override;
   end;
 
@@ -142,7 +142,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-procedure THostsCacheIPv4AddressBinaryTree.Add(Name: String; Data: TIPv4Address);
+procedure THostsCacheIPv4AddressBinaryTree.AddItem(Name: String; Data: TIPv4Address);
 
 var
   Hash: TMD5Digest; BinaryTreeItem: PHostsCacheIPv4AddressBinaryTreeItem; CompareResult: Integer;
@@ -201,7 +201,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-function THostsCacheIPv4AddressBinaryTree.Find(Name: String; var Data: TIPv4Address): Boolean;
+function THostsCacheIPv4AddressBinaryTree.FindItem(Name: String; var Data: TIPv4Address): Boolean;
 
 var
   Hash: TMD5Digest; BinaryTreeItem: PHostsCacheIPv4AddressBinaryTreeItem; CompareResult: Integer;
@@ -286,7 +286,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-procedure THostsCacheIPv6AddressBinaryTree.Add(Name: String; Data: PIPv6Address);
+procedure THostsCacheIPv6AddressBinaryTree.AddItem(Name: String; Data: PIPv6Address);
 
 var
   Hash: TMD5Digest; BinaryTreeItem: PHostsCacheIPv6AddressBinaryTreeItem; CompareResult: Integer;
@@ -345,7 +345,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-function THostsCacheIPv6AddressBinaryTree.Find(Name: String; var Data: PIPv6Address): Boolean;
+function THostsCacheIPv6AddressBinaryTree.FindItem(Name: String; var Data: PIPv6Address): Boolean;
 
 var
   Hash: TMD5Digest; BinaryTreeItem: PHostsCacheIPv6AddressBinaryTreeItem; CompareResult: Integer;
@@ -430,7 +430,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-procedure THostsCacheNameOnlyBinaryTree.Add(Name: String);
+procedure THostsCacheNameOnlyBinaryTree.AddItem(Name: String);
 
 var
   Hash: TMD5Digest; BinaryTreeItem: PHostsCacheNameOnlyBinaryTreeItem; CompareResult: Integer;
@@ -489,7 +489,7 @@ end;
 //
 // --------------------------------------------------------------------------
 
-function THostsCacheNameOnlyBinaryTree.Find(Name: String): Boolean;
+function THostsCacheNameOnlyBinaryTree.FindItem(Name: String): Boolean;
 
 var
   Hash: TMD5Digest; BinaryTreeItem: PHostsCacheNameOnlyBinaryTreeItem; CompareResult: Integer;

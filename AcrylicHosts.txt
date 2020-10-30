@@ -1,5 +1,6 @@
 #
-# IF YOU MAKE ANY CHANGES TO THIS FILE YOU HAVE TO RESTART THE ACRYLIC DNS PROXY SERVICE IN ORDER TO SEE THEIR EFFECTS.
+# IF YOU MAKE ANY CHANGES TO THIS FILE YOU HAVE TO RESTART THE ACRYLIC DNS PROXY SERVICE OR CONSOLE IN ORDER TO SEE
+# THEIR EFFECTS.
 #
 # This is the AcrylicHosts.txt file.
 #
@@ -37,21 +38,24 @@
 #
 # 127.0.0.1 google.com *.google.com
 #
-# NXDOMAIN responses and FORWARD entries can also be mapped to domain names using all of the possibilities (i.e.
-# wildcard characters & regular expressions) already explained above:
+# NXDOMAIN (or negative) responses and FORWARD entries can also be mapped to domain names using all of the possibilities
+# (i.e. wildcard characters & regular expressions) already explained above:
 #
 # NX www.google.com
 # NX >google.com
 # NX /^ads?\..*$
 #
-# FORWARD entries are always evaluated first and can be effectively used to specify exceptions to other rules. For
-# example a configuration like this one:
+# FORWARD entries in particular are always evaluated first and can be used to specify exceptions to the other rules. For
+# example a configuration like this:
 #
+# FW >apple.com
 # FW >google.com
+# FW >microsoft.com
 # NX *
 #
-# Instructs Acrylic to forward to your DNS servers requests for domain names ending with "google.com" and to return a
-# NXDOMAIN response for all the other ones.
+# Instructs Acrylic to forward to your DNS servers requests for domain names ending with "apple.com", "google.com" and
+# "microsoft.com" and to return a NXDOMAIN response for all the other ones, thus effectively blocking every domain
+# except the ones you explicitly allow.
 #
 # For easier maintenance of entries coming from multiple sources it is also possible to "include" external HOSTS files
 # using the following syntax (the line must start with a '@' character followed by a space and then by a relative or an
@@ -64,3 +68,6 @@
 # performance perspective it is better to use a large list of domain names rather than a lot of patterns and regexes.
 # Patterns and regexes should be used to ease manual maintenance when the full list of domain names is either unknown or
 # too variable. A domain name is free, a pattern is relatively cheap and a regular expression is rather expensive.
+#
+127.0.0.1 localhost localhost.localdomain
+::1 localhost localhost.localdomain

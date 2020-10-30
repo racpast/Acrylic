@@ -28,10 +28,10 @@ type
 // --------------------------------------------------------------------------
 
 const
-  BUFFERED_SEQUENTIAL_STREAM_64KB_BUFFER_SIZE   = 65536;
-  BUFFERED_SEQUENTIAL_STREAM_128KB_BUFFER_SIZE  = 131072;
-  BUFFERED_SEQUENTIAL_STREAM_256KB_BUFFER_SIZE  = 262144;
-  BUFFERED_SEQUENTIAL_STREAM_512KB_BUFFER_SIZE  = 524288;
+  BUFFERED_SEQUENTIAL_STREAM_64KB_BUFFER_SIZE = 65536;
+  BUFFERED_SEQUENTIAL_STREAM_128KB_BUFFER_SIZE = 131072;
+  BUFFERED_SEQUENTIAL_STREAM_256KB_BUFFER_SIZE = 262144;
+  BUFFERED_SEQUENTIAL_STREAM_512KB_BUFFER_SIZE = 524288;
   BUFFERED_SEQUENTIAL_STREAM_1024KB_BUFFER_SIZE = 1048576;
 
 // --------------------------------------------------------------------------
@@ -70,7 +70,8 @@ type
     public
       constructor Create(const FileName: String; Append: Boolean; StreamBufferSize: Cardinal);
       function    Write(const DataBuffer; BytesToWrite: Cardinal): Boolean;
-      function    WriteString(const Text: String): Boolean;
+      function    WriteString(const Text: String; TextLength: Integer): Boolean; overload;
+      function    WriteString(const Text: String): Boolean; overload;
       function    Flush: Boolean;
       destructor  Destroy; override;
   end;
@@ -109,7 +110,7 @@ begin
 
         SetLength(Contents, BytesToRead); ReadFile(FileHandle, Contents[1], BytesToRead, BytesRead, nil); if (BytesRead <> BytesToRead) then begin
 
-          raise Exception.Create('Opening file "' + FileName + '" for reading failed.');
+          raise Exception.Create('Reading from file "' + FileName + '" failed.');
 
         end;
 
@@ -129,7 +130,7 @@ begin
 
   end else begin
 
-    raise Exception.Create('Reading from file "' + FileName + '" failed.');
+    raise Exception.Create('Opening file "' + FileName + '" for reading failed.');
 
   end;
 
@@ -152,7 +153,7 @@ begin
 
       WriteFile(FileHandle, Contents[1], BytesToWrite, BytesWritten, nil); if (BytesWritten <> BytesToWrite) then begin
 
-        raise Exception.Create('Opening file "' + FileName + '" for writing failed.');
+        raise Exception.Create('Writing to file "' + FileName + '" failed.');
 
       end;
 
@@ -164,7 +165,7 @@ begin
 
   end else begin
 
-    raise Exception.Create('Writing to file "' + FileName + '" failed.');
+    raise Exception.Create('Opening file "' + FileName + '" for writing failed.');
 
   end;
 
@@ -187,7 +188,7 @@ begin
 
       SetFilePointer(FileHandle, 0, nil, FILE_END); WriteFile(FileHandle, Contents[1], BytesToWrite, BytesWritten, nil); if (BytesWritten <> BytesToWrite) then begin
 
-        raise Exception.Create('Opening file "' + FileName + '" for writing failed.');
+        raise Exception.Create('Writing to file "' + FileName + '" failed.');
 
       end;
 
@@ -199,7 +200,7 @@ begin
 
   end else begin
 
-    raise Exception.Create('Writing to file "' + FileName + '" failed.');
+    raise Exception.Create('Opening file "' + FileName + '" for writing failed.');
 
   end;
 
@@ -489,11 +490,7 @@ destructor TBufferedSequentialReadStream.Destroy;
 
 begin
 
-  if (Self.FileHandle <> INVALID_HANDLE_VALUE) then begin
-
-    CloseHandle(Self.FileHandle);
-
-  end;
+  if (Self.FileHandle <> INVALID_HANDLE_VALUE) then CloseHandle(Self.FileHandle);
 
   TMemoryManager.FreeMemory(Self.StreamBuffer, Self.StreamBufferSize);
 
@@ -604,6 +601,18 @@ end;
 //
 // --------------------------------------------------------------------------
 
+function TBufferedSequentialWriteStream.WriteString(const Text: String; TextLength: Integer): Boolean;
+
+begin
+
+  Result := Self.Write(Text[1], TextLength);
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
 function TBufferedSequentialWriteStream.WriteString(const Text: String): Boolean;
 
 begin
@@ -649,17 +658,9 @@ destructor TBufferedSequentialWriteStream.Destroy;
 
 begin
 
-  if (Self.FileHandle <> INVALID_HANDLE_VALUE) then begin
+  if (Self.FileHandle <> INVALID_HANDLE_VALUE) then CloseHandle(Self.FileHandle);
 
-    CloseHandle(Self.FileHandle);
-
-  end;
-
-  if (Self.StreamBuffer <> nil) then begin
-
-    TMemoryManager.FreeMemory(Self.StreamBuffer, Self.StreamBufferSize);
-
-  end;
+  TMemoryManager.FreeMemory(Self.StreamBuffer, Self.StreamBufferSize);
 
 end;
 
