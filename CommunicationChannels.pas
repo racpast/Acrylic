@@ -1226,7 +1226,7 @@ end;
 function TDnsOverHttpsCommunicationChannel.SendAndReceiveUsingWinHttp(RequestBuffer: Pointer; RequestBufferLen: Integer; const DestinationAddress: String; DestinationPort: Word; const DestinationPath: String; const DestinationHost: String; ConnectionType: TDnsOverHttpsProtocolConnectionType; ReuseConnections: Boolean; ResponseTimeout: Integer; MaxResponseBufferLen: Integer; var ResponseBuffer: Pointer; var ResponseBufferLen: Integer): Boolean;
 
 var
-  InternetConnectionType: Cardinal; UserAgentWideString: WideString; InternetHandle: Pointer; DestinationAddressWideString: WideString; InternetConnectHandle: Pointer; InternetHttpOpenRequestFlags: Cardinal; InternetHttpOpenRequestVerbWideString: WideString; InternetHttpOpenRequestDestinationPathWideString: WideString; InternetHttpOpenRequestHandle: Pointer; InternetHttpSendRequestHeadersWideString: WideString; NumberOfBytesRead: Cardinal;
+  InternetConnectionType: Cardinal; UserAgentWideString: WideString; InternetHandle: Pointer; DestinationAddressWideString: WideString; InternetConnectHandle: Pointer; InternetHttpOpenRequestFlags: Cardinal; InternetHttpOpenRequestVerbWideString: WideString; InternetHttpOpenRequestDestinationPathWideString: WideString; InternetHttpOpenRequestHandle: Pointer; InternetHttpSendRequestOption: Cardinal; InternetHttpSendRequestHeadersWideString: WideString; NumberOfBytesRead: Cardinal;
 
 begin
 
@@ -1273,6 +1273,18 @@ begin
       end;
 
       try
+
+        if not ReuseConnections then begin
+
+          InternetHttpSendRequestOption := WINHTTP_DISABLE_KEEP_ALIVE;
+
+          if not WinHttpSetOption(InternetHttpOpenRequestHandle, WINHTTP_OPTION_DISABLE_FEATURE, @InternetHttpSendRequestOption, SizeOf(InternetHttpSendRequestOption)) then begin
+
+            raise Exception.Create('TDnsOverHttpsClientCommunicationChannel.SendAndReceiveUsingWinHttp: WinHttpSetOption(WINHTTP_OPTION_DISABLE_FEATURE, WINHTTP_DISABLE_KEEP_ALIVE) failed with error code ' + IntToStr(GetLastError) + '.');
+
+          end;
+
+        end;
 
         InternetHttpSendRequestHeadersWideString := 'Host: ' + DestinationHost + #10 + 'Content-Type: application/dns-message' + #10 + 'Accept: application/dns-message' + #10;
 

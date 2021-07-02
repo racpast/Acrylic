@@ -38,6 +38,16 @@ const
 //
 // --------------------------------------------------------------------------
 
+const
+  WINHTTP_OPTION_DISABLE_FEATURE = $3F;
+  WINHTTP_OPTION_ENABLE_HTTP_PROTOCOL = $85;
+  WINHTTP_DISABLE_KEEP_ALIVE = $08;
+  WINHTTP_PROTOCOL_FLAG_HTTP2 = $01;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
 function WinHttpOpen(pwszUserAgent: PWideChar; dwAccessType: Cardinal; pwszProxyName, pwszProxyBypass: PWideChar; dwFlags: Cardinal): Pointer; stdcall; external WINHTTP_DLL;
 function WinHttpConnect(hInternet: Pointer; pswzServerName: PWideChar; nServerPort: Word; dwReserved: Cardinal): Pointer; stdcall; external WINHTTP_DLL;
 function WinHttpOpenRequest(hInternet: Pointer; pwszVerb: PWideChar; pwszObjectName: PWideChar; pwszVersion: PWideChar; pwszReferer: PWideChar; ppwszAcceptTypes: PWideChar; dwFlags: Cardinal): Pointer; stdcall; external WINHTTP_DLL;

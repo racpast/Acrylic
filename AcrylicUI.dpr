@@ -15,7 +15,7 @@ uses
   AcrylicUIUtils in 'AcrylicUIUtils.pas',
   AcrylicUISettings in 'AcrylicUISettings.pas',
   AcrylicUIRegExTester in 'AcrylicUIRegExTester.pas',
-  AcrylicVersionInfo in 'AcrylicVersionInfo.pas';
+  AcrylicUIDomainNameAffinityMaskTester in 'AcrylicUIDomainNameAffinityMaskTester.pas';
 
 // --------------------------------------------------------------------------
 //

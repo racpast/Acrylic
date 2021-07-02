@@ -31,7 +31,8 @@ uses
   Dialogs,
   AcrylicUIUtils,
   AcrylicUISettings,
-  AcrylicUIRegExTester;
+  AcrylicUIRegExTester,
+  AcrylicUIDomainNameAffinityMaskTester;
 
 // --------------------------------------------------------------------------
 //
@@ -73,6 +74,7 @@ type
 
     ToolsMainMenuItem: TMenuItem;
     ToolsRegExTesterMainMenuItem: TMenuItem;
+    ToolsDomainNameAffinityMaskTesterMainMenuItem: TMenuItem;
 
     HelpMainMenuItem: TMenuItem;
     HelpAcrylicHomePageMainMenuItem: TMenuItem;
@@ -104,6 +106,7 @@ type
     procedure SettingsSetEditorFontMainMenuItemClick(Sender: TObject);
 
     procedure ToolsRegExTesterMainMenuItemClick(Sender: TObject);
+    procedure ToolsDomainNameAffinityMaskTesterMainMenuItemClick(Sender: TObject);
 
     procedure HelpAcrylicHomePageMainMenuItemClick(Sender: TObject);
     procedure HelpAboutAcrylicMainMenuItemClick(Sender: TObject);
@@ -959,6 +962,23 @@ var
 begin
 
   MyForm := TRegExTesterForm.Create(nil);
+  MyForm.ShowModal;
+  MyForm.Free;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+procedure TMainForm.ToolsDomainNameAffinityMaskTesterMainMenuItemClick(Sender: TObject);
+
+var
+  MyForm: TDomainNameAffinityMaskTesterForm;
+
+begin
+
+  MyForm := TDomainNameAffinityMaskTesterForm.Create(nil);
   MyForm.ShowModal;
   MyForm.Free;
 

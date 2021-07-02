@@ -3,7 +3,7 @@
 // --------------------------------------------------------------------------
 
 unit
-  AcrylicUIRegExTester;
+  AcrylicUIDomainNameAffinityMaskTester;
 
 // --------------------------------------------------------------------------
 //
@@ -29,12 +29,12 @@ uses
 // --------------------------------------------------------------------------
 
 type
-  TRegExTesterForm = class(TForm)
+  TDomainNameAffinityMaskTesterForm = class(TForm)
 
     lblDomainName: TLabel;
     txtDomainName: TEdit;
-    lblRegEx: TLabel;
-    txtRegEx: TEdit;
+    lblAffinityMask: TLabel;
+    txtAffinityMask: TEdit;
     lblResult: TLabel;
     btnTest: TButton;
 
@@ -49,7 +49,7 @@ type
 // --------------------------------------------------------------------------
 
 var
-  RegExTesterForm: TRegExTesterForm;
+  DomainNameAffinityMaskTesterForm: TDomainNameAffinityMaskTesterForm;
 
 // --------------------------------------------------------------------------
 //
@@ -67,7 +67,7 @@ implementation
 //
 // --------------------------------------------------------------------------
 
-procedure TRegExTesterForm.FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
+procedure TDomainNameAffinityMaskTesterForm.FormKeyDown(Sender: TObject; var Key: Word; Shift: TShiftState);
 
 begin
 
@@ -79,13 +79,13 @@ end;
 //
 // --------------------------------------------------------------------------
 
-procedure TRegExTesterForm.btnTestClick(Sender: TObject);
+procedure TDomainNameAffinityMaskTesterForm.btnTestClick(Sender: TObject);
 
 begin
 
   try
 
-    if AcrylicUIUtils.TestRegEx(txtDomainName.Text, txtRegEx.Text) then begin
+    if AcrylicUIUtils.TestDomainNameAffinityMask(txtDomainName.Text, txtAffinityMask.Text) then begin
 
       lblResult.Caption := 'Match: YES.';
 
@@ -97,7 +97,7 @@ begin
 
   except
 
-    lblResult.Caption := 'Invalid regular expression specified.';
+    lblResult.Caption := 'Invalid affinity mask specified.';
 
   end;
 

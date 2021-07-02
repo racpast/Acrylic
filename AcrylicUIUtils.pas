@@ -48,6 +48,7 @@ function  GetAcrylicCacheFilePath: String;
 function  GetAcrylicDebugLogFilePath: String;
 
 function  TestRegEx(Subject: String; RegEx: String): Boolean;
+function  TestDomainNameAffinityMask(Subject: String; AffinityMaskText: String): Boolean;
 
 function  GetAcrylicWelcomeString: String;
 function  GetAcrylicDescriptionString: String;
@@ -63,13 +64,15 @@ implementation
 // --------------------------------------------------------------------------
 
 uses
+  Classes,
   Windows,
   SysUtils,
   Registry,
   TlHelp32,
   ShellApi,
-  PerlRegEx,
-  AcrylicVersionInfo;
+  AcrylicVersionInfo,
+  PatternMatching,
+  PerlRegEx;
 
 // --------------------------------------------------------------------------
 //
@@ -441,6 +444,60 @@ begin
     if (RE <> nil) then RE.Free;
 
   end;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+function InternalTestDomainNameAffinityMask(const DomainName: String; DomainNameAffinityMask: TStringList): Boolean;
+
+var
+  i: Integer; S: String;
+
+begin
+
+  if (DomainNameAffinityMask <> nil) then begin
+
+    for i := 0 to (DomainNameAffinityMask.Count - 1) do begin
+
+      S := DomainNameAffinityMask[i];
+
+      if (S[1] = '^') then begin
+        if TPatternMatching.Match(PChar(DomainName), PChar(Copy(S, 2, Length(S) - 1))) then begin Result := False; Exit; end;
+      end else begin
+        if TPatternMatching.Match(PChar(DomainName), PChar(S)) then begin Result := True; Exit; end;
+      end;
+
+    end;
+
+    Result := False;
+
+  end else begin
+
+    Result := True;
+
+  end;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+function TestDomainNameAffinityMask(Subject: String; AffinityMaskText: String): Boolean;
+
+var
+  AffinityMask: TStringList;
+
+begin
+
+  AffinityMask := TStringList.Create; AffinityMask.Delimiter := ';'; AffinityMask.DelimitedText := AffinityMaskText;
+
+  Result := InternalTestDomainNameAffinityMask(Subject, AffinityMask);
+
+  AffinityMask.Free;
 
 end;
 

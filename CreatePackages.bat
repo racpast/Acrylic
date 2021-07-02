@@ -36,6 +36,6 @@ If %ErrorLevel% Neq 0 Echo FAILED! & Pause & Exit /b 0
 
 Echo PRINTING SHA256 FILE HASHES...
 
-Call GetFiles.bat "%DestinationDirectory%\*.*" | Call HashFiles.bat SHA256
+CsRun GetFiles "/DirectoryPath=%DestinationDirectory%" | CsRun ForEachFileGetHash SHA256
 
 Echo DONE SUCCESSFULLY.

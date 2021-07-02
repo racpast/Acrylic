@@ -152,7 +152,7 @@ object MainForm: TMainForm
       end
     end
     object SettingsMainMenuItem: TMenuItem
-      Caption = 'Se&ttings'
+      Caption = '&Settings'
       object SettingsSetEditorFontMainMenuItem: TMenuItem
         Caption = 'Set Editor &Font...'
         OnClick = SettingsSetEditorFontMainMenuItemClick
@@ -163,6 +163,10 @@ object MainForm: TMainForm
       object ToolsRegExTesterMainMenuItem: TMenuItem
         Caption = '&RegEx Tester'
         OnClick = ToolsRegExTesterMainMenuItemClick
+      end
+      object ToolsDomainNameAffinityMaskTesterMainMenuItem: TMenuItem
+        Caption = '&Domain Name Affinity Mask Tester'
+        OnClick = ToolsDomainNameAffinityMaskTesterMainMenuItemClick
       end
     end
     object HelpMainMenuItem: TMenuItem
@@ -181,6 +185,7 @@ object MainForm: TMainForm
     end
   end
   object Timer: TTimer
+    Interval = 500
     OnTimer = TimerTimer
     Left = 33
     Top = 4

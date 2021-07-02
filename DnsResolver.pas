@@ -164,8 +164,7 @@ uses
 // --------------------------------------------------------------------------
 
 const
-  DNS_RESOLVER_WAIT_TIME = 4999;
-  DNS_RESOLVER_FADE_TIME = 1999;
+  DNS_RESOLVER_WAIT_TIME = 499;
 
 // --------------------------------------------------------------------------
 //
@@ -319,7 +318,7 @@ class procedure TDnsResolver.StopResolverThreads;
 
 begin
 
-  if not TConfiguration.GetAddressCacheDisabled then begin
+  if not(TConfiguration.GetAddressCacheDisabled) then begin
 
     DnsResolverAddressCachePruner.Terminate;
 
@@ -349,12 +348,6 @@ begin
 
   end;
 
-  if not TConfiguration.GetAddressCacheDisabled then begin
-
-    DnsResolverAddressCachePruner.WaitFor;
-
-  end;
-
   if TConfiguration.IsLocalIPv6BindingEnabled then begin
 
     IPv6UdpDnsResolver.Free; IPv6TcpDnsResolver.Free;
@@ -367,13 +360,17 @@ begin
 
   end;
 
-  if not TConfiguration.GetAddressCacheDisabled then begin
+  if not(TConfiguration.GetAddressCacheDisabled) then begin
+
+    DnsResolverAddressCachePruner.WaitFor;
+
+  end;
+
+  if not(TConfiguration.GetAddressCacheDisabled) then begin
 
     DnsResolverAddressCachePruner.Free;
 
   end;
-
-  Sleep(DNS_RESOLVER_FADE_TIME); // This is to ensure all volatile threads have terminated
 
   TDnsResolver_Lock.Free; TDnsResolver_Lock := nil;
 
