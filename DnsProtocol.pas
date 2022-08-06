@@ -24,7 +24,7 @@ uses
 
 const
   MIN_DNS_PACKET_LEN = 16;
-  MAX_DNS_PACKET_LEN = 4096;
+  MAX_DNS_PACKET_LEN = 8192;
   MAX_DNS_BUFFER_LEN = 65536;
 
 // --------------------------------------------------------------------------

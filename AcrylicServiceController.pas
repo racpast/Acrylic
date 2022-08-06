@@ -111,6 +111,8 @@ begin
 
       if R.OpenKey('\System\CurrentControlSet\Services\' + Self.Name, false) then begin
 
+        R.WriteString('ImagePath', '"' + ParamStr(0) + '"');
+
         R.WriteString('Description', 'A local DNS proxy which improves the performance of your computer.');
 
         R.CloseKey;

@@ -236,6 +236,9 @@ begin
 
   Result := ExecuteCommand('"' + AcrylicServiceExeFilePath + '" /INSTALL /SILENT') = 0;
 
+  ExecuteCommand('ICACLS.exe "' + AcrylicServiceExeFilePath + '" /inheritance:d');
+  ExecuteCommand('ICACLS.exe "' + AcrylicServiceExeFilePath + '" /remove:g "Authenticated Users"');
+
 end;
 
 // --------------------------------------------------------------------------

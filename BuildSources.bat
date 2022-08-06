@@ -6,6 +6,7 @@ Call CleanSources.bat
 
 Echo SEARCHING THE COMPILER...
 
+If Exist "C:\Delphi7SE\Bin\DCC32.exe" Set DCC=C:\Delphi7SE\Bin\DCC32.exe
 If Exist "%PROGRAMFILES%\Delphi7SE\Bin\DCC32.exe" Set DCC=%PROGRAMFILES%\Delphi7SE\Bin\DCC32.exe
 If Exist "%PROGRAMFILES(X86)%\Delphi7SE\Bin\DCC32.exe" Set DCC=%PROGRAMFILES(X86)%\Delphi7SE\Bin\DCC32.exe
 
