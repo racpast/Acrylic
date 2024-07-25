@@ -1133,7 +1133,7 @@ begin
 
   if (ConnectionType = SystemDnsOverHttpsProtocolConnectionType) then InternetConnectionType := INTERNET_OPEN_TYPE_PRECONFIG else if (ConnectionType = DirectDnsOverHttpsProtocolConnectionType) then InternetConnectionType := INTERNET_OPEN_TYPE_DIRECT else InternetConnectionType := INTERNET_OPEN_TYPE_PRECONFIG;
 
-  InternetHandle := WinInet.InternetOpen(PChar('AcrylicDNSProxy/' + AcrylicVersionNumber + #0), InternetConnectionType, nil, nil, 0);
+  InternetHandle := WinInet.InternetOpen(nil, InternetConnectionType, nil, nil, 0);
 
   if (InternetHandle = nil) then begin
 
@@ -1226,7 +1226,7 @@ end;
 function TDnsOverHttpsCommunicationChannel.SendAndReceiveUsingWinHttp(RequestBuffer: Pointer; RequestBufferLen: Integer; const DestinationAddress: String; DestinationPort: Word; const DestinationPath: String; const DestinationHost: String; ConnectionType: TDnsOverHttpsProtocolConnectionType; ReuseConnections: Boolean; ResponseTimeout: Integer; MaxResponseBufferLen: Integer; var ResponseBuffer: Pointer; var ResponseBufferLen: Integer): Boolean;
 
 var
-  InternetConnectionType: Cardinal; UserAgentWideString: WideString; InternetHandle: Pointer; DestinationAddressWideString: WideString; InternetConnectHandle: Pointer; InternetHttpOpenRequestFlags: Cardinal; InternetHttpOpenRequestVerbWideString: WideString; InternetHttpOpenRequestDestinationPathWideString: WideString; InternetHttpOpenRequestHandle: Pointer; InternetHttpSendRequestOption: Cardinal; InternetHttpSendRequestHeadersWideString: WideString; NumberOfBytesRead: Cardinal;
+  InternetConnectionType: Cardinal; InternetHandle: Pointer; DestinationAddressWideString: WideString; InternetConnectHandle: Pointer; InternetHttpOpenRequestFlags: Cardinal; InternetHttpOpenRequestVerbWideString: WideString; InternetHttpOpenRequestDestinationPathWideString: WideString; InternetHttpOpenRequestHandle: Pointer; InternetHttpSendRequestOption: Cardinal; InternetHttpSendRequestHeadersWideString: WideString; NumberOfBytesRead: Cardinal;
 
 begin
 
@@ -1234,9 +1234,7 @@ begin
 
   if (ConnectionType = SystemDnsOverHttpsProtocolConnectionType) then InternetConnectionType := WINHTTP_ACCESS_TYPE_DEFAULT_PROXY else if (ConnectionType = DirectDnsOverHttpsProtocolConnectionType) then InternetConnectionType := WINHTTP_ACCESS_TYPE_NO_PROXY else InternetConnectionType := WINHTTP_ACCESS_TYPE_DEFAULT_PROXY;
 
-  UserAgentWideString := 'AcrylicDNSProxy/' + AcrylicVersionNumber + #0;
-
-  InternetHandle := WinHttpOpen(PWideChar(UserAgentWideString), InternetConnectionType, nil, nil, 0);
+  InternetHandle := WinHttpOpen(nil, InternetConnectionType, nil, nil, 0);
 
   if (InternetHandle = nil) then begin
 

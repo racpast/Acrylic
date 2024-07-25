@@ -43,9 +43,11 @@ begin
 
   InitSeed := Round(Frac(TimeStamp) * 8640000.0);
 
+  TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Initializing...');
+
   THostsCache.Initialize;
 
-  TTracer.Trace(TracePriorityInfo, Self.ClassName + ': ' + IntToStr(Self.HostsItems) + ' hosts items.');
+  TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Done.');
 
   TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Starting massive insertion...');
 
@@ -633,7 +635,11 @@ begin
 
   TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Done.');
 
+  TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Finalizing...');
+
   THostsCache.Finalize;
+
+  TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Done.');
 
 end;
 

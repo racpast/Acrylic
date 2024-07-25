@@ -14,7 +14,7 @@ If %ErrorLevel% Neq 0 Echo FAILED! & Pause & Exit /b 0
 
 Echo BUILDING ACRYLIC SETUP PACKAGE...
 
-"C:\Wintools\NSIS\App\NSIS\makensis.exe" AcrylicSetup.nsi
+"C:\Wintools\NSIS-2.46.5\App\NSIS\makensis.exe" AcrylicSetup.nsi
 
 If %ErrorLevel% Neq 0 Echo FAILED! & Pause & Exit /b 0
 

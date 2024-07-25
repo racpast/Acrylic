@@ -53,7 +53,7 @@ uses
 // --------------------------------------------------------------------------
 
 var
-  AtLeastOneTestFailed: Boolean;
+  AllTestsSucceeded: Boolean;
 
 // --------------------------------------------------------------------------
 //
@@ -83,20 +83,21 @@ begin
 
   if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'Acrylic version ' + AcrylicVersionNumber + ' released on ' + AcrylicReleaseDate + '.');
 
-  AtLeastOneTestFailed := False;
+  AllTestsSucceeded := False;
 
-  if not TAbstractUnitTest.ControlTestExecution(TMD5UnitTest.Create)                   then AtLeastOneTestFailed := True;
-  if not TAbstractUnitTest.ControlTestExecution(TCommunicationChannelsUnitTest.Create) then AtLeastOneTestFailed := True;
-  if not TAbstractUnitTest.ControlTestExecution(TDnsOverHttpsCacheUnitTest.Create)     then AtLeastOneTestFailed := True;
-  if not TAbstractUnitTest.ControlTestExecution(TSessionCacheUnitTest.Create)          then AtLeastOneTestFailed := True;
-  if not TAbstractUnitTest.ControlTestExecution(TAddressCacheUnitTest.Create)          then AtLeastOneTestFailed := True;
-  if not TAbstractUnitTest.ControlTestExecution(THostsCacheUnitTest.Create)            then AtLeastOneTestFailed := True;
-  if not TAbstractUnitTest.ControlTestExecution(TRegularExpressionUnitTest.Create)     then AtLeastOneTestFailed := True;
+  if TAbstractUnitTest.ControlTestExecution(TMD5UnitTest.Create) then
+    if TAbstractUnitTest.ControlTestExecution(TCommunicationChannelsUnitTest.Create) then
+      if TAbstractUnitTest.ControlTestExecution(TDnsOverHttpsCacheUnitTest.Create) then
+        if TAbstractUnitTest.ControlTestExecution(TSessionCacheUnitTest.Create) then
+          if TAbstractUnitTest.ControlTestExecution(TAddressCacheUnitTest.Create) then
+            if TAbstractUnitTest.ControlTestExecution(THostsCacheUnitTest.Create) then
+              if TAbstractUnitTest.ControlTestExecution(TRegularExpressionUnitTest.Create) then
+                AllTestsSucceeded := True;
 
-  if TTracer.IsEnabled then if AtLeastOneTestFailed then TTracer.Trace(TracePriorityInfo, 'AT LEAST ONE TEST FAILED!') else TTracer.Trace(TracePriorityInfo, 'ALL TESTS SUCCEEDED!');
+  if TTracer.IsEnabled then if AllTestsSucceeded then TTracer.Trace(TracePriorityInfo, 'ALL TESTS SUCCEEDED!') else TTracer.Trace(TracePriorityInfo, 'AT LEAST ONE TEST FAILED!');
 
   TTracer.Finalize; TConfiguration.Finalize;
 
-  if AtLeastOneTestFailed then ExitCode := 1 else ExitCode := 0;
+  if AllTestsSucceeded then ExitCode := 0 else ExitCode := 1;
 
 end.

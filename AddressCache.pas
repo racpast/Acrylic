@@ -159,8 +159,8 @@ class procedure TAddressCacheMemoryStore.Initialize;
 
 begin
 
-  TAddressCache_MemoryStore_A := TType2MemoryStore.Create(98280, 14);
-  TAddressCache_MemoryStore_B := TType2MemoryStore.Create(98280, 28);
+  TAddressCache_MemoryStore_A := TType2MemoryStore.Create(98304, 16);
+  TAddressCache_MemoryStore_B := TType2MemoryStore.Create(98304, 32);
   TAddressCache_MemoryStore_C := TType2MemoryStore.Create(98304, 64);
   TAddressCache_MemoryStore_D := TType2MemoryStore.Create(98240, 80);
   TAddressCache_MemoryStore_E := TType2MemoryStore.Create(98304, 96);
@@ -197,7 +197,7 @@ class function TAddressCacheMemoryStore.GetMemory(Size: Cardinal): Pointer;
 begin
 
        if (Size <= 16)                 then Result := TAddressCache_MemoryStore_A.GetMemory(Size)
-  else if (Size <= 28)                 then Result := TAddressCache_MemoryStore_B.GetMemory(Size)
+  else if (Size <= 32)                 then Result := TAddressCache_MemoryStore_B.GetMemory(Size)
   else if (Size <= 64)                 then Result := TAddressCache_MemoryStore_C.GetMemory(Size)
   else if (Size <= 80)                 then Result := TAddressCache_MemoryStore_D.GetMemory(Size)
   else if (Size <= 96)                 then Result := TAddressCache_MemoryStore_E.GetMemory(Size)
@@ -235,7 +235,7 @@ class procedure TAddressCacheMemoryStore.FreeMemory(Address: Pointer; Size: Card
 begin
 
        if (Size <= 16)                 then TAddressCache_MemoryStore_A.FreeMemory(Address)
-  else if (Size <= 28)                 then TAddressCache_MemoryStore_B.FreeMemory(Address)
+  else if (Size <= 32)                 then TAddressCache_MemoryStore_B.FreeMemory(Address)
   else if (Size <= 64)                 then TAddressCache_MemoryStore_C.FreeMemory(Address)
   else if (Size <= 80)                 then TAddressCache_MemoryStore_D.FreeMemory(Address)
   else if (Size <= 96)                 then TAddressCache_MemoryStore_E.FreeMemory(Address)

@@ -51,9 +51,11 @@ begin
 
   InitSeed := Round(Frac(TimeStamp) * 8640000.0);
 
+  TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Initializing...');
+
   TAddressCache.Initialize;
 
-  TTracer.Trace(TracePriorityInfo, Self.ClassName + ': ' + IntToStr(Self.CacheItems) + ' cache items.');
+  TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Done.');
 
   TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Starting massive insertion...');
 
@@ -97,9 +99,17 @@ begin
 
   TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Done.');
 
+  TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Finalizing...');
+
   TAddressCache.Finalize;
 
+  TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Done.');
+
+  TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Initializing...');
+
   TAddressCache.Initialize;
+
+  TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Done.');
 
   TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Starting loading from file...');
 
@@ -128,7 +138,11 @@ begin
 
   TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Done.');
 
+  TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Finalizing...');
+
   TAddressCache.Finalize;
+
+  TTracer.Trace(TracePriorityInfo, Self.ClassName + ': Done.');
 
 end;
 

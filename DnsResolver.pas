@@ -607,7 +607,91 @@ begin
 
           end;
 
+        end else if (QueryType = DNS_QUERY_TYPE_HTTPS) then begin
+
+          if TDnsOverHttpsCache.FindIPv4Item(DomainName, IPv4Address) then begin
+
+            TDnsProtocolUtility.BuildPositiveHttpsResponsePacket(DomainName, QueryType, Output, OutputLen);
+
+            TDnsProtocolUtility.SetIdIntoPacket(OriginalSessionId, Output); ServerCommunicationChannel.Send(Output, OutputLen, Address, Port);
+
+            if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.HandleDnsRequestForIPv4Udp: Response ID ' + FormatCurr('00000', OriginalSessionId) + ' sent to client ' + TIPv4AddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' using dns over https cache [' + TDnsProtocolUtility.PrintResponsePacketDescriptionAsStringFromPacket(Output, OutputLen, True) + '].');
+
+            if THitLogger.IsEnabled and (Pos('X', THitLogger.GetFileWhat) > 0) then THitLogger.AddIPv4Hit(ArrivalTime, Address, 'X', '', '', TDnsProtocolUtility.PrintRequestPacketDescriptionAsStringFromPacket(DomainName, QueryType, Buffer, BufferLen, THitLogger.GetFullDump));
+
+            Exit;
+
+          end else if TDnsOverHttpsCache.FindIPv6Item(DomainName, IPv6Address) then begin
+
+            TDnsProtocolUtility.BuildPositiveHttpsResponsePacket(DomainName, QueryType, Output, OutputLen);
+
+            TDnsProtocolUtility.SetIdIntoPacket(OriginalSessionId, Output); ServerCommunicationChannel.Send(Output, OutputLen, Address, Port);
+
+            if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.HandleDnsRequestForIPv4Udp: Response ID ' + FormatCurr('00000', OriginalSessionId) + ' sent to client ' + TIPv4AddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' using dns over https cache [' + TDnsProtocolUtility.PrintResponsePacketDescriptionAsStringFromPacket(Output, OutputLen, True) + '].');
+
+            if THitLogger.IsEnabled and (Pos('X', THitLogger.GetFileWhat) > 0) then THitLogger.AddIPv4Hit(ArrivalTime, Address, 'X', '', '', TDnsProtocolUtility.PrintRequestPacketDescriptionAsStringFromPacket(DomainName, QueryType, Buffer, BufferLen, THitLogger.GetFullDump));
+
+            Exit;
+
+          end else if THostsCache.FindFWItem(DomainName) then begin
+
+            // Don't do anything, let the execution flow...
+
+          end else if THostsCache.FindNXItem(DomainName) then begin
+
+            TDnsProtocolUtility.BuildNegativeResponsePacket(DomainName, QueryType, Output, OutputLen);
+
+            TDnsProtocolUtility.SetIdIntoPacket(OriginalSessionId, Output); ServerCommunicationChannel.Send(Output, OutputLen, Address, Port);
+
+            if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.HandleDnsRequestForIPv4Udp: Response ID ' + FormatCurr('00000', OriginalSessionId) + ' sent to client ' + TIPv4AddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' using hosts cache [' + TDnsProtocolUtility.PrintResponsePacketDescriptionAsStringFromPacket(Output, OutputLen, True) + '].');
+
+            if THitLogger.IsEnabled and (Pos('H', THitLogger.GetFileWhat) > 0) then THitLogger.AddIPv4Hit(ArrivalTime, Address, 'H', '', '', TDnsProtocolUtility.PrintRequestPacketDescriptionAsStringFromPacket(DomainName, QueryType, Buffer, BufferLen, THitLogger.GetFullDump));
+
+            Exit;
+
+          end else if THostsCache.FindIPv4Item(DomainName, IPv4Address) then begin
+
+            TDnsProtocolUtility.BuildPositiveHttpsResponsePacket(DomainName, QueryType, Output, OutputLen);
+
+            TDnsProtocolUtility.SetIdIntoPacket(OriginalSessionId, Output); ServerCommunicationChannel.Send(Output, OutputLen, Address, Port);
+
+            if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.HandleDnsRequestForIPv4Udp: Response ID ' + FormatCurr('00000', OriginalSessionId) + ' sent to client ' + TIPv4AddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' using hosts cache [' + TDnsProtocolUtility.PrintResponsePacketDescriptionAsStringFromPacket(Output, OutputLen, True) + '].');
+
+            if THitLogger.IsEnabled and (Pos('H', THitLogger.GetFileWhat) > 0) then THitLogger.AddIPv4Hit(ArrivalTime, Address, 'H', '', '', TDnsProtocolUtility.PrintRequestPacketDescriptionAsStringFromPacket(DomainName, QueryType, Buffer, BufferLen, THitLogger.GetFullDump));
+
+            Exit;
+
+          end else if THostsCache.FindIPv6Item(DomainName, IPv6Address) then begin
+
+            TDnsProtocolUtility.BuildPositiveHttpsResponsePacket(DomainName, QueryType, Output, OutputLen);
+
+            TDnsProtocolUtility.SetIdIntoPacket(OriginalSessionId, Output); ServerCommunicationChannel.Send(Output, OutputLen, Address, Port);
+
+            if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.HandleDnsRequestForIPv4Udp: Response ID ' + FormatCurr('00000', OriginalSessionId) + ' sent to client ' + TIPv4AddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' using hosts cache [' + TDnsProtocolUtility.PrintResponsePacketDescriptionAsStringFromPacket(Output, OutputLen, True) + '].');
+
+            if THitLogger.IsEnabled and (Pos('H', THitLogger.GetFileWhat) > 0) then THitLogger.AddIPv4Hit(ArrivalTime, Address, 'H', '', '', TDnsProtocolUtility.PrintRequestPacketDescriptionAsStringFromPacket(DomainName, QueryType, Buffer, BufferLen, THitLogger.GetFullDump));
+
+            Exit;
+
+          end;
+
         end else if (QueryType = DNS_QUERY_TYPE_PTR) then begin
+
+          if not(TConfiguration.GetForwardPrivateReverseLookups) and TDnsProtocolUtility.IsPrivateReverseLookup(DomainName) then begin
+
+            TDnsProtocolUtility.BuildNegativeResponsePacket(DomainName, QueryType, Output, OutputLen);
+
+            TDnsProtocolUtility.SetIdIntoPacket(OriginalSessionId, Output); ServerCommunicationChannel.Send(Output, OutputLen, Address, Port);
+
+            if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.HandleDnsRequestForIPv4Udp: Response ID ' + FormatCurr('00000', OriginalSessionId) + ' sent to client ' + TIPv4AddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' directly from resolver [' + TDnsProtocolUtility.PrintResponsePacketDescriptionAsStringFromPacket(Output, OutputLen, True) + '].');
+
+            if THitLogger.IsEnabled and (Pos('X', THitLogger.GetFileWhat) > 0) then THitLogger.AddIPv4Hit(ArrivalTime, Address, 'X', '', '', TDnsProtocolUtility.PrintRequestPacketDescriptionAsStringFromPacket(DomainName, QueryType, Buffer, BufferLen, THitLogger.GetFullDump));
+
+            Exit;
+
+          end;
+
+        end else if (QueryType = DNS_QUERY_TYPE_ANY) then begin
 
           if not(TConfiguration.GetForwardPrivateReverseLookups) and TDnsProtocolUtility.IsPrivateReverseLookup(DomainName) then begin
 
@@ -1050,7 +1134,91 @@ begin
 
           end;
 
+        end else if (QueryType = DNS_QUERY_TYPE_HTTPS) then begin
+
+          if TDnsOverHttpsCache.FindIPv4Item(DomainName, IPv4Address) then begin
+
+            TDnsProtocolUtility.BuildPositiveHttpsResponsePacket(DomainName, QueryType, Output, OutputLen);
+
+            TDnsProtocolUtility.SetIdIntoPacket(OriginalSessionId, Output); ServerCommunicationChannel.Send(Output, OutputLen);
+
+            if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.HandleDnsRequestForIPv4Tcp: Response ID ' + FormatCurr('00000', OriginalSessionId) + ' sent to client ' + TIPv4AddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' using dns over https cache [' + TDnsProtocolUtility.PrintResponsePacketDescriptionAsStringFromPacket(Output, OutputLen, True) + '].');
+
+            if THitLogger.IsEnabled and (Pos('X', THitLogger.GetFileWhat) > 0) then THitLogger.AddIPv4Hit(ArrivalTime, Address, 'X', '', '', TDnsProtocolUtility.PrintRequestPacketDescriptionAsStringFromPacket(DomainName, QueryType, Buffer, BufferLen, THitLogger.GetFullDump));
+
+            Exit;
+
+          end else if TDnsOverHttpsCache.FindIPv6Item(DomainName, IPv6Address) then begin
+
+            TDnsProtocolUtility.BuildPositiveHttpsResponsePacket(DomainName, QueryType, Output, OutputLen);
+
+            TDnsProtocolUtility.SetIdIntoPacket(OriginalSessionId, Output); ServerCommunicationChannel.Send(Output, OutputLen);
+
+            if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.HandleDnsRequestForIPv4Tcp: Response ID ' + FormatCurr('00000', OriginalSessionId) + ' sent to client ' + TIPv4AddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' using dns over https cache [' + TDnsProtocolUtility.PrintResponsePacketDescriptionAsStringFromPacket(Output, OutputLen, True) + '].');
+
+            if THitLogger.IsEnabled and (Pos('X', THitLogger.GetFileWhat) > 0) then THitLogger.AddIPv4Hit(ArrivalTime, Address, 'X', '', '', TDnsProtocolUtility.PrintRequestPacketDescriptionAsStringFromPacket(DomainName, QueryType, Buffer, BufferLen, THitLogger.GetFullDump));
+
+            Exit;
+
+          end else if THostsCache.FindFWItem(DomainName) then begin
+
+            // Don't do anything, let the execution flow...
+
+          end else if THostsCache.FindNXItem(DomainName) then begin
+
+            TDnsProtocolUtility.BuildNegativeResponsePacket(DomainName, QueryType, Output, OutputLen);
+
+            TDnsProtocolUtility.SetIdIntoPacket(OriginalSessionId, Output); ServerCommunicationChannel.Send(Output, OutputLen);
+
+            if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.HandleDnsRequestForIPv4Tcp: Response ID ' + FormatCurr('00000', OriginalSessionId) + ' sent to client ' + TIPv4AddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' using hosts cache [' + TDnsProtocolUtility.PrintResponsePacketDescriptionAsStringFromPacket(Output, OutputLen, True) + '].');
+
+            if THitLogger.IsEnabled and (Pos('H', THitLogger.GetFileWhat) > 0) then THitLogger.AddIPv4Hit(ArrivalTime, Address, 'H', '', '', TDnsProtocolUtility.PrintRequestPacketDescriptionAsStringFromPacket(DomainName, QueryType, Buffer, BufferLen, THitLogger.GetFullDump));
+
+            Exit;
+
+          end else if THostsCache.FindIPv4Item(DomainName, IPv4Address) then begin
+
+            TDnsProtocolUtility.BuildPositiveHttpsResponsePacket(DomainName, QueryType, Output, OutputLen);
+
+            TDnsProtocolUtility.SetIdIntoPacket(OriginalSessionId, Output); ServerCommunicationChannel.Send(Output, OutputLen);
+
+            if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.HandleDnsRequestForIPv4Tcp: Response ID ' + FormatCurr('00000', OriginalSessionId) + ' sent to client ' + TIPv4AddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' using hosts cache [' + TDnsProtocolUtility.PrintResponsePacketDescriptionAsStringFromPacket(Output, OutputLen, True) + '].');
+
+            if THitLogger.IsEnabled and (Pos('H', THitLogger.GetFileWhat) > 0) then THitLogger.AddIPv4Hit(ArrivalTime, Address, 'H', '', '', TDnsProtocolUtility.PrintRequestPacketDescriptionAsStringFromPacket(DomainName, QueryType, Buffer, BufferLen, THitLogger.GetFullDump));
+
+            Exit;
+
+          end else if THostsCache.FindIPv6Item(DomainName, IPv6Address) then begin
+
+            TDnsProtocolUtility.BuildPositiveHttpsResponsePacket(DomainName, QueryType, Output, OutputLen);
+
+            TDnsProtocolUtility.SetIdIntoPacket(OriginalSessionId, Output); ServerCommunicationChannel.Send(Output, OutputLen);
+
+            if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.HandleDnsRequestForIPv4Tcp: Response ID ' + FormatCurr('00000', OriginalSessionId) + ' sent to client ' + TIPv4AddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' using hosts cache [' + TDnsProtocolUtility.PrintResponsePacketDescriptionAsStringFromPacket(Output, OutputLen, True) + '].');
+
+            if THitLogger.IsEnabled and (Pos('H', THitLogger.GetFileWhat) > 0) then THitLogger.AddIPv4Hit(ArrivalTime, Address, 'H', '', '', TDnsProtocolUtility.PrintRequestPacketDescriptionAsStringFromPacket(DomainName, QueryType, Buffer, BufferLen, THitLogger.GetFullDump));
+
+            Exit;
+
+          end;
+
         end else if (QueryType = DNS_QUERY_TYPE_PTR) then begin
+
+          if not(TConfiguration.GetForwardPrivateReverseLookups) and TDnsProtocolUtility.IsPrivateReverseLookup(DomainName) then begin
+
+            TDnsProtocolUtility.BuildNegativeResponsePacket(DomainName, QueryType, Output, OutputLen);
+
+            TDnsProtocolUtility.SetIdIntoPacket(OriginalSessionId, Output); ServerCommunicationChannel.Send(Output, OutputLen);
+
+            if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.HandleDnsRequestForIPv4Tcp: Response ID ' + FormatCurr('00000', OriginalSessionId) + ' sent to client ' + TIPv4AddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' directly from resolver [' + TDnsProtocolUtility.PrintResponsePacketDescriptionAsStringFromPacket(Output, OutputLen, True) + '].');
+
+            if THitLogger.IsEnabled and (Pos('X', THitLogger.GetFileWhat) > 0) then THitLogger.AddIPv4Hit(ArrivalTime, Address, 'X', '', '', TDnsProtocolUtility.PrintRequestPacketDescriptionAsStringFromPacket(DomainName, QueryType, Buffer, BufferLen, THitLogger.GetFullDump));
+
+            Exit;
+
+          end;
+
+        end else if (QueryType = DNS_QUERY_TYPE_ANY) then begin
 
           if not(TConfiguration.GetForwardPrivateReverseLookups) and TDnsProtocolUtility.IsPrivateReverseLookup(DomainName) then begin
 
@@ -1493,7 +1661,91 @@ begin
 
           end;
 
+        end else if (QueryType = DNS_QUERY_TYPE_HTTPS) then begin
+
+          if TDnsOverHttpsCache.FindIPv6Item(DomainName, IPv6Address) then begin
+
+            TDnsProtocolUtility.BuildPositiveHttpsResponsePacket(DomainName, QueryType, Output, OutputLen);
+
+            TDnsProtocolUtility.SetIdIntoPacket(OriginalSessionId, Output); ServerCommunicationChannel.Send(Output, OutputLen, Address, Port);
+
+            if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.HandleDnsRequestForIPv6Udp: Response ID ' + FormatCurr('00000', OriginalSessionId) + ' sent to client ' + TIPv6AddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' using dns over https cache [' + TDnsProtocolUtility.PrintResponsePacketDescriptionAsStringFromPacket(Output, OutputLen, True) + '].');
+
+            if THitLogger.IsEnabled and (Pos('X', THitLogger.GetFileWhat) > 0) then THitLogger.AddIPv6Hit(ArrivalTime, Address, 'X', '', '', TDnsProtocolUtility.PrintRequestPacketDescriptionAsStringFromPacket(DomainName, QueryType, Buffer, BufferLen, THitLogger.GetFullDump));
+
+            Exit;
+
+          end else if TDnsOverHttpsCache.FindIPv4Item(DomainName, IPv4Address) then begin
+
+            TDnsProtocolUtility.BuildPositiveHttpsResponsePacket(DomainName, QueryType, Output, OutputLen);
+
+            TDnsProtocolUtility.SetIdIntoPacket(OriginalSessionId, Output); ServerCommunicationChannel.Send(Output, OutputLen, Address, Port);
+
+            if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.HandleDnsRequestForIPv6Udp: Response ID ' + FormatCurr('00000', OriginalSessionId) + ' sent to client ' + TIPv6AddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' using dns over https cache [' + TDnsProtocolUtility.PrintResponsePacketDescriptionAsStringFromPacket(Output, OutputLen, True) + '].');
+
+            if THitLogger.IsEnabled and (Pos('X', THitLogger.GetFileWhat) > 0) then THitLogger.AddIPv6Hit(ArrivalTime, Address, 'X', '', '', TDnsProtocolUtility.PrintRequestPacketDescriptionAsStringFromPacket(DomainName, QueryType, Buffer, BufferLen, THitLogger.GetFullDump));
+
+            Exit;
+
+          end else if THostsCache.FindFWItem(DomainName) then begin
+
+            // Don't do anything, let the execution flow...
+
+          end else if THostsCache.FindNXItem(DomainName) then begin
+
+            TDnsProtocolUtility.BuildNegativeResponsePacket(DomainName, QueryType, Output, OutputLen);
+
+            TDnsProtocolUtility.SetIdIntoPacket(OriginalSessionId, Output); ServerCommunicationChannel.Send(Output, OutputLen, Address, Port);
+
+            if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.HandleDnsRequestForIPv6Udp: Response ID ' + FormatCurr('00000', OriginalSessionId) + ' sent to client ' + TIPv6AddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' using hosts cache [' + TDnsProtocolUtility.PrintResponsePacketDescriptionAsStringFromPacket(Output, OutputLen, True) + '].');
+
+            if THitLogger.IsEnabled and (Pos('H', THitLogger.GetFileWhat) > 0) then THitLogger.AddIPv6Hit(ArrivalTime, Address, 'H', '', '', TDnsProtocolUtility.PrintRequestPacketDescriptionAsStringFromPacket(DomainName, QueryType, Buffer, BufferLen, THitLogger.GetFullDump));
+
+            Exit;
+
+          end else if THostsCache.FindIPv6Item(DomainName, IPv6Address) then begin
+
+            TDnsProtocolUtility.BuildPositiveHttpsResponsePacket(DomainName, QueryType, Output, OutputLen);
+
+            TDnsProtocolUtility.SetIdIntoPacket(OriginalSessionId, Output); ServerCommunicationChannel.Send(Output, OutputLen, Address, Port);
+
+            if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.HandleDnsRequestForIPv6Udp: Response ID ' + FormatCurr('00000', OriginalSessionId) + ' sent to client ' + TIPv6AddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' using hosts cache [' + TDnsProtocolUtility.PrintResponsePacketDescriptionAsStringFromPacket(Output, OutputLen, True) + '].');
+
+            if THitLogger.IsEnabled and (Pos('H', THitLogger.GetFileWhat) > 0) then THitLogger.AddIPv6Hit(ArrivalTime, Address, 'H', '', '', TDnsProtocolUtility.PrintRequestPacketDescriptionAsStringFromPacket(DomainName, QueryType, Buffer, BufferLen, THitLogger.GetFullDump));
+
+            Exit;
+
+          end else if THostsCache.FindIPv4Item(DomainName, IPv4Address) then begin
+
+            TDnsProtocolUtility.BuildPositiveHttpsResponsePacket(DomainName, QueryType, Output, OutputLen);
+
+            TDnsProtocolUtility.SetIdIntoPacket(OriginalSessionId, Output); ServerCommunicationChannel.Send(Output, OutputLen, Address, Port);
+
+            if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.HandleDnsRequestForIPv6Udp: Response ID ' + FormatCurr('00000', OriginalSessionId) + ' sent to client ' + TIPv6AddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' using hosts cache [' + TDnsProtocolUtility.PrintResponsePacketDescriptionAsStringFromPacket(Output, OutputLen, True) + '].');
+
+            if THitLogger.IsEnabled and (Pos('H', THitLogger.GetFileWhat) > 0) then THitLogger.AddIPv6Hit(ArrivalTime, Address, 'H', '', '', TDnsProtocolUtility.PrintRequestPacketDescriptionAsStringFromPacket(DomainName, QueryType, Buffer, BufferLen, THitLogger.GetFullDump));
+
+            Exit;
+
+          end;
+
         end else if (QueryType = DNS_QUERY_TYPE_PTR) then begin
+
+          if not(TConfiguration.GetForwardPrivateReverseLookups) and TDnsProtocolUtility.IsPrivateReverseLookup(DomainName) then begin
+
+            TDnsProtocolUtility.BuildNegativeResponsePacket(DomainName, QueryType, Output, OutputLen);
+
+            TDnsProtocolUtility.SetIdIntoPacket(OriginalSessionId, Output); ServerCommunicationChannel.Send(Output, OutputLen, Address, Port);
+
+            if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.HandleDnsRequestForIPv6Udp: Response ID ' + FormatCurr('00000', OriginalSessionId) + ' sent to client ' + TIPv6AddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' directly from resolver [' + TDnsProtocolUtility.PrintResponsePacketDescriptionAsStringFromPacket(Output, OutputLen, True) + '].');
+
+            if THitLogger.IsEnabled and (Pos('X', THitLogger.GetFileWhat) > 0) then THitLogger.AddIPv6Hit(ArrivalTime, Address, 'X', '', '', TDnsProtocolUtility.PrintRequestPacketDescriptionAsStringFromPacket(DomainName, QueryType, Buffer, BufferLen, THitLogger.GetFullDump));
+
+            Exit;
+
+          end;
+
+        end else if (QueryType = DNS_QUERY_TYPE_ANY) then begin
 
           if not(TConfiguration.GetForwardPrivateReverseLookups) and TDnsProtocolUtility.IsPrivateReverseLookup(DomainName) then begin
 
@@ -1936,7 +2188,91 @@ begin
 
           end;
 
+        end else if (QueryType = DNS_QUERY_TYPE_HTTPS) then begin
+
+          if TDnsOverHttpsCache.FindIPv6Item(DomainName, IPv6Address) then begin
+
+            TDnsProtocolUtility.BuildPositiveHttpsResponsePacket(DomainName, QueryType, Output, OutputLen);
+
+            TDnsProtocolUtility.SetIdIntoPacket(OriginalSessionId, Output); ServerCommunicationChannel.Send(Output, OutputLen);
+
+            if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.HandleDnsRequestForIPv6Tcp: Response ID ' + FormatCurr('00000', OriginalSessionId) + ' sent to client ' + TIPv6AddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' using dns over https cache [' + TDnsProtocolUtility.PrintResponsePacketDescriptionAsStringFromPacket(Output, OutputLen, True) + '].');
+
+            if THitLogger.IsEnabled and (Pos('X', THitLogger.GetFileWhat) > 0) then THitLogger.AddIPv6Hit(ArrivalTime, Address, 'X', '', '', TDnsProtocolUtility.PrintRequestPacketDescriptionAsStringFromPacket(DomainName, QueryType, Buffer, BufferLen, THitLogger.GetFullDump));
+
+            Exit;
+
+          end else if TDnsOverHttpsCache.FindIPv4Item(DomainName, IPv4Address) then begin
+
+            TDnsProtocolUtility.BuildPositiveHttpsResponsePacket(DomainName, QueryType, Output, OutputLen);
+
+            TDnsProtocolUtility.SetIdIntoPacket(OriginalSessionId, Output); ServerCommunicationChannel.Send(Output, OutputLen);
+
+            if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.HandleDnsRequestForIPv6Tcp: Response ID ' + FormatCurr('00000', OriginalSessionId) + ' sent to client ' + TIPv6AddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' using dns over https cache [' + TDnsProtocolUtility.PrintResponsePacketDescriptionAsStringFromPacket(Output, OutputLen, True) + '].');
+
+            if THitLogger.IsEnabled and (Pos('X', THitLogger.GetFileWhat) > 0) then THitLogger.AddIPv6Hit(ArrivalTime, Address, 'X', '', '', TDnsProtocolUtility.PrintRequestPacketDescriptionAsStringFromPacket(DomainName, QueryType, Buffer, BufferLen, THitLogger.GetFullDump));
+
+            Exit;
+
+          end else if THostsCache.FindFWItem(DomainName) then begin
+
+            // Don't do anything, let the execution flow...
+
+          end else if THostsCache.FindNXItem(DomainName) then begin
+
+            TDnsProtocolUtility.BuildNegativeResponsePacket(DomainName, QueryType, Output, OutputLen);
+
+            TDnsProtocolUtility.SetIdIntoPacket(OriginalSessionId, Output); ServerCommunicationChannel.Send(Output, OutputLen);
+
+            if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.HandleDnsRequestForIPv6Tcp: Response ID ' + FormatCurr('00000', OriginalSessionId) + ' sent to client ' + TIPv6AddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' using hosts cache [' + TDnsProtocolUtility.PrintResponsePacketDescriptionAsStringFromPacket(Output, OutputLen, True) + '].');
+
+            if THitLogger.IsEnabled and (Pos('H', THitLogger.GetFileWhat) > 0) then THitLogger.AddIPv6Hit(ArrivalTime, Address, 'H', '', '', TDnsProtocolUtility.PrintRequestPacketDescriptionAsStringFromPacket(DomainName, QueryType, Buffer, BufferLen, THitLogger.GetFullDump));
+
+            Exit;
+
+          end else if THostsCache.FindIPv6Item(DomainName, IPv6Address) then begin
+
+            TDnsProtocolUtility.BuildPositiveHttpsResponsePacket(DomainName, QueryType, Output, OutputLen);
+
+            TDnsProtocolUtility.SetIdIntoPacket(OriginalSessionId, Output); ServerCommunicationChannel.Send(Output, OutputLen);
+
+            if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.HandleDnsRequestForIPv6Tcp: Response ID ' + FormatCurr('00000', OriginalSessionId) + ' sent to client ' + TIPv6AddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' using hosts cache [' + TDnsProtocolUtility.PrintResponsePacketDescriptionAsStringFromPacket(Output, OutputLen, True) + '].');
+
+            if THitLogger.IsEnabled and (Pos('H', THitLogger.GetFileWhat) > 0) then THitLogger.AddIPv6Hit(ArrivalTime, Address, 'H', '', '', TDnsProtocolUtility.PrintRequestPacketDescriptionAsStringFromPacket(DomainName, QueryType, Buffer, BufferLen, THitLogger.GetFullDump));
+
+            Exit;
+
+          end else if THostsCache.FindIPv4Item(DomainName, IPv4Address) then begin
+
+            TDnsProtocolUtility.BuildPositiveHttpsResponsePacket(DomainName, QueryType, Output, OutputLen);
+
+            TDnsProtocolUtility.SetIdIntoPacket(OriginalSessionId, Output); ServerCommunicationChannel.Send(Output, OutputLen);
+
+            if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.HandleDnsRequestForIPv6Tcp: Response ID ' + FormatCurr('00000', OriginalSessionId) + ' sent to client ' + TIPv6AddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' using hosts cache [' + TDnsProtocolUtility.PrintResponsePacketDescriptionAsStringFromPacket(Output, OutputLen, True) + '].');
+
+            if THitLogger.IsEnabled and (Pos('H', THitLogger.GetFileWhat) > 0) then THitLogger.AddIPv6Hit(ArrivalTime, Address, 'H', '', '', TDnsProtocolUtility.PrintRequestPacketDescriptionAsStringFromPacket(DomainName, QueryType, Buffer, BufferLen, THitLogger.GetFullDump));
+
+            Exit;
+
+          end;
+
         end else if (QueryType = DNS_QUERY_TYPE_PTR) then begin
+
+          if not(TConfiguration.GetForwardPrivateReverseLookups) and TDnsProtocolUtility.IsPrivateReverseLookup(DomainName) then begin
+
+            TDnsProtocolUtility.BuildNegativeResponsePacket(DomainName, QueryType, Output, OutputLen);
+
+            TDnsProtocolUtility.SetIdIntoPacket(OriginalSessionId, Output); ServerCommunicationChannel.Send(Output, OutputLen);
+
+            if TTracer.IsEnabled then TTracer.Trace(TracePriorityInfo, 'TDnsResolver.HandleDnsRequestForIPv6Tcp: Response ID ' + FormatCurr('00000', OriginalSessionId) + ' sent to client ' + TIPv6AddressUtility.ToString(Address) + ':' + IntToStr(Port) + ' directly from resolver [' + TDnsProtocolUtility.PrintResponsePacketDescriptionAsStringFromPacket(Output, OutputLen, True) + '].');
+
+            if THitLogger.IsEnabled and (Pos('X', THitLogger.GetFileWhat) > 0) then THitLogger.AddIPv6Hit(ArrivalTime, Address, 'X', '', '', TDnsProtocolUtility.PrintRequestPacketDescriptionAsStringFromPacket(DomainName, QueryType, Buffer, BufferLen, THitLogger.GetFullDump));
+
+            Exit;
+
+          end;
+
+        end else if (QueryType = DNS_QUERY_TYPE_ANY) then begin
 
           if not(TConfiguration.GetForwardPrivateReverseLookups) and TDnsProtocolUtility.IsPrivateReverseLookup(DomainName) then begin
 

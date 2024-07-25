@@ -24,7 +24,7 @@ uses
 
 const
   MIN_DNS_PACKET_LEN = 16;
-  MAX_DNS_PACKET_LEN = 8192;
+  MAX_DNS_PACKET_LEN = 16384;
   MAX_DNS_BUFFER_LEN = 65536;
 
 // --------------------------------------------------------------------------
@@ -41,6 +41,8 @@ const
   DNS_QUERY_TYPE_TXT        = $0010;
   DNS_QUERY_TYPE_AAAA       = $001C;
   DNS_QUERY_TYPE_SRV        = $0021;
+  DNS_QUERY_TYPE_HTTPS      = $0041;
+  DNS_QUERY_TYPE_ANY        = $00FF;
 
 // --------------------------------------------------------------------------
 //
@@ -87,6 +89,7 @@ type
       class procedure BuildPositiveNullResponsePacket(const DomainName: String; QueryType: Word; Buffer: Pointer; var BufferLen: Integer); overload;
       class procedure BuildPositiveIPv4ResponsePacket(const DomainName: String; QueryType: Word; HostAddress: TIPv4Address; TimeToLive: Integer; Buffer: Pointer; var BufferLen: Integer);
       class procedure BuildPositiveIPv6ResponsePacket(const DomainName: String; QueryType: Word; HostAddress: TIPv6Address; TimeToLive: Integer; Buffer: Pointer; var BufferLen: Integer);
+      class procedure BuildPositiveHttpsResponsePacket(const DomainName: String; QueryType: Word; Buffer: Pointer; var BufferLen: Integer);
     public
       class function  PrintGenericPacketBytesAsStringFromPacket(Buffer: Pointer; BufferLen: Integer): String;
       class function  PrintGenericPacketBytesAsStringFromPacketWithOffset(Buffer: Pointer; BufferLen: Integer; Offset: Integer; NumBytes: Integer): String;
@@ -157,7 +160,9 @@ begin
 
        if (Text = 'A'    ) then Result := DNS_QUERY_TYPE_A
   else if (Text = 'AAAA' ) then Result := DNS_QUERY_TYPE_AAAA
+  else if (Text = 'ANY'  ) then Result := DNS_QUERY_TYPE_ANY
   else if (Text = 'CNAME') then Result := DNS_QUERY_TYPE_CNAME
+  else if (Text = 'HTTPS') then Result := DNS_QUERY_TYPE_HTTPS
   else if (Text = 'MX'   ) then Result := DNS_QUERY_TYPE_MX
   else if (Text = 'NS'   ) then Result := DNS_QUERY_TYPE_NS
   else if (Text = 'PTR'  ) then Result := DNS_QUERY_TYPE_PTR
@@ -179,7 +184,9 @@ begin
   case Value of
     DNS_QUERY_TYPE_A    : Result := 'A';
     DNS_QUERY_TYPE_AAAA : Result := 'AAAA';
+    DNS_QUERY_TYPE_ANY  : Result := 'ANY';
     DNS_QUERY_TYPE_CNAME: Result := 'CNAME';
+    DNS_QUERY_TYPE_HTTPS: Result := 'HTTPS';
     DNS_QUERY_TYPE_MX   : Result := 'MX';
     DNS_QUERY_TYPE_NS   : Result := 'NS';
     DNS_QUERY_TYPE_PTR  : Result := 'PTR';
@@ -624,6 +631,43 @@ begin
   PByteArray(Buffer)^[Offset] := $10; Inc(Offset);
 
   Move(HostAddress, PByteArray(Buffer)^[Offset], 16); Inc(Offset, 16);
+
+  BufferLen := Offset;
+
+end;
+
+// --------------------------------------------------------------------------
+//
+// --------------------------------------------------------------------------
+
+class procedure TDnsProtocolUtility.BuildPositiveHttpsResponsePacket(const DomainName: String; QueryType: Word; Buffer: Pointer; var BufferLen: Integer);
+
+var
+  Offset: Integer;
+
+begin
+
+  PByteArray(Buffer)^[$00] := $00;
+  PByteArray(Buffer)^[$01] := $00;
+  PByteArray(Buffer)^[$02] := $85;
+  PByteArray(Buffer)^[$03] := $80;
+  PByteArray(Buffer)^[$04] := $00;
+  PByteArray(Buffer)^[$05] := $01;
+  PByteArray(Buffer)^[$06] := $00;
+  PByteArray(Buffer)^[$07] := $00;
+  PByteArray(Buffer)^[$08] := $00;
+  PByteArray(Buffer)^[$09] := $00;
+  PByteArray(Buffer)^[$0A] := $00;
+  PByteArray(Buffer)^[$0B] := $00;
+
+  Offset := $0C;
+
+  TDnsProtocolUtility.SetStringIntoPacket(DomainName, Buffer, Offset, BufferLen);
+
+  PByteArray(Buffer)^[Offset] := QueryType shr $08; Inc(Offset);
+  PByteArray(Buffer)^[Offset] := QueryType and $FF; Inc(Offset);
+  PByteArray(Buffer)^[Offset] := $00; Inc(Offset);
+  PByteArray(Buffer)^[Offset] := $01; Inc(Offset);
 
   BufferLen := Offset;
 
