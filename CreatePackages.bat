@@ -1,6 +1,6 @@
 @Echo Off
 
-Set DestinationDirectory=%TEMP%\Acrylic-Latest
+Set DestinationDirectory=%1
 
 Echo CREATING DESTINATION DIRECTORY...
 
@@ -36,6 +36,6 @@ If %ErrorLevel% Neq 0 Echo FAILED! & Pause & Exit /b 0
 
 Echo PRINTING SHA256 FILE HASHES...
 
-CsRun GetFiles "/DirectoryPath=%DestinationDirectory%" | CsRun ForEachFileGetHash SHA256
+GetFiles "/DirectoryPath=%DestinationDirectory%" | ForEachFileGetHash SHA256
 
 Echo DONE SUCCESSFULLY.

@@ -284,10 +284,10 @@ begin
   TConfiguration_ForwardPrivateReverseLookups := False;
 
   TConfiguration_AddressCacheFailureTime := 0;
-  TConfiguration_AddressCacheNegativeTime := 10;
-  TConfiguration_AddressCacheScavengingTime := 2880;
+  TConfiguration_AddressCacheNegativeTime := 60;
+  TConfiguration_AddressCacheScavengingTime := 5760;
   TConfiguration_AddressCacheSilentUpdateTime := 1440;
-  TConfiguration_AddressCachePeriodicPruningTime := 240;
+  TConfiguration_AddressCachePeriodicPruningTime := 720;
   TConfiguration_AddressCacheDomainNameAffinityMask := nil;
   TConfiguration_AddressCacheQueryTypeAffinityMask := nil;
   TConfiguration_AddressCacheInMemoryOnly := False;
@@ -306,13 +306,13 @@ begin
 
   TConfiguration_GeneratedDnsResponseTimeToLive := 60;
 
-  TConfiguration_ServerUdpProtocolResponseTimeout := 4999;
-  TConfiguration_ServerTcpProtocolResponseTimeout := 4999;
-  TConfiguration_ServerTcpProtocolInternalTimeout := 2477;
-  TConfiguration_ServerSocks5ProtocolProxyFirstByteTimeout := 2477;
-  TConfiguration_ServerSocks5ProtocolProxyOtherBytesTimeout := 2477;
-  TConfiguration_ServerSocks5ProtocolProxyRemoteConnectTimeout := 2477;
-  TConfiguration_ServerSocks5ProtocolProxyRemoteResponseTimeout := 4999;
+  TConfiguration_ServerUdpProtocolResponseTimeout := 3989;
+  TConfiguration_ServerTcpProtocolResponseTimeout := 3989;
+  TConfiguration_ServerTcpProtocolInternalTimeout := 3989;
+  TConfiguration_ServerSocks5ProtocolProxyFirstByteTimeout := 3989;
+  TConfiguration_ServerSocks5ProtocolProxyOtherBytesTimeout := 3989;
+  TConfiguration_ServerSocks5ProtocolProxyRemoteConnectTimeout := 3989;
+  TConfiguration_ServerSocks5ProtocolProxyRemoteResponseTimeout := 3989;
 
   TConfiguration_HitLogFileName := '';
   TConfiguration_HitLogFileWhat := '';

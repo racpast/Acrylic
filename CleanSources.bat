@@ -28,13 +28,13 @@ Del /q *.tmp >NUL 2>NUL
 
 ECHO CLEANING CODE FILES...
 
-CsRun GetFiles "/Grep=/(.dpr|.pas)$/" /Recurse | Call ForEachFileConvertTextToWindowsNewlinesTab2Spaces.bat
+GetFiles "/Include=/(.dpr|.pas)$/" /Recurse | Call ForEachFileConvertTextToWindowsNewlinesTab2Spaces.bat
 
 ECHO CLEANING TEXT FILES...
 
-CsRun ConvertFromTextToWrappedText 120 < ReadMe.Template.txt > ReadMe.txt
+ConvertFromTextToWrappedText 120 < ReadMe.Template.txt > ReadMe.txt
 
-CsRun ConvertFromTextToWrappedText 120 "; " < AcrylicConfiguration.Template.ini > AcrylicConfiguration.ini
-CsRun ConvertFromTextToWrappedText 120 "# " < AcrylicHosts.Template.txt > AcrylicHosts.txt
+ConvertFromTextToWrappedText 120 "; " < AcrylicConfiguration.Template.ini > AcrylicConfiguration.ini
+ConvertFromTextToWrappedText 120 "# " < AcrylicHosts.Template.txt > AcrylicHosts.txt
 
-CsRun ConvertFromTextToWrappedText 80 < License.Template.txt > License.txt
+ConvertFromTextToWrappedText 80 < License.Template.txt > License.txt

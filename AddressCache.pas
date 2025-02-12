@@ -864,49 +864,53 @@ var
 
 begin
 
-  ToKeep := False;
+  if (AddressCacheHashTreeItem^.Data <> nil) then begin
 
-  AddressCacheItem := AddressCacheHashTreeItem^.Data;
+    ToKeep := False;
 
-  AddressCacheItemOptionsResponseType := AddressCacheItem^.Options and AddressCacheItemOptionsResponseTypeBitMask;
+    AddressCacheItem := AddressCacheHashTreeItem^.Data;
 
-  if (AddressCacheItemOptionsResponseType = AddressCacheItemOptionsResponseTypeIsPositive) then begin
+    AddressCacheItemOptionsResponseType := AddressCacheItem^.Options and AddressCacheItemOptionsResponseTypeBitMask;
 
-    if (AddressCacheItem^.TimeStamp > ScavengingTimeStamp) then begin
+    if (AddressCacheItemOptionsResponseType = AddressCacheItemOptionsResponseTypeIsPositive) then begin
 
-      ToKeep := True;
+      if (AddressCacheItem^.TimeStamp > ScavengingTimeStamp) then begin
+
+        ToKeep := True;
+
+      end;
+
+    end else if (AddressCacheItemOptionsResponseType = AddressCacheItemOptionsResponseTypeIsNegative) then begin
+
+      if (AddressCacheItem^.TimeStamp > NegativeTimeStamp) then begin
+
+        ToKeep := True;
+
+      end;
+
+    end else if (AddressCacheItemOptionsResponseType = AddressCacheItemOptionsResponseTypeIsFailure) then begin
+
+      if (AddressCacheItem^.TimeStamp > FailureTimeStamp) then begin
+
+        ToKeep := True;
+
+      end;
 
     end;
 
-  end else if (AddressCacheItemOptionsResponseType = AddressCacheItemOptionsResponseTypeIsNegative) then begin
+    if ToKeep then begin
 
-    if (AddressCacheItem^.TimeStamp > NegativeTimeStamp) then begin
+      if not(FileStream.Write(AddressCacheHashTreeItem^.Hash, SizeOf(TMD5Digest))) then raise Exception.Create('Saving of the Hash field failed.');
 
-      ToKeep := True;
+      if not(FileStream.Write(AddressCacheItem^.Options, SizeOf(Byte))) then raise Exception.Create('Saving of the Options field failed.');
 
-    end;
+      if not(FileStream.Write(AddressCacheItem^.TimeStamp, SizeOf(Integer))) then raise Exception.Create('Saving of the TimeStamp field failed.');
 
-  end else if (AddressCacheItemOptionsResponseType = AddressCacheItemOptionsResponseTypeIsFailure) then begin
+      if not(FileStream.Write(AddressCacheItem^.ResponseLen, SizeOf(Integer))) then raise Exception.Create('Saving of the ResponseLen field failed.');
 
-    if (AddressCacheItem^.TimeStamp > FailureTimeStamp) then begin
-
-      ToKeep := True;
+      if not(FileStream.Write(AddressCacheItem^.Response^, AddressCacheItem^.ResponseLen)) then raise Exception.Create('Saving of the Response field failed.');
 
     end;
-
-  end;
-
-  if ToKeep then begin
-
-    if not(FileStream.Write(AddressCacheHashTreeItem^.Hash, SizeOf(TMD5Digest))) then raise Exception.Create('Saving of the Hash field failed.');
-
-    if not(FileStream.Write(AddressCacheItem^.Options, SizeOf(Byte))) then raise Exception.Create('Saving of the Options field failed.');
-
-    if not(FileStream.Write(AddressCacheItem^.TimeStamp, SizeOf(Integer))) then raise Exception.Create('Saving of the TimeStamp field failed.');
-
-    if not(FileStream.Write(AddressCacheItem^.ResponseLen, SizeOf(Integer))) then raise Exception.Create('Saving of the ResponseLen field failed.');
-
-    if not(FileStream.Write(AddressCacheItem^.Response^, AddressCacheItem^.ResponseLen)) then raise Exception.Create('Saving of the Response field failed.');
 
   end;
 
